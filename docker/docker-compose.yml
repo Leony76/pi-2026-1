@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  postgres-master:
+    image: postgres:15
+    container_name: postgres-master
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+
+  postgres-slave:
+    image: postgres:15
+    container_name: postgres-slave
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+  
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  api:
+    build: ../backend
+    container_name: api
+    depends_on:
+      - postgres-master
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`localhost`)"
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres-master:5432/app"
