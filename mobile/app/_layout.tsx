@@ -5,7 +5,7 @@ export default function RootLayout() {
   return (
     <Stack 
     screenOptions={{ headerShown: false }}
-    initialRouteName="login"
+    initialRouteName="index"
     >
       <Stack.Screen 
         name="register" 
@@ -13,7 +13,7 @@ export default function RootLayout() {
       />
 
       <Stack.Screen 
-        name="login" 
+        name="index" 
         options={{ title: 'Entrar' }} 
       />
 
