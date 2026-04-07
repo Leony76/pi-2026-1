@@ -5,7 +5,13 @@ import Icon from '../ui/Icon';
 
 type Props = {
   onTouch : () => void;
-  icon?   : IconName;
+  icon?   : {
+    name : IconName;
+    size?: {
+      width  : number;
+      height : number;
+    };
+  };
   filled? : boolean;
   label   : string;
   customStyle? : {
@@ -19,12 +25,16 @@ const Default = (props:Props) => {
     <TouchableOpacity
     onPress={props.onTouch}
     activeOpacity={0.85}
-    className={`flex-row justify-center gap-2 rounded-xl py-4 items-center ${props.filled ? 'bg-medroom-primary' : 'bg-[#1aafb410] shadow-[0px_0px_4px_var(--medroom-primary-color)]'}  ${props.customStyle?.container ?? ''}`}
+    className={`flex-row justify-center gap-2 rounded-xl py-4 items-center ${props.filled ? 'bg-medroom-primary' : 'bg-[#1aafb408] shadow-[0px_0px_4px_var(--medroom-primary-color)]'}  ${props.customStyle?.container ?? ''}`}
     >
-      { props.icon && 
+      { !!props.icon && 
         <Icon 
-          name={props.icon}
+          name={props.icon.name}
           color={props.filled ? 'white' : 'var(--medroom-primary-color)'}
+          sizes={{ 
+            width: props.icon.size?.width    || 24, 
+            height: props.icon.size?.height  || 24, 
+          }}
         /> 
       }
       

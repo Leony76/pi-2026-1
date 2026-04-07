@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import { View, TextInput, Text, KeyboardTypeOptions, Pressable } from 'react-native'
 import Icon from '../ui/Icon'
 import { IconName } from 'root/assets/icons';
+import { InputType } from '@/types/input.type';
 
 type Props = {
   label           : string;
   value           : string;
-  type            : 'PASSWORD' | 'TEXT';
+  type            : InputType;
   autoCorrect?    : boolean;
   keyboardType?   : KeyboardTypeOptions; 
   autoCapitalize? : "none" | "sentences" | "words" | "characters";

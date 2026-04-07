@@ -1,26 +1,33 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, ScrollView, StatusBar } from "react-native";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { Link } from "expo-router";
-
-// ─── Tela de Login Principal ─────────────────────────────────────────────────
+import { useForm, Controller, useFormState } from "react-hook-form";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { LoginFormData, loginSchema } from "@/schemas/login.schema";
 
 const Login = () => {
-  
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
 
-  const handleLogin = () => {
-    // Lógica de login aqui
-    console.log("Entrar com:", email, senha);
-    try {
+  const { 
+    control, 
+    handleSubmit, 
+  } = useForm<LoginFormData>({
+    mode: 'onSubmit', 
+    reValidateMode: 'onChange',
+    shouldUnregister: false,
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email    : '',
+      password : '',
+    } 
+  });
 
-    } catch (error:unknown) {
-      if (error instanceof Error)
-      console.log(error.message);
-    }
+  const { errors } = useFormState({ control });
+
+  const handleLogin = (data: LoginFormData) => {
+    console.log("Dados prontos para API:", data);
   };
 
   return (
@@ -32,7 +39,6 @@ const Login = () => {
 
       <View className="flex-1 bg-white px-8 pt-16 pb-10 gap-5">
 
-        {/* ── Logo e título ─────────────────────── */}
         <View className="items-center">
           <Icon
             name="medRoom_logo"
@@ -40,7 +46,6 @@ const Login = () => {
           />
         </View>
 
-        {/* ── Cabeçalho Entrar ──────────────────── */}
         <View className="flex-row items-center gap-3 justify-center">
           <Icon
             name="signin"
@@ -50,49 +55,55 @@ const Login = () => {
           <Text className="text-4xl font-bold mb-1 font-nunito text-medroom-primary">
             Entrar
           </Text>
-        </View>
+        </View>   
 
-        {/* ── Campo Email ───────────────────────── */}
-        
-        <Input.Style1
-          label="E-mail"
-          type="TEXT"
-          autoCorrect
-          onChange={(email):void => setEmail(email)}
-          placeholder={{ text: 'exemplo@gmail.com' }}
-          value={email}      
-          icon={{
-            name: 'mail',
-          }}
-        />
+        <View>
+          <Controller
+            control={control}
+            name={'email'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'E-mail'}
+                type={'TEXT'}
+                onBlur={onBlur}
+                value={value}
+                placeholder={{ text: 'exemplo@email.com' }}
+                icon={{ name: 'mail' }}
+                onChange={onChange}
+              />
+            )}
+          />
 
-        {/* ── Campo Senha ───────────────────────── */}
-        
-        <Input.Style1
-          label="Senha"
-          type="PASSWORD"
-          onChange={(senha):void => setSenha(senha)}
-          placeholder={{ text: '*******' }}
-          value={senha}      
-          icon={{
-            name: 'lock',
-            size: {
-              width: 20,
-              height: 24,
-            }
-          }}
-        />
+          {errors.email?.message && <Input.Error error={errors.email.message as string}/> }
+        </View> 
 
-        {/* ── Botão Entrar ──────────────────────── */}
+        <View>
+          <Controller
+            control={control}
+            name={'password'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'Senha'}
+                type={'PASSWORD'}
+                onBlur={onBlur}
+                value={value}
+                placeholder={{ text: '********' }}
+                icon={{ name: 'lock' }}
+                onChange={onChange}
+              />
+            )}
+          />
+
+          {errors.email?.message && <Input.Error error={errors.email.message as string}/> }
+        </View>   
 
         <Button.Default
-          onTouch={() => handleLogin()}
+          onTouch={handleSubmit(handleLogin)}
           label="Entrar"
-          icon="signin"
           filled
+          icon={{ name: 'signin' }}
         />
 
-        {/* ── Links inferiores ──────────────────── */}
         <View className="items-center gap-y-3">
           <View className="flex-row gap-1">
             <Text className="font-nunito text-medroom-secondary">
@@ -101,9 +112,7 @@ const Login = () => {
 
             <Link
             href={'/register'}
-            className="font-nunito-bold underline font-medium"
-            style={{ color: "#1AAFB4" }}
-            onPress={() => console.log("Ir para cadastro")}
+            className="font-nunito-bold underline font-medium text-medroom-primary"
             >
               Cadastre-se!
             </Link>
@@ -116,7 +125,6 @@ const Login = () => {
           <Link
           href={'/forgotPassword'}
           className="font-nunito-bold text-sm underline text-medroom-primary"
-          onPress={() => console.log("Recuperar senha")}
           >
             Esqueceu sua senha?
           </Link>

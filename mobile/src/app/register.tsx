@@ -1,29 +1,39 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, StatusBar } from "react-native";
+import React from "react";
+import { Link } from "expo-router";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
-import { Link } from "expo-router";
+import { Select } from "@/components/select";
+import { View, Text, ScrollView, StatusBar } from "react-native";
+import { Controller, useForm, useFormState } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { RegisterFormData, registerSchema } from '@/schemas/register.schema';
 
-;
 const Register = () => {
   
-  const [name, setName] = useState("");
-  const [specialty, setSpecialty] = useState("");
-  const [crmCrp, setCrmCrp] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [repeatPassword, setRepeatPassword] = useState("");
+  const {
+    control,
+    handleSubmit,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onSubmit', 
+    reValidateMode: 'onChange',
+    shouldUnregister: false,
+    defaultValues: {
+      name           : '',
+      specialty      : '',
+      crmCrp         : '',
+      email          : '',
+      password       : '',
+      repeatPassword : '',
+    }
+  })
+
+  const { errors } = useFormState({ control });
 
   const handleRegister = () => {
-    console.log("Entrar com:", email, senha);
-    try {
 
-    } catch (error:unknown) {
-      if (error instanceof Error)
-      console.log(error.message);
-    }
-  };
+  }
 
   return (
     <ScrollView
@@ -43,103 +53,172 @@ const Register = () => {
 
         <View className="flex-row items-center gap-3 justify-center">
           <Icon
-            name="signin"
-            sizes={{ height: 32, width: 24 }}
+            name="register"
+            sizes={{ height: 32, width: 32 }}
           />
 
           <Text className="text-4xl font-bold mb-1 font-nunito text-medroom-primary">
             Cadastro
           </Text>
+        </View>   
+
+        <View>
+          <Controller
+            control={control}
+            name={'name'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'Nome completo'}
+                type={'TEXT'}
+                autoCorrect
+                placeholder={{ text: 'Leon S. Kennedy' }}
+                onBlur={onBlur}
+                value={value}      
+                onChange={onChange}
+                icon={{
+                  name : 'tag',
+                }}
+              />          
+            )}
+          />
+
+          { errors.name?.message && <Input.Error error={errors.name?.message as string}/> }
         </View>
-        
-        <Input.Style1
-          label="Nome completo"
-          type="TEXT"
-          autoCorrect
-          onChange={(email):void => setName(email)}
-          placeholder={{ text: 'Exemplo e nome' }}
-          value={name}      
-          icon={{
-            name : 'tag',
-          }}
-        />
 
-        <Input.Style1
-          label="E-mail"
-          type="TEXT"
-          autoCorrect
-          onChange={(email):void => setEmail(email)}
-          placeholder={{ text: 'exemplo@gmail.com' }}
-          value={email}      
-          icon={{
-            name : 'mail',
-          }}
-        />
-        
-        <Input.Style1
-          label="Senha"
-          type="PASSWORD"
-          onChange={(senha):void => setSenha(senha)}
-          placeholder={{ text: '*******' }}
-          value={senha}      
-          icon={{
-            name: 'lock',
-            size: {
-              width: 20,
-              height: 24,
-            }
-          }}
-        />
+        <View>
+          <Controller
+            control={control}
+            name={'specialty'}
+            render={({ field: { onChange, onBlur } }) => (
+              <Select.Style1
+                icon={{ name: 'suitcase' }}
+                onBlur={onBlur}
+                label={'Especialidade'}
+                optionsMap={'SPECIALTY'}
+                onChange={onChange}
+              />  
+            )}
+          />
 
-        <Input.Style1
-          label="Senha"
-          type="PASSWORD"
-          onChange={(senha):void => setSenha(senha)}
-          placeholder={{ text: '*******' }}
-          value={senha}      
-          icon={{
-            name: 'lock',
-            size: {
-              width: 20,
-              height: 24,
-            }
-          }}
-        />
+          { errors.specialty?.message && <Input.Error error={errors.specialty?.message as string}/> }
+        </View>   
+
+        <View>
+          <Controller
+            control={control}
+            name={'crmCrp'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'CRM / CRP'}
+                type={'TEXT'}
+                autoCorrect
+                placeholder={{ text: 'XXXXX-XX' }}
+                onBlur={onBlur}
+                value={value}      
+                onChange={onChange}
+                icon={{
+                  name : 'paper_roll',
+                }}
+              />          
+            )}
+          />
+
+          { errors.crmCrp?.message && <Input.Error error={errors.crmCrp?.message as string}/> }
+        </View>   
+
+        <View>
+          <Controller
+            control={control}
+            name={'email'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'E-mail'}
+                type={'TEXT'}
+                autoCorrect
+                placeholder={{ text: 'exemplo@gmail.com' }}
+                onBlur={onBlur}
+                value={value}      
+                onChange={onChange}
+                icon={{
+                  name : 'mail',
+                }}
+              />          
+            )}
+          />
+
+          { errors.email?.message && <Input.Error error={errors.email?.message as string}/> }
+        </View>
+
+        <View>
+          <Controller
+            control={control}
+            name={'password'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'Senha'}
+                type={'PASSWORD'}
+                autoCorrect
+                placeholder={{ text: '********' }}
+                onBlur={onBlur}
+                value={value}      
+                onChange={onChange}
+                icon={{
+                  name : 'lock',
+                }}
+              />          
+            )}
+          />
+
+          { errors.password?.message && <Input.Error error={errors.password?.message as string}/> }
+        </View>   
+
+        <View>
+          <Controller
+            control={control}
+            name={'repeatPassword'}
+            render={({ field: { onChange, value, onBlur } }) => (
+              <Input.Style1
+                label={'Repetir senha'}
+                type={'PASSWORD'}
+                autoCorrect
+                placeholder={{ text: '********' }}
+                onBlur={onBlur}
+                value={value}      
+                onChange={onChange}
+                icon={{
+                  name : 'lock',
+                }}
+              />          
+            )}
+          />
+
+          { errors.repeatPassword?.message && <Input.Error error={errors.repeatPassword?.message as string}/> }
+        </View>   
 
         <Button.Default
-          onTouch={() => handleRegister()}
-          label="Entrar"
-          icon="signin"
+          onTouch={handleSubmit(handleRegister)}
+          label="Cadastrar"
           filled
+          icon={{
+            name: 'register',
+            size: { width: 20, height: 20 }
+          }}
         />
 
         <View className="items-center gap-y-3">
           <View className="flex-row gap-1">
             <Text className="font-nunito text-medroom-secondary">
-              Não tem uma conta?
+              Já tem uma conta ?
             </Text>
 
             <Link
-            href={'/register'}
-            className="font-nunito-bold underline font-medium"
-            style={{ color: "#1AAFB4" }}
-            onPress={() => console.log("Ir para cadastro")}
+            href={'/login'}
+            className="font-nunito-bold underline font-medium text-medroom-primary"
+            onPress={() => {}}
             >
-              Cadastre-se!
+              Entre!
             </Link>
           </View>
-
-          <Text className="font-nunito-bold text-sm italic text-medroom-secondary">
-            ou
-          </Text>
-
-          <Link
-          href={'/forgotPassword'}
-          className="font-nunito-bold text-sm underline text-medroom-primary"
-          onPress={() => console.log("Recuperar senha")}
-          >
-            Esqueceu sua senha?
-          </Link>
         </View>
       </View>
     </ScrollView>
