@@ -1,16 +1,19 @@
-import React from "react";
-import { Link } from "expo-router";
+import React, { useState } from "react";
+import { Link, router } from "expo-router";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { Select } from "@/components/select";
-import { View, Text } from "react-native";
+import { View, Text, Alert } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterFormData, registerSchema } from '@/schemas/register.schema';
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import { ApiError } from "@/services/api";
+import { registerWithEmail } from "@/services/auth";
 
 const Register = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const {
     control,
@@ -31,8 +34,27 @@ const Register = () => {
     }
   })
 
-  const handleRegister = () => {
+  const handleRegister = async (data: RegisterFormData) => {
+    if (isSubmitting) {
+      return;
+    }
 
+    try {
+      setIsSubmitting(true);
+      await registerWithEmail(data);
+
+      Alert.alert('Cadastro concluido', 'Sua conta foi criada com sucesso.');
+      router.replace('/login');
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Nao foi possivel concluir o cadastro. Tente novamente.';
+
+      Alert.alert('Erro no cadastro', message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -197,7 +219,7 @@ const Register = () => {
 
         <Button.Default
           onTouch={handleSubmit(handleRegister)}
-          label="Cadastrar"
+          label={isSubmitting ? "Cadastrando..." : "Cadastrar"}
           filled
           icon={{
             name: 'register',

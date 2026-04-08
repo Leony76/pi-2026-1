@@ -1,15 +1,18 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Alert } from "react-native";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginFormData, loginSchema } from "@/schemas/login.schema";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import { ApiError } from "@/services/api";
+import { loginWithEmail } from "@/services/auth";
 
 const Login = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { 
     control, 
@@ -26,8 +29,25 @@ const Login = () => {
     } 
   });
 
-  const handleLogin = (data: LoginFormData) => {
-    console.log("Dados prontos para API:", data);
+  const handleLogin = async (data: LoginFormData) => {
+    if (isSubmitting) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await loginWithEmail(data);
+      router.replace('/(authenticated)/dashboard');
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Nao foi possivel fazer login. Tente novamente.';
+
+      Alert.alert('Erro no login', message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,7 +115,7 @@ const Login = () => {
 
         <Button.Default
           onTouch={handleSubmit(handleLogin)}
-          label="Entrar"
+          label={isSubmitting ? "Entrando..." : "Entrar"}
           filled
           icon={{ name: 'signin' }}
         />
