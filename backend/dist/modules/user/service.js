@@ -5,8 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProfileById = getProfileById;
 const prisma_1 = __importDefault(require("../../lib/prisma"));
+const specialty_1 = require("../shared/specialty");
 async function getProfileById(userId) {
-    return prisma_1.default.user.findUnique({
+    const user = await prisma_1.default.user.findUnique({
         where: { id: userId },
         select: {
             id: true,
@@ -14,9 +15,17 @@ async function getProfileById(userId) {
             specialty: true,
             crmCrp: true,
             email: true,
+            emailVerifiedAt: true,
             createdAt: true,
             updatedAt: true,
         },
     });
+    if (!user) {
+        return null;
+    }
+    return {
+        ...user,
+        specialty: (0, specialty_1.normalizeSpecialty)(user.specialty),
+    };
 }
 //# sourceMappingURL=service.js.map

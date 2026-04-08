@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text } from "react-native";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
@@ -8,11 +8,22 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginFormData, loginSchema } from "@/schemas/login.schema";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import { ErrorModal } from "@/components/modal";
 import { ApiError } from "@/services/api";
 import { loginWithEmail } from "@/services/auth";
+import { useAuth } from "@/contexts/auth.context";
 
 const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const { token, signIn } = useAuth();
+
+  useEffect(() => {
+    if (token) {
+      router.replace('/(authenticated)/dashboard');
+    }
+  }, [token]);
 
   const { 
     control, 
@@ -36,15 +47,19 @@ const Login = () => {
 
     try {
       setIsSubmitting(true);
-      await loginWithEmail(data);
+      setSubmitError(null);
+      setShowErrorModal(false);
+      const result = await loginWithEmail(data);
+      await signIn(result.token, result.refreshToken || '');
       router.replace('/(authenticated)/dashboard');
     } catch (error) {
       const message =
         error instanceof ApiError
           ? error.message
-          : 'Nao foi possivel fazer login. Tente novamente.';
+          : 'Não foi possível fazer login. Tente novamente.';
 
-      Alert.alert('Erro no login', message);
+      setSubmitError(message);
+      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -146,6 +161,13 @@ const Login = () => {
           </Link>
         </View>
       </View>
+
+      <ErrorModal
+        visible={showErrorModal}
+        title="Erro no login"
+        message={submitError || 'Ocorreu um erro. Tente novamente.'}
+        onClose={() => setShowErrorModal(false)}
+      />
     </LayoutWrapper>
   );
 }

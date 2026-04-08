@@ -1,11 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 
-import { login, register } from "./service";
+import {
+	login,
+	logout,
+	refreshSession,
+	register,
+	requestEmailVerification,
+	requestPasswordReset,
+	resetPassword,
+	verifyEmail,
+} from "./service";
+import { sendSuccessResponse } from "../../lib/auth-response";
 
 export async function registerController(request: Request, response: Response, next: NextFunction): Promise<void> {
 	try {
 		const result = await register(request.body);
-		response.status(201).json(result);
+		sendSuccessResponse(response, 201, result);
 	} catch (error) {
 		next(error);
 	}
@@ -14,7 +24,61 @@ export async function registerController(request: Request, response: Response, n
 export async function loginController(request: Request, response: Response, next: NextFunction): Promise<void> {
 	try {
 		const result = await login(request.body);
-		response.status(200).json(result);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function refreshController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await refreshSession(request.body);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function logoutController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await logout(request.body);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function requestEmailVerificationController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await requestEmailVerification(request.body);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function verifyEmailController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await verifyEmail(request.body);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function requestPasswordResetController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await requestPasswordReset(request.body);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function resetPasswordController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await resetPassword(request.body);
+		sendSuccessResponse(response, 200, result);
 	} catch (error) {
 		next(error);
 	}
