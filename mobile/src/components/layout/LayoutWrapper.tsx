@@ -8,15 +8,15 @@ const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
 
   const insets = useSafeAreaInsets();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setIsLoading(false);
+  //   }, 500);
     
-    return () => clearTimeout(timer);
-  }, []);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   if (isLoading) {
     return <LoadingScreen />;
