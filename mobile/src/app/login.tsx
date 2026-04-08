@@ -1,18 +1,20 @@
 import React from "react";
-import { View, Text, ScrollView, StatusBar } from "react-native";
+import { View, Text } from "react-native";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { Link } from "expo-router";
-import { useForm, Controller, useFormState } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginFormData, loginSchema } from "@/schemas/login.schema";
+import LayoutWrapper from "@/components/layout/LayoutWrapper";
 
 const Login = () => {
 
   const { 
     control, 
     handleSubmit, 
+    formState: { errors }
   } = useForm<LoginFormData>({
     mode: 'onSubmit', 
     reValidateMode: 'onChange',
@@ -24,21 +26,13 @@ const Login = () => {
     } 
   });
 
-  const { errors } = useFormState({ control });
-
   const handleLogin = (data: LoginFormData) => {
     console.log("Dados prontos para API:", data);
   };
 
   return (
-    <ScrollView
-    contentContainerStyle={{ flexGrow: 1 }}
-    keyboardShouldPersistTaps="handled"
-    >
-      <StatusBar barStyle="dark-content" backgroundColor="#white" />
-
+    <LayoutWrapper>
       <View className="flex-1 bg-white px-8 pt-16 pb-10 gap-5">
-
         <View className="items-center">
           <Icon
             name="medRoom_logo"
@@ -63,6 +57,7 @@ const Login = () => {
             name={'email'}
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
+                maxLength={256}
                 label={'E-mail'}
                 type={'TEXT'}
                 onBlur={onBlur}
@@ -84,6 +79,7 @@ const Login = () => {
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
                 label={'Senha'}
+                maxLength={51}
                 type={'PASSWORD'}
                 onBlur={onBlur}
                 value={value}
@@ -94,7 +90,7 @@ const Login = () => {
             )}
           />
 
-          {errors.email?.message && <Input.Error error={errors.email.message as string}/> }
+          {errors.password?.message && <Input.Error error={errors.password.message as string}/> }
         </View>   
 
         <Button.Default
@@ -118,19 +114,19 @@ const Login = () => {
             </Link>
           </View>
 
-          <Text className="font-nunito-bold text-sm italic text-medroom-secondary">
+          <Text className="font-nunito-bold text-base italic text-medroom-secondary">
             ou
           </Text>
 
           <Link
           href={'/forgotPassword'}
-          className="font-nunito-bold text-sm underline text-medroom-primary"
+          className="font-nunito-bold text-base underline text-medroom-primary"
           >
             Esqueceu sua senha?
           </Link>
         </View>
       </View>
-    </ScrollView>
+    </LayoutWrapper>
   );
 }
 

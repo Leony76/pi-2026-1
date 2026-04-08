@@ -1,5 +1,6 @@
+import { systemColors } from '@/constants/misc/systemColors.misc';
 import React from 'react'
-import { Image } from 'react-native'
+import { SvgProps } from 'react-native-svg';
 import type { IconName } from 'root/assets/icons/index';
 import { Icons } from 'root/assets/icons/index';
 
@@ -28,16 +29,20 @@ type Props = {
  */
 
 const Icon = ({ name, color, sizes }: Props) => {
+
+  const SvgIcon: React.FC<SvgProps> = Icons[name];
+  const finalColor = color || systemColors.primary;
+
+  if (!SvgIcon) {
+    return null;
+  }
+
   return (
-    <Image 
-      source={Icons[name]} 
-      resizeMode="contain" 
-      style={{ 
-        width     : sizes?.width || 24, 
-        height    : sizes?.height || 24,
-        tintColor : color,
-      }} 
-    />    
+    <SvgIcon 
+      width={sizes?.width || 24} 
+      height={sizes?.height || 24}
+      fill={finalColor} 
+    />  
   )
 }
 

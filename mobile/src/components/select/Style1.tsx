@@ -6,6 +6,7 @@ import { IconName } from 'root/assets/icons';
 import { FullOptionsMapKeys, OPTIONS_MAP } from '@/constants/maps/selectOptions.map';
 import { Button } from '../button';
 import Feather from '@expo/vector-icons/Feather';
+import { systemColors } from '@/constants/misc/systemColors.misc';
 
 type Props = {
   label      : string;
@@ -71,7 +72,7 @@ const Style1 = (props:Props) => {
         <Entypo 
           name="chevron-down" 
           size={24} 
-          color="var(--medroom-primary-color)" 
+          color={systemColors.primary}
         />
       </View>
     </View>
@@ -91,7 +92,7 @@ const Style1 = (props:Props) => {
         className='bg-white gap-2 p-3 rounded-xl w-[80vw] shadow-[0px_0px_4px_var(--medroom-primary-color)]'
         > 
           <View className='flex-row justify-between'>
-            <Text className='font-nunito-bold text-xl text-medroom-primary'>
+            <Text className='font-nunito-bold text-2xl text-medroom-primary'>
               Selecione
             </Text>
 
@@ -102,7 +103,7 @@ const Style1 = (props:Props) => {
               <Feather 
                 name="arrow-right" 
                 size={24} 
-                color="var(--medroom-primary-color)" 
+                color={systemColors.primary} 
               />
             </TouchableOpacity>
           </View>
@@ -115,7 +116,7 @@ const Style1 = (props:Props) => {
             renderItem={({ item, index }) => (
               <Button.Default
                 filled={item.label === selectedLabel}
-                customStyle={{ container: 'py-[6px]', text: 'text-sm font-normal' }}
+                customStyle={{ container: 'py-[6px]', text: 'text-[14px] font-normal' }}
                 key={index}
                 label={item.label}
                 onTouch={() => handleSelect(item)} 

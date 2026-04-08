@@ -1,8 +1,11 @@
 import "root/global.css";
 import * as SplashScreen from 'expo-splash-screen';
 import {  useFonts, Nunito_400Regular, Nunito_700Bold } from '@expo-google-fonts/nunito';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from "expo-router";
 import { useEffect } from "react";
+import { StatusBar } from "react-native";
+import { systemColors } from "@/constants/misc/systemColors.misc";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,24 +24,28 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <Stack     
-    screenOptions={{ headerShown: false }}
-    initialRouteName="login"
-    >
-      <Stack.Screen 
-        name="register" 
-        options={{ title: 'Cadastro' }} 
-      />
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" backgroundColor={systemColors.primary} />
 
-      <Stack.Screen 
-        name="login" 
-        options={{ title: 'Entrar' }} 
-      />
+      <Stack     
+      screenOptions={{ headerShown: false }}
+      initialRouteName="login"
+      >
+        <Stack.Screen 
+          name="register" 
+          options={{ title: 'Cadastro' }} 
+        />
 
-      <Stack.Screen 
-        name="forgotPassword" 
-        options={{ title: 'Esqueci a senha' }} 
-      />
-    </Stack>
+        <Stack.Screen 
+          name="login" 
+          options={{ title: 'Entrar' }} 
+        />
+
+        <Stack.Screen 
+          name="forgotPassword" 
+          options={{ title: 'Esqueci a senha' }} 
+        />
+      </Stack>
+    </SafeAreaProvider>
   );
 }

@@ -1,16 +1,29 @@
-import { ImageSourcePropType } from "react-native";
+import Lock from './lock.svg';
+import Mail from './mail.svg';
+import MedRoomBrand from './medRoom_logo.svg';
+import MedRoomBrandFromLoadingScreen from './medRoom_logo_from_loading_screen.svg';
+import OpenedEye from './opened_eye.svg';
+import PaperRoll from './paper_roll.svg';
+import Register from './register.svg';
+import SignIn from './signin.svg';
+import Suitcase from './suitcase.svg';
+import Tag from './tag.svg';
+import ClosedEye from './closed_eye.svg';
+import { FC } from "react";
+import { SvgProps } from "react-native-svg";
 
 export const Icons = {
-  lock         : require('./lock.svg'),
-  mail         : require('./mail.svg'),
-  medRoom_logo : require('./medRoom_logo.svg'),
-  opened_eye   : require('./opened_eye.svg'),
-  paper_roll   : require('./paper_roll.svg'),
-  register     : require('./register.svg'),
-  signin       : require('./signin.svg'),
-  suitcase     : require('./suitcase.svg'),
-  tag          : require('./tag.svg'),
-  closed_eye   : require('./closed_eye.svg'),
-} satisfies Record<string, ImageSourcePropType>;
+  lock         : Lock,
+  mail         : Mail,
+  medRoom_logo : MedRoomBrand,
+  medRoom_logo_from_loading_screen : MedRoomBrandFromLoadingScreen,
+  opened_eye   : OpenedEye,
+  paper_roll   : PaperRoll,
+  register     : Register,
+  signin       : SignIn,
+  suitcase     : Suitcase,
+  tag          : Tag,
+  closed_eye   : ClosedEye,
+} satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

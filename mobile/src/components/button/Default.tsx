@@ -2,6 +2,7 @@ import React from 'react'
 import { Text, TouchableOpacity } from 'react-native';
 import { IconName } from 'root/assets/icons';
 import Icon from '../ui/Icon';
+import { systemColors } from '@/constants/misc/systemColors.misc';
 
 type Props = {
   onTouch : () => void;
@@ -25,12 +26,12 @@ const Default = (props:Props) => {
     <TouchableOpacity
     onPress={props.onTouch}
     activeOpacity={0.85}
-    className={`flex-row justify-center gap-2 rounded-xl py-4 items-center ${props.filled ? 'bg-medroom-primary' : 'bg-[#1aafb408] shadow-[0px_0px_4px_var(--medroom-primary-color)]'}  ${props.customStyle?.container ?? ''}`}
+    className={`flex-row justify-center gap-2 rounded-xl py-4 items-center ${props.filled ? 'bg-medroom-primary' : 'bg-[#1aafb408] border border-[#1aafb482]'}  ${props.customStyle?.container ?? ''}`}
     >
       { !!props.icon && 
         <Icon 
           name={props.icon.name}
-          color={props.filled ? 'white' : 'var(--medroom-primary-color)'}
+          color={props.filled ? '#FFFFFF' : systemColors.primary}
           sizes={{ 
             width: props.icon.size?.width    || 24, 
             height: props.icon.size?.height  || 24, 

@@ -3,12 +3,14 @@ import { View, TextInput, Text, KeyboardTypeOptions, Pressable } from 'react-nat
 import Icon from '../ui/Icon'
 import { IconName } from 'root/assets/icons';
 import { InputType } from '@/types/input.type';
+import { systemColors } from '@/constants/misc/systemColors.misc';
 
 type Props = {
   label           : string;
   value           : string;
   type            : InputType;
   autoCorrect?    : boolean;
+  maxLength?      : number;
   keyboardType?   : KeyboardTypeOptions; 
   autoCapitalize? : "none" | "sentences" | "words" | "characters";
   onChange        : (text: string) => void;
@@ -53,13 +55,14 @@ const Style1 = (props:Props) => {
         <TextInput
           className='flex-1 py-2 color-medroom-secondary font-nunito'
           value={props.value}
+          maxLength={props.maxLength}
           onChangeText={props.onChange}
           secureTextEntry={props.type === 'PASSWORD' && !passwordVisible ? true : false}
           autoCapitalize={props.type === 'PASSWORD' && !passwordVisible ? 'none' : (props.autoCapitalize || 'none')}
           autoCorrect={props.type === 'PASSWORD' && !passwordVisible ? false : (props.autoCorrect || false)}
           underlineColorAndroid="transparent"
           placeholder={props.placeholder.text}
-          placeholderTextColor={props.placeholder.color || "lightgray"}
+          placeholderTextColor={props.placeholder.color || systemColors.secondary}
           keyboardType={props.keyboardType || 'default'}
           onFocus={props.onFocus}
           onBlur={props.onBlur}

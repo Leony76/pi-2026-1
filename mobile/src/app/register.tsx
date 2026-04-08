@@ -4,16 +4,18 @@ import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { Select } from "@/components/select";
-import { View, Text, ScrollView, StatusBar } from "react-native";
-import { Controller, useForm, useFormState } from "react-hook-form";
+import { View, Text } from "react-native";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterFormData, registerSchema } from '@/schemas/register.schema';
+import LayoutWrapper from "@/components/layout/LayoutWrapper";
 
 const Register = () => {
   
   const {
     control,
     handleSubmit,
+    formState: { errors }
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     mode: 'onSubmit', 
@@ -29,19 +31,12 @@ const Register = () => {
     }
   })
 
-  const { errors } = useFormState({ control });
-
   const handleRegister = () => {
 
   }
 
   return (
-    <ScrollView
-    contentContainerStyle={{ flexGrow: 1 }}
-    keyboardShouldPersistTaps="handled"
-    >
-      <StatusBar barStyle="dark-content" backgroundColor="#white" />
-
+    <LayoutWrapper>
       <View className="flex-1 bg-white px-8 pt-16 pb-10 gap-5">
 
         <View className="items-center">
@@ -69,9 +64,10 @@ const Register = () => {
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
                 label={'Nome completo'}
+                maxLength={256}
                 type={'TEXT'}
                 autoCorrect
-                placeholder={{ text: 'Leon S. Kennedy' }}
+                placeholder={{ text: 'Insira seu nome completo' }}
                 onBlur={onBlur}
                 value={value}      
                 onChange={onChange}
@@ -110,6 +106,7 @@ const Register = () => {
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
                 label={'CRM / CRP'}
+                maxLength={9}
                 type={'TEXT'}
                 autoCorrect
                 placeholder={{ text: 'XXXXX-XX' }}
@@ -133,6 +130,7 @@ const Register = () => {
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
                 label={'E-mail'}
+                maxLength={256}
                 type={'TEXT'}
                 autoCorrect
                 placeholder={{ text: 'exemplo@gmail.com' }}
@@ -156,6 +154,7 @@ const Register = () => {
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
                 label={'Senha'}
+                maxLength={51}
                 type={'PASSWORD'}
                 autoCorrect
                 placeholder={{ text: '********' }}
@@ -179,6 +178,7 @@ const Register = () => {
             render={({ field: { onChange, value, onBlur } }) => (
               <Input.Style1
                 label={'Repetir senha'}
+                maxLength={51}
                 type={'PASSWORD'}
                 autoCorrect
                 placeholder={{ text: '********' }}
@@ -221,7 +221,7 @@ const Register = () => {
           </View>
         </View>
       </View>
-    </ScrollView>
+    </LayoutWrapper>
   );
 }
 
