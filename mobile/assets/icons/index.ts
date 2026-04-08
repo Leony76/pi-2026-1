@@ -9,6 +9,7 @@ import SignIn from './signin.svg';
 import Suitcase from './suitcase.svg';
 import Tag from './tag.svg';
 import ClosedEye from './closed_eye.svg';
+import Send from './send.svg'
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
 
@@ -24,6 +25,7 @@ export const Icons = {
   suitcase     : Suitcase,
   tag          : Tag,
   closed_eye   : ClosedEye,
+  send         : Send,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

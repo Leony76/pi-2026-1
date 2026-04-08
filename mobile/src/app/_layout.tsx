@@ -29,7 +29,7 @@ export default function RootLayout() {
 
       <Stack     
       screenOptions={{ headerShown: false }}
-      initialRouteName="login"
+      initialRouteName="forgotPassword"
       >
         <Stack.Screen 
           name="register" 
