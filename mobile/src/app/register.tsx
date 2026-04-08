@@ -10,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterFormData, registerSchema } from '@/schemas/register.schema';
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 
-const Register = () => {
+const Register = (): React.JSX.Element => {
   
   const {
     control,

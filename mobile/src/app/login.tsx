@@ -1,15 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginFormData, loginSchema } from "@/schemas/login.schema";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import Toast from "@/components/ui/Toast";
 
-const Login = () => {
+const Login = ():React.JSX.Element => {
 
   const { 
     control, 
@@ -26,12 +27,31 @@ const Login = () => {
     } 
   });
 
+  const router = useRouter();
+
+  const params = useLocalSearchParams();
+  const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
+
   const handleLogin = (data: LoginFormData) => {
     console.log("Dados prontos para API:", data);
   };
 
+  useEffect(() => {
+    if (params.changed === "true") {
+      setShowSuccessToast(true);
+
+      router.setParams({}); 
+    }
+  }, [params.changed]);
+
   return (
     <LayoutWrapper>
+      <Toast
+        message='Senha alterada com sucesso! Faça o login!' 
+        visible={showSuccessToast} 
+        onClose={() => setShowSuccessToast(false)}        
+      />
+
       <View className="flex-1 bg-white px-8 pt-16 pb-10 gap-5">
         <View className="items-center">
           <Icon

@@ -45,6 +45,11 @@ export default function RootLayout() {
           name="forgotPassword" 
           options={{ title: 'Esqueci a senha' }} 
         />
+
+        <Stack.Screen 
+          name="newPassword" 
+          options={{ title: 'Nova senha' }} 
+        />
       </Stack>
     </SafeAreaProvider>
   );
