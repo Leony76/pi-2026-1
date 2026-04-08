@@ -6,6 +6,7 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { systemColors } from "@/constants/misc/systemColors.misc";
+import { AuthProvider } from "@/contexts/auth.context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,28 +25,35 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={systemColors.primary} />
+    <AuthProvider>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" backgroundColor={systemColors.primary} />
 
-      <Stack     
-      screenOptions={{ headerShown: false }}
-      initialRouteName="forgotPassword"
-      >
-        <Stack.Screen 
-          name="register" 
-          options={{ title: 'Cadastro' }} 
-        />
+        <Stack
+        screenOptions={{ headerShown: false }}
+        initialRouteName="index"
+        >
+          <Stack.Screen
+            name="register"
+            options={{ title: 'Cadastro' }}
+          />
 
-        <Stack.Screen 
-          name="login" 
-          options={{ title: 'Entrar' }} 
-        />
+          <Stack.Screen
+            name="login"
+            options={{ title: 'Entrar' }}
+          />
 
-        <Stack.Screen 
-          name="forgotPassword" 
-          options={{ title: 'Esqueci a senha' }} 
-        />
-      </Stack>
-    </SafeAreaProvider>
+          <Stack.Screen
+            name="forgotPassword"
+            options={{ title: 'Esqueci a senha' }}
+          />
+
+          <Stack.Screen
+            name="(authenticated)"
+            options={{ headerShown: false }}
+          />
+        </Stack>
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 }

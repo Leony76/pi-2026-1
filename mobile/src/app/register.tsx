@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Link, router } from "expo-router";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
@@ -9,8 +9,22 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterFormData, registerSchema } from '@/schemas/register.schema';
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import { ErrorModal } from "@/components/modal";
+import { ApiError } from "@/services/api";
+import { registerWithEmail } from "@/services/auth";
+import { useAuth } from "@/contexts/auth.context";
 
 const Register = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const { token, signIn } = useAuth();
+
+  useEffect(() => {
+    if (token) {
+      router.replace('/(authenticated)/dashboard');
+    }
+  }, [token]);
   
   const {
     control,
@@ -31,8 +45,33 @@ const Register = () => {
     }
   })
 
-  const handleRegister = () => {
+  const handleRegister = async (data: RegisterFormData) => {
+    if (isSubmitting) {
+      return;
+    }
 
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      setShowErrorModal(false);
+      const result = await registerWithEmail(data);
+
+      // Sign in the user automatically after registration
+      await signIn(result.token, result.refreshToken || '');
+      
+      // Redirect to dashboard
+      router.replace('/(authenticated)/dashboard');
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Não foi possível concluir o cadastro. Tente novamente.';
+
+      setSubmitError(message);
+      setShowErrorModal(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -197,7 +236,7 @@ const Register = () => {
 
         <Button.Default
           onTouch={handleSubmit(handleRegister)}
-          label="Cadastrar"
+          label={isSubmitting ? "Cadastrando..." : "Cadastrar"}
           filled
           icon={{
             name: 'register',
@@ -221,6 +260,13 @@ const Register = () => {
           </View>
         </View>
       </View>
+
+      <ErrorModal
+        visible={showErrorModal}
+        title="Erro no cadastro"
+        message={submitError || 'Ocorreu um erro. Tente novamente.'}
+        onClose={() => setShowErrorModal(false)}
+      />
     </LayoutWrapper>
   );
 }
