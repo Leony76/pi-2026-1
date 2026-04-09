@@ -32,35 +32,7 @@ export default function RootLayout() {
           backgroundColor={systemColors.primary} 
          />
 
-        <Stack
-          screenOptions={{ headerShown: false }}
-          initialRouteName="login" 
-        >
-          <Stack.Screen
-            name="register"
-            options={{ title: 'Cadastro' }}
-          />
-
-          <Stack.Screen
-            name="login"
-            options={{ title: 'Entrar' }}
-          />
-
-          <Stack.Screen
-            name="forgotPassword"
-            options={{ title: 'Esqueci a senha' }}
-          />
-
-          <Stack.Screen
-            name="newPassword"
-            options={{ title: 'Nova senha' }}
-          />
-
-          <Stack.Screen
-            name="(authenticated)"
-            options={{ headerShown: false }}
-          />
-        </Stack>
+         <Stack screenOptions={{ headerShown: false }} />
       </SafeAreaProvider>
     </AuthProvider>
   );

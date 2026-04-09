@@ -193,11 +193,11 @@ export async function register(data: RegisterInput): Promise<AuthResponse> {
 	const email = data.email?.trim();
 
 	if (!name || !specialty || !crmCrp || !email || !data.password || !data.repeatPassword) {
-		throw createHttpError(400, "bad_request", "Missing required fields");
+		throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
 	}
 
 	if (data.password !== data.repeatPassword) {
-		throw createHttpError(400, "bad_request", "Passwords do not match");
+		throw createHttpError(400, "bad_request", "Senhas não coincidem");
 	}
 
 	const normalizedEmail = normalizeEmail(email);
@@ -211,7 +211,7 @@ export async function register(data: RegisterInput): Promise<AuthResponse> {
 	});
 
 	if (existingUser) {
-		throw createHttpError(409, "conflict", "User with this e-mail or CRM/CRP already exists");
+		throw createHttpError(409, "conflict", "Usuário com esse e-mail ou CRM/CRP já existe!");
 	}
 
 	const passwordHash = await bcrypt.hash(data.password, 10);
@@ -249,7 +249,7 @@ export async function login(data: LoginInput): Promise<AuthResponse> {
 	const email = data.email?.trim();
 
 	if (!email || !data.password) {
-		throw createHttpError(400, "bad_request", "Missing e-mail or password");
+		throw createHttpError(400, "bad_request", "E-mail ou senha não providos!");
 	}
 
 	const normalizedEmail = normalizeEmail(email);
@@ -259,13 +259,13 @@ export async function login(data: LoginInput): Promise<AuthResponse> {
 	});
 
 	if (!user) {
-		throw createHttpError(401, "unauthorized", "Invalid credentials");
+		throw createHttpError(401, "unauthorized", "Credenciais inválidas!");
 	}
 
 	const passwordIsValid = await bcrypt.compare(data.password, user.passwordHash);
 
 	if (!passwordIsValid) {
-		throw createHttpError(401, "unauthorized", "Invalid credentials");
+		throw createHttpError(401, "unauthorized", "Credenciais inválidas!");
 	}
 
 	const refreshToken = generateOpaqueToken();
@@ -278,13 +278,13 @@ export async function login(data: LoginInput): Promise<AuthResponse> {
 
 export async function refreshSession(data: RefreshInput): Promise<AuthResponse> {
 	if (!data.refreshToken) {
-		throw createHttpError(400, "bad_request", "Missing refresh token");
+		throw createHttpError(400, "bad_request", "Token de atualização não provido!");
 	}
 
 	const user = await findUserByRefreshToken(data.refreshToken);
 
 	if (!user) {
-		throw createHttpError(401, "unauthorized", "Invalid refresh token");
+		throw createHttpError(401, "unauthorized", "Token de atualização inválido!");
 	}
 
 	const nextRefreshToken = generateOpaqueToken();
@@ -297,13 +297,13 @@ export async function refreshSession(data: RefreshInput): Promise<AuthResponse> 
 
 export async function logout(data: LogoutInput): Promise<{ message: string }> {
 	if (!data.refreshToken) {
-		throw createHttpError(400, "bad_request", "Missing refresh token");
+		throw createHttpError(400, "bad_request", "Token de atualização não provido!");
 	}
 
 	const user = await findUserByRefreshToken(data.refreshToken);
 
 	if (!user) {
-		return { message: "Session already cleared" };
+		return { message: "Sessão já limpada!" };
 	}
 
 	await prisma.user.update({
@@ -314,7 +314,7 @@ export async function logout(data: LogoutInput): Promise<{ message: string }> {
 		},
 	});
 
-	return { message: "Logged out" };
+	return { message: "Desconectado!" };
 }
 
 export async function requestEmailVerification(data: EmailVerificationRequestInput): Promise<{ message: string; verificationToken: string }> {
@@ -323,31 +323,31 @@ export async function requestEmailVerification(data: EmailVerificationRequestInp
 	const user = await prisma.user.findUnique({ where: { email } });
 
 	if (!user) {
-		throw createHttpError(404, "not_found", "User not found");
+		throw createHttpError(404, "not_found", "Usuário não encontrado!");
 	}
 
 	if (user.emailVerifiedAt) {
-		return { message: "Email already verified", verificationToken: "" };
+		return { message: "E-mail já verificado!", verificationToken: "" };
 	}
 
 	const verificationToken = generateOpaqueToken();
 	await saveEmailVerificationToken(user.id, verificationToken);
 
 	return {
-		message: "Verification token generated",
+		message: "Token de verificação gerado!",
 		verificationToken,
 	};
 }
 
 export async function verifyEmail(data: VerifyEmailInput): Promise<{ message: string }> {
 	if (!data.token) {
-		throw createHttpError(400, "bad_request", "Missing verification token");
+		throw createHttpError(400, "bad_request", "Token de verificação não provido!");
 	}
 
 	const user = await findUserByEmailVerificationToken(data.token);
 
 	if (!user) {
-		throw createHttpError(401, "unauthorized", "Invalid verification token");
+		throw createHttpError(401, "unauthorized", "Token de verificação inválido!");
 	}
 
 	await prisma.user.update({
@@ -359,7 +359,7 @@ export async function verifyEmail(data: VerifyEmailInput): Promise<{ message: st
 		},
 	});
 
-	return { message: "Email verified" };
+	return { message: "E-mail verificado!" };
 }
 
 export async function requestPasswordReset(data: PasswordResetRequestInput): Promise<{ message: string; resetToken: string }> {
@@ -368,31 +368,31 @@ export async function requestPasswordReset(data: PasswordResetRequestInput): Pro
 	const user = await prisma.user.findUnique({ where: { email } });
 
 	if (!user) {
-		throw createHttpError(404, "not_found", "User not found");
+		throw createHttpError(404, "not_found", "Usuário não encontrado!");
 	}
 
 	const resetToken = generateOpaqueToken();
 	await savePasswordResetToken(user.id, resetToken);
 
 	return {
-		message: "Password reset token generated",
+		message: "Token de redefinição de senha gerado!",
 		resetToken,
 	};
 }
 
 export async function resetPassword(data: PasswordResetInput): Promise<{ message: string }> {
 	if (!data.token || !data.password || !data.repeatPassword) {
-		throw createHttpError(400, "bad_request", "Missing required fields");
+		throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
 	}
 
 	if (data.password !== data.repeatPassword) {
-		throw createHttpError(400, "bad_request", "Passwords do not match");
+		throw createHttpError(400, "bad_request", "Senhas não coincidem!");
 	}
 
 	const user = await findUserByPasswordResetToken(data.token);
 
 	if (!user) {
-		throw createHttpError(401, "unauthorized", "Invalid reset token");
+		throw createHttpError(401, "unauthorized", "Token de redefinição inválido!");
 	}
 
 	const passwordHash = await bcrypt.hash(data.password, 10);
@@ -406,5 +406,5 @@ export async function resetPassword(data: PasswordResetInput): Promise<{ message
 		},
 	});
 
-	return { message: "Password updated" };
+	return { message: "Senha redefinida!" };
 }

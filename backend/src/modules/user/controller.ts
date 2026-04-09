@@ -14,13 +14,13 @@ type AuthPayload = {
 
 function getTokenFromHeader(authHeader?: string): string {
 	if (!authHeader) {
-		throw createHttpError(401, "unauthorized", "Authorization header is required");
+		throw createHttpError(401, "unauthorized", "Cabeçalho de autorização é requerível!");
 	}
 
 	const [scheme, token] = authHeader.split(" ");
 
 	if (scheme !== "Bearer" || !token) {
-		throw createHttpError(401, "unauthorized", "Invalid authorization header");
+		throw createHttpError(401, "unauthorized", "Cabeçalho de autorização inválido!");
 	}
 
 	return token;
@@ -30,7 +30,7 @@ function getJwtSecret(): string {
 	const secret = process.env.JWT_SECRET;
 
 	if (!secret) {
-		throw createHttpError(500, "internal_server_error", "JWT_SECRET not configured");
+		throw createHttpError(500, "internal_server_error", "JWT_SECRET não configurado!");
 	}
 
 	return secret;
@@ -44,7 +44,7 @@ export async function meController(request: Request, response: Response, next: N
 		const user = await getProfileById(payload.sub);
 
 		if (!user) {
-			throw createHttpError(404, "not_found", "User not found");
+			throw createHttpError(404, "not_found", "Usuário não encontrado!");
 		}
 
 		sendSuccessResponse(response, 200, user);

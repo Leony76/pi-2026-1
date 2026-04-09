@@ -1,13 +1,14 @@
 import React from 'react'
-import { Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { IconName } from 'root/assets/icons';
 import Icon from '../ui/Icon';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 
 type Props = {
-  onTouch : () => void;
-  disable?: boolean;
-  icon?   : {
+  onTouch  : () => void;
+  disable? : boolean;
+  loading? : boolean;
+  icon?    : {
     name : IconName;
     size?: {
       width  : number;
@@ -41,18 +42,23 @@ const Default = (props:Props) => {
       }
     `}
     >
-      { !!props.icon && 
+      { props.loading ? (
+        <ActivityIndicator
+          size="small"
+          color="#fff"
+        />
+      ) : props.icon ? (
         <Icon 
           name={props.icon.name}
           color={props.filled ? '#FFFFFF' : systemColors.primary}
           sizes={{ 
-            width: props.icon.size?.width    || 24, 
-            height: props.icon.size?.height  || 24, 
+            width: props.icon.size?.width || 24, 
+            height: props.icon.size?.height || 24, 
           }}
-        /> 
-      }
+        />
+      ) : null }
       
-      <Text className={`font-nunito text-lg font-bold tracking-wide ${props.filled ? 'text-white' : 'text-medroom-primary'} ${props.customStyle?.text ?? ''}`}>
+      <Text className={`text-lg font-nunito-bold tracking-wide ${props.filled ? 'text-white font-nunito' : 'text-medroom-primary'} ${props.customStyle?.text ?? ''}`}>
         { props.label }
       </Text>
     </TouchableOpacity>

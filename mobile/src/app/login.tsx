@@ -27,7 +27,7 @@ const Login = (): React.JSX.Element => {
 
   useEffect(() => {
     if (token) {
-      router.replace('/(authenticated)/dashboard');
+      router.replace('/(authenticated)/home/professional');
     }
   }, [token]);
 
@@ -59,18 +59,20 @@ const Login = (): React.JSX.Element => {
       
       const result = await loginWithEmail(data);
       await signIn(result.token, result.refreshToken || '');
-      router.replace('/(authenticated)/dashboard');
+      router.replace('/(authenticated)/home/professional');
     } catch (error) {
       const message = error instanceof ApiError
-          ? error.message
-          : 'Não foi possível fazer login. Tente novamente.';
-
+      ? error.message
+      : 'Não foi possível fazer login. Tente novamente.';
+      
       setSubmitError(message);
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // return <Redirect href="/home/professional" />;
 
   return (
     <LayoutWrapper>  
@@ -141,7 +143,8 @@ const Login = (): React.JSX.Element => {
 
         <Button.Default
           onTouch={handleSubmit(handleLogin)}
-          label={isSubmitting ? "Entrando..." : "Entrar"}
+          loading={isSubmitting}
+          label={isSubmitting ? "Entrando" : "Entrar"}
           filled
           icon={{ name: 'signin' }}
         />

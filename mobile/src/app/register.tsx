@@ -23,7 +23,7 @@ const Register = (): React.JSX.Element => {
 
   useEffect(() => {
     if (token) {
-      router.replace('/(authenticated)/dashboard');
+      router.replace('/(authenticated)/home/professional');
     }
   }, [token]);
   
@@ -58,7 +58,7 @@ const Register = (): React.JSX.Element => {
 
       await signIn(result.token, result.refreshToken || '');
       
-      router.replace('/(authenticated)/dashboard');
+      router.replace('/(authenticated)/home/professional');
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -145,7 +145,7 @@ const Register = (): React.JSX.Element => {
                 maxLength={9}
                 type={'TEXT'}
                 autoCorrect
-                placeholder={{ text: 'XXXXX-XX' }}
+                placeholder={{ text: '12345-AB' }}
                 onBlur={onBlur}
                 value={value}      
                 onChange={onChange}
@@ -234,6 +234,8 @@ const Register = (): React.JSX.Element => {
         <Button.Default
           onTouch={handleSubmit(handleRegister)}
           label={isSubmitting ? "Cadastrando..." : "Cadastrar"}
+          disable={Object.keys(errors).length > 0}
+          loading={isSubmitting}
           filled
           icon={{
             name: 'register',

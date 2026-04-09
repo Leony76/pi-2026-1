@@ -6,7 +6,7 @@ export function notFoundHandler(_request: Request, response: Response): void {
   response.status(404).json({
     success: false,
     code: "not_found",
-    message: "Route not found",
+    message: "Rota não encontrada!",
   });
 }
 
@@ -30,6 +30,6 @@ export function errorHandler(
   response.status(500).json({
     success: false,
     code: "internal_server_error",
-    message: "Internal server error",
+    message: "Erro interno no servidor!",
   });
 }
