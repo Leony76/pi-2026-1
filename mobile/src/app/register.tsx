@@ -14,7 +14,8 @@ import { ApiError } from "@/services/api";
 import { registerWithEmail } from "@/services/auth";
 import { useAuth } from "@/contexts/auth.context";
 
-const Register = () => {
+const Register = (): React.JSX.Element => {
+ 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -46,20 +47,17 @@ const Register = () => {
   })
 
   const handleRegister = async (data: RegisterFormData) => {
-    if (isSubmitting) {
-      return;
-    }
+    if (isSubmitting) return;
 
     try {
       setIsSubmitting(true);
       setSubmitError(null);
       setShowErrorModal(false);
+      
       const result = await registerWithEmail(data);
 
-      // Sign in the user automatically after registration
       await signIn(result.token, result.refreshToken || '');
       
-      // Redirect to dashboard
       router.replace('/(authenticated)/dashboard');
     } catch (error) {
       const message =
@@ -76,27 +74,26 @@ const Register = () => {
 
   return (
     <LayoutWrapper>
+      <ErrorModal
+        visible={showErrorModal}
+        title="Erro no cadastro"
+        message={submitError || 'Ocorreu um erro. Tente novamente.'}
+        onClose={() => setShowErrorModal(false)}
+      />
+      
       <View className="flex-1 bg-white px-8 pt-16 pb-10 gap-5">
-
         <View className="items-center">
-          <Icon
-            name="medRoom_logo"
-            sizes={{ height: 180, width: 180 }}
-          />
+          <Icon name="medRoom_logo" sizes={{ height: 180, width: 180 }} />
         </View>
 
         <View className="flex-row items-center gap-3 justify-center">
-          <Icon
-            name="register"
-            sizes={{ height: 32, width: 32 }}
-          />
-
+          <Icon name="register" sizes={{ height: 32, width: 32 }} />
           <Text className="text-4xl font-bold mb-1 font-nunito text-medroom-primary">
             Cadastro
           </Text>
-        </View>   
+        </View>    
 
-        <View>
+         <View>
           <Controller
             control={control}
             name={'name'}
@@ -232,7 +229,7 @@ const Register = () => {
           />
 
           { errors.repeatPassword?.message && <Input.Error error={errors.repeatPassword?.message as string}/> }
-        </View>   
+        </View> 
 
         <Button.Default
           onTouch={handleSubmit(handleRegister)}
@@ -247,26 +244,18 @@ const Register = () => {
         <View className="items-center gap-y-3">
           <View className="flex-row gap-1">
             <Text className="font-nunito text-medroom-secondary">
-              Já tem uma conta ?
+              Já tem uma conta?
             </Text>
-
-            <Link
-            href={'/login'}
-            className="font-nunito-bold underline font-medium text-medroom-primary"
-            onPress={() => {}}
+            
+            <Link 
+            href={'/login'} 
+            className="font-nunito-bold underline text-medroom-primary"
             >
               Entre!
             </Link>
           </View>
         </View>
       </View>
-
-      <ErrorModal
-        visible={showErrorModal}
-        title="Erro no cadastro"
-        message={submitError || 'Ocorreu um erro. Tente novamente.'}
-        onClose={() => setShowErrorModal(false)}
-      />
     </LayoutWrapper>
   );
 }

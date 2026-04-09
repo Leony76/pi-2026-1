@@ -10,22 +10,28 @@ import Suitcase from './suitcase.svg';
 import Tag from './tag.svg';
 import ClosedEye from './closed_eye.svg';
 import Send from './send.svg'
+import Check from './check.svg'
+import UnfilledCheck from './unfilled_check.svg';
+import LockReset from './lock_reset.svg'
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
 
 export const Icons = {
-  lock         : Lock,
-  mail         : Mail,
-  medRoom_logo : MedRoomBrand,
+  lock           : Lock,
+  mail           : Mail,
+  medRoom_logo   : MedRoomBrand,
   medRoom_logo_from_loading_screen : MedRoomBrandFromLoadingScreen,
-  opened_eye   : OpenedEye,
-  paper_roll   : PaperRoll,
-  register     : Register,
-  signin       : SignIn,
-  suitcase     : Suitcase,
-  tag          : Tag,
-  closed_eye   : ClosedEye,
-  send         : Send,
+  opened_eye     : OpenedEye,
+  paper_roll     : PaperRoll,
+  register       : Register,
+  signin         : SignIn,
+  suitcase       : Suitcase,
+  tag            : Tag,
+  closed_eye     : ClosedEye,
+  send           : Send,
+  check          : Check, 
+  unfilled_check : UnfilledCheck,
+  lock_reset     : LockReset,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

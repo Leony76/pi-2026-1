@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, StatusBar, ScrollView } from 'react-native'
+import { View, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 
@@ -23,15 +23,21 @@ const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
         translucent={true} 
       />
 
-      <ScrollView 
-      contentContainerStyle={{ 
-        flexGrow: 1, 
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom 
-      }}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        { children }
-      </ScrollView>
+        <ScrollView 
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ 
+            flexGrow: 1, 
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom 
+          }}
+        >
+          { children }
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <View style={{ 
         height: insets.bottom, 

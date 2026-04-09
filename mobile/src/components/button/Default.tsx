@@ -6,6 +6,7 @@ import { systemColors } from '@/constants/misc/systemColors.misc';
 
 type Props = {
   onTouch : () => void;
+  disable?: boolean;
   icon?   : {
     name : IconName;
     size?: {
@@ -24,9 +25,21 @@ type Props = {
 const Default = (props:Props) => {
   return (
     <TouchableOpacity
+    disabled={props.disable}
     onPress={props.onTouch}
     activeOpacity={0.85}
-    className={`flex-row justify-center gap-2 rounded-xl py-4 items-center ${props.filled ? 'bg-medroom-primary' : 'bg-[#1aafb408] border border-[#1aafb482]'}  ${props.customStyle?.container ?? ''}`}
+    className={`
+      flex-row justify-center gap-2 rounded-xl py-4 items-center 
+      ${props.customStyle?.container ?? ''} 
+      ${props.filled 
+        ? 'bg-medroom-primary' 
+        : 'bg-[#1aafb408] border border-[#1aafb482]'
+      }  
+      ${props.disable 
+        ? 'opacity-50' 
+        : undefined
+      }
+    `}
     >
       { !!props.icon && 
         <Icon 

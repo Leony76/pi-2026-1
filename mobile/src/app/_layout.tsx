@@ -27,11 +27,14 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" backgroundColor={systemColors.primary} />
+        <StatusBar 
+          barStyle="dark-content" 
+          backgroundColor={systemColors.primary} 
+         />
 
         <Stack
-        screenOptions={{ headerShown: false }}
-        initialRouteName="index"
+          screenOptions={{ headerShown: false }}
+          initialRouteName="login" 
         >
           <Stack.Screen
             name="register"
@@ -46,6 +49,11 @@ export default function RootLayout() {
           <Stack.Screen
             name="forgotPassword"
             options={{ title: 'Esqueci a senha' }}
+          />
+
+          <Stack.Screen
+            name="newPassword"
+            options={{ title: 'Nova senha' }}
           />
 
           <Stack.Screen
