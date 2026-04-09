@@ -1,26 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { View, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import LoadingScreen from '../ui/LoadingScreen';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 
 const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
 
   const insets = useSafeAreaInsets();
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  // useEffect(() => {
-  //   const timer = setTimeout(() => {
-  //     setIsLoading(false);
-  //   }, 500);
-    
-  //   return () => clearTimeout(timer);
-  // }, []);
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
 
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -39,16 +24,16 @@ const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
       />
 
       <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
         <ScrollView 
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ 
-          flexGrow: 1, 
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom 
-        }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ 
+            flexGrow: 1, 
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom 
+          }}
         >
           { children }
         </ScrollView>
