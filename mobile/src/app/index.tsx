@@ -6,8 +6,8 @@ export default function Index() {
   const { token, isLoadingSession } = useAuth();
 
   if (isLoadingSession) {
-    return <LoadingScreen message="Carregando sessao..." />;
+    return <LoadingScreen message="Carregando sessão..." />;
   }
 
-  return <Redirect href={token ? "/(authenticated)/dashboard" : "/login"} />;
+  return <Redirect href={token ? "/(authenticated)/home/professional" : "/login"} />;
 }

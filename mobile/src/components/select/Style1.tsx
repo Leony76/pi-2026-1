@@ -89,7 +89,7 @@ const Style1 = (props:Props) => {
       >
         <Pressable 
         onPress={(e) => e.stopPropagation()}
-        className='bg-white gap-2 p-3 rounded-xl w-[80vw] shadow-[0px_0px_4px_var(--medroom-primary-color)]'
+        className='bg-white gap-2 p-3 rounded-xl w-[80vw] shadow-[0px_0px_8px_var(--medroom-primary-color)]'
         > 
           <View className='flex-row justify-between'>
             <Text className='font-nunito-bold text-2xl text-medroom-primary'>
@@ -111,7 +111,7 @@ const Style1 = (props:Props) => {
           <FlatList
             data={optionsMap}
             keyExtractor={(item) => item.value}
-            ItemSeparatorComponent={() => <View className="h-3" />}
+            ItemSeparatorComponent={() => <View className="h-2" />}
             className='p-1'
             renderItem={({ item, index }) => (
               <Button.Default

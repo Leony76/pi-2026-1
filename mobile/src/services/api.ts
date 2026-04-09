@@ -12,12 +12,12 @@ export class ApiError extends Error {
 }
 
 const defaultBaseUrl = Platform.select({
-  android: "http://10.0.2.2:3333",
+  android: "http://192.168.0.5:3333",
   ios: "http://localhost:3333",
   default: "http://localhost:3333",
 });
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? defaultBaseUrl;
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || defaultBaseUrl;
 
 export async function apiPost<TResponse>(path: string, body: unknown, token?: string): Promise<TResponse> {
   const response = await fetch(`${API_BASE_URL}${path}`, {

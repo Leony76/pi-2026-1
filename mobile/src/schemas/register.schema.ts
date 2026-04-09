@@ -10,7 +10,7 @@ export const registerSchema = z.object({
     .min(1, 'Selecione uma especialidade'),
   crmCrp: z
     .string()
-    .length(8, 'O CRM / CRP deve ter exatamente 8 caracteres'),
+    .regex(/^\d{5}-[A-Z]{2}$/, 'Formato inválido.'),
   email: z
     .email('E-mail inválido')
     .max(255, 'O E-mail deve ter até 255 caracteres'),

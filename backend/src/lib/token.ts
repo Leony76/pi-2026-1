@@ -18,7 +18,7 @@ function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
-    throw createHttpError(500, "internal_server_error", "JWT_SECRET not configured");
+    throw createHttpError(500, "internal_server_error", "JWT_SECRET não configurado!");
   }
 
   return secret;
@@ -38,7 +38,7 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   const payload = jwt.verify(token, getJwtSecret()) as AccessTokenPayload;
 
   if (payload.kind !== "access") {
-    throw createHttpError(401, "unauthorized", "Invalid access token");
+    throw createHttpError(401, "unauthorized", "Token de acesso inválido!");
   }
 
   return payload;

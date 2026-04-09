@@ -15,6 +15,7 @@ module.exports = {
       colors: {
         medroom: {
           primary: "var(--medroom-primary-color)",
+          primaryLight: "var(--medroom-primary-color-light)",
           secondary: "var(--medroom-secondary-color)",
         },
       },
