@@ -17,6 +17,11 @@ import People from './people.svg';
 import Schedule from './schedule.svg';
 import Person from './person.svg';
 import Home from './home.svg';
+import KeyCard from './key_card.svg';
+import Money from './money.svg';
+import CreditCard from './credit_card.svg';
+import Pix from './pix.svg';
+import Cash from './cash.svg';
 
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
@@ -41,6 +46,11 @@ export const Icons = {
   home           : Home,
   schedule       : Schedule,
   person         : Person,
+  key_card       : KeyCard,
+  pix            : Pix,
+  credit_card    : CreditCard,
+  money          : Money,  
+  cash           : Cash,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

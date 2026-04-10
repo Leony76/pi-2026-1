@@ -6,12 +6,12 @@ export default function AuthenticatedLayout() {
   const { token, isLoadingSession } = useAuth();
 
   if (isLoadingSession) {
-    return <LoadingScreen message="Carregando sua sessao..."/>;
+    return <LoadingScreen message="Carregando sua sessão..." />;
   }
 
   if (!token) {
-    return <Redirect href="/login"/>;
+    return <Redirect href="/login" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />
+  return <Stack screenOptions={{ headerShown: false }}/>;
 }

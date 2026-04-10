@@ -1,7 +1,8 @@
 import React from 'react'
-import { Text, View } from 'react-native'
+import { Text, TouchableOpacity, View } from 'react-native'
 import { Button } from '../button';
 import { SystemTabs } from '@/types/systemTabs.type';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 
 type Props = {
   children    : React.ReactNode; 
@@ -15,17 +16,32 @@ type Props = {
 const SystemLayout = (props:Props) => {
   return (
     <View className='flex-1'>
-      <View className='bg-medroom-primary p-6 shadow-md'>
-        <Text className='text-white font-nunito-bold text-2xl'>
-          {props.title}
-        </Text>
+      <View className='flex-row items-center gap-5 bg-medroom-primary p-6 shadow-md'>
+        { props.goBack && (
+          <TouchableOpacity 
+          onPress={props.goBack}
+          className='bg-cyan-100/25 px-3 py-2.5 rounded-full'
+          >
+            <FontAwesome5 
+              name="arrow-left" 
+              size={24} 
+              color="white" 
+            />
+          </TouchableOpacity>
+        )}
 
-        <Text className='text-white font-nunito'>
-          {props.description}
-        </Text>
+        <View>
+          <Text className='text-white font-nunito-bold text-2xl'>
+            {props.title}
+          </Text>
+
+          <Text className='text-white font-nunito'>
+            {props.description}
+          </Text>
+        </View>
       </View>
 
-      <View className='flex-1 p-6 gap-5'>
+      <View className='flex-1 px-6 gap-5'>
         {props.children}
       </View>
 

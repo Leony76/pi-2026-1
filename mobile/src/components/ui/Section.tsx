@@ -4,6 +4,7 @@ import { Text, View } from 'react-native'
 type Props = {
   title    : string;
   children : React.ReactNode;
+  row?     : boolean;
 };
 
 const Section = (props:Props) => {
@@ -13,7 +14,7 @@ const Section = (props:Props) => {
         { props.title.toUpperCase() }
       </Text>
 
-      <View className='flex-row gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3'>
+      <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 ${props.row ? 'flex-row' : 'flex-col'}`}>
         { props.children }
       </View>
     </View>
