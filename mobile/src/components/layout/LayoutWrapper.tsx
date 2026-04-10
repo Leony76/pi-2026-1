@@ -27,16 +27,9 @@ const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView 
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ 
-            flexGrow: 1, 
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom 
-          }}
-        >
-          { children }
-        </ScrollView>
+        <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+           { children }
+        </View>
       </KeyboardAvoidingView>
 
       <View style={{ 

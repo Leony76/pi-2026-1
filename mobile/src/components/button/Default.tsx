@@ -8,7 +8,8 @@ type Props = {
   onTouch  : () => void;
   disable? : boolean;
   loading? : boolean;
-  icon?    : {
+  textLineThrough? : boolean;
+  icon? : {
     name : IconName;
     size?: {
       width  : number;
@@ -58,7 +59,13 @@ const Default = (props:Props) => {
         />
       ) : null }
       
-      <Text className={`text-lg font-nunito-bold tracking-wide ${props.filled ? 'text-white font-nunito' : 'text-medroom-primary'} ${props.customStyle?.text ?? ''}`}>
+      <Text 
+      style={props.textLineThrough ? { textDecorationLine: 'line-through' } : undefined}
+      className={`
+        text-lg font-nunito-bold tracking-wide 
+        ${props.filled ? 'text-white font-nunito' : 'text-medroom-primary'} 
+        ${props.customStyle?.text ?? ''}
+      `}>
         { props.label }
       </Text>
     </TouchableOpacity>

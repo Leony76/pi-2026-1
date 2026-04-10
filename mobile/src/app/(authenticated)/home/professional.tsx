@@ -12,18 +12,13 @@ import { Button } from '@/components/button';
 import { RoomDisplayCard } from '@/types/room.type';
 import { Card } from '@/components/card';
 import Section from '@/components/ui/Section';
+import { Allocation } from '@/types/allocation.type';
 
 type ProfileState = {
   name: string;
   specialty: string;
   email: string;
 };
-
-type Allocation = 
-| 'PER_HOUR'
-| '3X_WEEK'
-| 'MONTH'
-;
 
 // Considere isso sendo as informações vindas da API
 const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
@@ -32,7 +27,11 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
     displayImage: 'https://kannoarquitetura.com.br/wp-content/uploads/2021/06/Consultorio-medico-moderno.jpg',
     isAvailable: true,
     title: 'Sala 01 - Consultório',
-    subtitle: 'Térreo - 18m² - Climatizado',
+    complementaryData: {
+      area       : 18,
+      additional : 'Climatizado',
+      floor      : 'Térreo',
+    },
     prices: {
       perHour : 79.9,
       _3xWeek : 599.9,
@@ -44,7 +43,11 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
     displayImage: 'https://s2-casaejardim.glbimg.com/YDSDM-LluilU9ssjfRE2TZKyU30=/0x0:1400x933/888x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_a0b7e59562ef42049f4e191fe476fe7d/internal_photos/bs/2023/R/0/0LKjMLQMmeMBUzxzgUuA/1-consultorio-simara-mello.jpg',
     isAvailable: true,
     title: 'Sala 02 - Psicologia',
-    subtitle: 'Térreo - 16m² - Isonorizado',
+    complementaryData: {
+      area       : 16,
+      additional : 'Isonorizado',
+      floor      : 'Térreo',
+    },
     prices: {
       perHour : 64.9,
       month   : 479.9,
@@ -56,7 +59,11 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
     displayImage: 'https://cdn.cineart.com.br/cineart_411857079.jpg',
     isAvailable: false,
     title: 'Sala 03 - Premium',
-    subtitle: '1º Andar - 69m² - Completo',
+    complementaryData: {
+      area       : 69,
+      additional : 'Completo',
+      floor      : '1º Andar',
+    },
     prices: {
       perHour : 264.9,
       month   : 879.9,
@@ -136,6 +143,8 @@ const ProfessionalHome = (): React.JSX.Element => {
     }
   }
 
+  // router.replace('/(authenticated)/roomRentalWizard');
+
   return (
     <LayoutWrapper>
       <SystemLayout 
@@ -143,42 +152,45 @@ const ProfessionalHome = (): React.JSX.Element => {
       description={'Escolha seu espaço e horário'} 
       layoutType={'PROFSSIONAL'}      
       tab='HOME'
-      >
-        <Section title='TIPOS DE ALOCAÇÃO'>
-          <Button.Default
-            label='Por hora'
-            filled={allocationType === 'PER_HOUR'}
-            onTouch={() => setAllocationType(allocationType === 'PER_HOUR' ? null : 'PER_HOUR')}
-            customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-          />
-
-          <Button.Default
-            label='3x Semana'
-            filled={allocationType === '3X_WEEK'}
-            onTouch={() => setAllocationType(allocationType === '3X_WEEK' ? null : '3X_WEEK')}
-            customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-          />
-
-          <Button.Default
-            label='Mês'
-            filled={allocationType === 'MONTH'}
-            onTouch={() => setAllocationType(allocationType === 'MONTH' ? null : 'MONTH')}
-            customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-          />
-        </Section>
-        
-        <FlatList
-          data={DISPLAY_ROOMS_DATA}
-          keyExtractor={(key) => String(key)}
-          ItemSeparatorComponent={() => <View className='h-5'/>}
-          className='h-1'
-          renderItem={({ item }) => (
-            <Card.DisplayRoom
-              key={item.id}
-              { ...item }
+      > 
+        <View className='flex-1 pt-6'>
+          <Section title='TIPOS DE ALOCAÇÃO' row>
+            <Button.Default
+              label='Por hora'
+              filled={allocationType === 'PER_HOUR'}
+              onTouch={() => setAllocationType(allocationType === 'PER_HOUR' ? null : 'PER_HOUR')}
+              customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
             />
-          )}
-        />
+
+            <Button.Default
+              label='3x Semana'
+              filled={allocationType === '3X_WEEK'}
+              onTouch={() => setAllocationType(allocationType === '3X_WEEK' ? null : '3X_WEEK')}
+              customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
+            />
+
+            <Button.Default
+              label='Mês'
+              filled={allocationType === 'MONTH'}
+              onTouch={() => setAllocationType(allocationType === 'MONTH' ? null : 'MONTH')}
+              customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
+            />
+          </Section>
+
+          <FlatList
+            data={DISPLAY_ROOMS_DATA}
+            keyExtractor={(item) => String(item.id)}
+            ItemSeparatorComponent={() => <View className='h-5'/>}
+            className='mt-6'
+            contentContainerClassName='pb-6'
+            renderItem={({ item }) => (
+              <Card.DisplayRoom
+                key={item.id}
+                { ...item }
+              />
+            )}
+          />
+        </View>
       </SystemLayout>
     </LayoutWrapper>
   )

@@ -3,7 +3,11 @@ export type Room = {
   isAvailable  : boolean;
   displayImage : string | null;
   title        : string;
-  subtitle     : string;
+  complementaryData : {
+    floor      : string;
+    area       : number;
+    additional : string; 
+  };
   prices : {
     perHour : number;
     _3xWeek : number;
