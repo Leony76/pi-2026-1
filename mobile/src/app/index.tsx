@@ -9,5 +9,5 @@ export default function Index() {
     return <LoadingScreen message="Carregando sessão..." />;
   }
 
-  return <Redirect href={token ? "/(authenticated)/home/professional" : "/login"} />;
+  return <Redirect href={token ? "/(authenticated)/(professional)/home" : "/login"} />;
 }

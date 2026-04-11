@@ -10,9 +10,10 @@ import AvailbilityTag from '../ui/AvailbilityTag';
 const DisplayRoom = (props:RoomDisplayCard): React.JSX.Element => {
   return (
     <Link
+    disabled={!props.isAvailable}
     asChild
     href={{
-      pathname: '/(authenticated)/roomRentalWizard',
+      pathname: '/(authenticated)/(professional)/roomRentalWizard',
       params: {
         roomId            : props.id, 
         isAvailable       : String(props.isAvailable),

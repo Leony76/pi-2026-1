@@ -4,6 +4,7 @@ import Icon from '../ui/Icon'
 import { IconName } from 'root/assets/icons';
 
 type Props = {
+  onTouch  : () => void;
   selected : boolean;
   text     : string;
   icon     : IconName;
@@ -14,6 +15,7 @@ const NavMenu = (props:Props) => {
     <TouchableOpacity
     className='justify-center items-center'
     activeOpacity={0.67}
+    onPress={props.onTouch}
     >
       <Icon
         name={props.icon}

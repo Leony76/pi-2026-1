@@ -72,7 +72,7 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
   },
 ]; 
 
-const ProfessionalHome = (): React.JSX.Element => {
+const Home = (): React.JSX.Element => {
   const { signOut, token, refreshToken, updateTokens } = useAuth();
 
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
@@ -143,14 +143,14 @@ const ProfessionalHome = (): React.JSX.Element => {
     }
   }
 
-  // router.replace('/(authenticated)/roomRentalWizard');
+  // router.replace('/(authenticated)/(professional)/roomRentalSuccess');
 
   return (
     <LayoutWrapper>
       <SystemLayout 
       title={`Olá Dr. ${profile?.name ?? 'Desconhecido'}!`} 
       description={'Escolha seu espaço e horário'} 
-      layoutType={'PROFSSIONAL'}      
+      layoutType={'PROFESSIONAL'}      
       tab='HOME'
       > 
         <View className='flex-1 pt-6'>
@@ -196,4 +196,4 @@ const ProfessionalHome = (): React.JSX.Element => {
   )
 }
 
-export default ProfessionalHome;
+export default Home;
