@@ -23,7 +23,7 @@ const Register = (): React.JSX.Element => {
 
   useEffect(() => {
     if (token) {
-      router.replace('/(authenticated)/home/professional');
+      router.replace('/(authenticated)/(professional)/home');
     }
   }, [token]);
   
@@ -58,7 +58,7 @@ const Register = (): React.JSX.Element => {
 
       await signIn(result.token, result.refreshToken || '');
       
-      router.replace('/(authenticated)/home/professional');
+      router.replace('/(authenticated)/(professional)/home');
     } catch (error) {
       const message =
         error instanceof ApiError

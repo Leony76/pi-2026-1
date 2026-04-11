@@ -2,7 +2,11 @@ import { Button } from '@/components/button';
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag';
+import Label___Value from '@/components/ui/Label___Value';
 import Section from '@/components/ui/Section';
+import { DAYS } from '@/constants/maps/days.map';
+import { HOURS_MAP } from '@/constants/maps/roomsHours.map';
+import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 import { Allocation } from '@/types/allocation.type';
 import { _3xWeek, Days } from '@/types/days.type';
@@ -12,8 +16,21 @@ import { isHourOccupied } from '@/utils/isHourOccuped';
 import { priceFormat } from '@/utils/priceFormat';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native';
+
+// Supondo que virá essa informação da API.
+const OCCUPIED_HOURS_FROM_ROOM: HourShift[] = [
+  { startHour: '09:00', endHour: '10:00' },
+  { startHour: '14:00', endHour: '15:00' },
+];
+
+// Supondo que virá essa informação da API.
+const OCCUPIED_DAYS_FROM_ROOM: Days[] = [
+  'FRIDAY',
+  'MONDAY',
+  'SATURDAY',
+];
 
 const roomRentalWizard = (): React.JSX.Element => {
 
@@ -29,7 +46,6 @@ const roomRentalWizard = (): React.JSX.Element => {
   const [daySelected, setDaySelected] = useState<Days | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | null>(null);
 
-
   const title = params.title as string ?? '[Não fornecido]';
   const roomId = params.roomId as string ?? '[Não suposto a existir]';
   const isAvailable = params.isAvailable === 'true';
@@ -41,72 +57,6 @@ const roomRentalWizard = (): React.JSX.Element => {
   const complementaryData: RoomDisplayCard['complementaryData'] = params.complementaryData 
     ? JSON.parse(params.complementaryData as string) 
     : { floor: '[Não fornecido]', area: '[Não fornecida]', additional: '[Não fornecido]' };
-
-
-  // Supondo que virá essa informação da API.
-  const OCCUPIED_HOURS_FROM_ROOM: HourShift[] = [
-    { startHour: '09:00', endHour: '10:00' },
-    { startHour: '14:00', endHour: '15:00' },
-  ];
-  
-  // Supondo que virá essa informação da API.
-  const OCCUPIED_DAYS_FROM_ROOM: Days[] = [
-    'FRIDAY',
-    'MONDAY',
-    'SATURDAY',
-  ];
-
-  const HOURS = {
-    MORNING: [
-      { startHour: '08:00', endHour: '09:00' },
-      { startHour: '09:00', endHour: '10:00' },
-      { startHour: '10:00', endHour: '11:00' },
-      { startHour: '11:00', endHour: '12:00' },
-    ],
-    AFTERNOON: [
-      { startHour: '12:00', endHour: '13:00' },
-      { startHour: '13:00', endHour: '14:00' },
-      { startHour: '14:00', endHour: '15:00' },
-      { startHour: '15:00', endHour: '16:00' },
-      { startHour: '16:00', endHour: '17:00' },
-      { startHour: '17:00', endHour: '18:00' },
-    ],
-    NIGHT: [
-      { startHour: '18:00', endHour: '19:00' },
-      { startHour: '19:00', endHour: '20:00' },
-      { startHour: '20:00', endHour: '21:00' },
-      { startHour: '21:00', endHour: '22:00' },
-      { startHour: '22:00', endHour: '23:00' },
-      { startHour: '23:00', endHour: '00:00' },
-    ],
-  };
-
-  const DAYS: Days[] = [
-    'MONDAY',
-    'TUESDAY',
-    'WEDNESDAY',
-    'THURSDAY',
-    'FRIDAY',
-    'SATURDAY',
-    'SUNDAY',
-  ];
-
-  const HOURS_MAP = {
-    MORNING    : HOURS.MORNING, 
-    AFTERNOON  : HOURS.AFTERNOON,  
-    NIGHT      : HOURS.NIGHT,
-    UNSELECTED : [],  
-  };
-
-  const TRANSLATED_DAYS_MAP: Record<Days, string> = {
-    MONDAY    : 'Segunda-Feira',
-    TUESDAY   : 'Terça-Feira',
-    WEDNESDAY : 'Quarta-Feira',
-    THURSDAY  : 'Quinta-Feira',
-    FRIDAY    : 'Sexta-Feira',
-    SATURDAY  : 'Sábado',
-    SUNDAY    : 'Domingo',
-  };
 
   const handleDayPress = (day: Days): void => {
     setDaysSelected((prev) => {
@@ -130,18 +80,39 @@ const roomRentalWizard = (): React.JSX.Element => {
     setDaysSelected([]);
   };
 
+  useEffect(() => {
+    if (wizardStep >= 3) {
+      router.replace({
+        pathname: '/(authenticated)/(professional)/roomRentalSuccess',
+        params: {
+          roomName  : title.split('-')[0],
+          allocationType : allocationType,
+          startHour : hourSelected?.startHour, 
+          endHour   : hourSelected?.endHour, 
+          days      : JSON.stringify(daysSelected),
+          pricePaid : allocationType === '3X_WEEK'
+            ? prices._3xWeek
+          : allocationType === 'MONTH'
+            ? prices.month
+            : prices.perHour
+        }
+      });
+    }
+  },[wizardStep]);
+
   return (
     <LayoutWrapper>
       <SystemLayout
-      layoutType='PROFSSIONAL'
+      layoutType='PROFESSIONAL'
       tab='HOME'
       title={wizardStep === 2 ? 'Pagamento' : title}
       description={`${wizardStep === 2 ? 'Escolha a forma de pagamento' : complementaryData.floor + ' - ' + complementaryData.area + 'm² - ' + complementaryData.additional}`}
       goBack={() => {
         if (wizardStep === 1) {
           handleSwitchAllocationDataClean();
-          router.replace('/(authenticated)/home/professional');
+          router.replace('/(authenticated)/(professional)/home');
         } else { 
+          setPaymentMethod(null);
           setWizardStep(1);
         }
       }}
@@ -150,51 +121,32 @@ const roomRentalWizard = (): React.JSX.Element => {
           { wizardStep === 1 ? (
             <>
               <Section title='Informações'>
-                <View className='justify-between flex-row w-full'>
-                  <Text className='font-nunito'>
-                    Andar
-                  </Text>
+                <Label___Value
+                  separationRow
+                  label='Andar'
+                  value={{ _: complementaryData.floor }}
+                />
 
-                  <Text className='font-nunito-bold text-medroom-primary'>
-                    { complementaryData.floor }
-                  </Text>
-                </View>
+                <Label___Value
+                  separationRow
+                  label='Área'
+                  value={{ _: `${complementaryData.area}m²` }}
+                />
 
-                <View className='h-0.5 w-fill bg-gray-200'/>
+                <Label___Value
+                  separationRow
+                  label={ complementaryData.additional }
+                  value={{ _: `Sim` }}
+                />
 
-                <View className='justify-between flex-row w-full'>
-                  <Text className='font-nunito'>
-                    Área
-                  </Text>
-
-                  <Text className='font-nunito-bold text-medroom-primary'>
-                    { complementaryData.area }m²
-                  </Text>
-                </View>
-
-                <View className='h-0.5 w-fill bg-gray-200'/>
-
-                <View className='justify-between flex-row w-full'>
-                  <Text className='font-nunito'>
-                    { complementaryData.additional }
-                  </Text>
-
-                  <Text className='font-nunito-bold text-medroom-primary'>
-                    Sim
-                  </Text>
-                </View>
-
-                <View className='h-0.5 w-fill bg-gray-200'/>
-
-                <View className='justify-between items-center flex-row w-full'>
-                  <Text className='font-nunito'>
-                    Status
-                  </Text>
-
-                  <AvailbilityTag
-                    isAvailable={isAvailable}
-                  />
-                </View>
+                <Label___Value
+                  label='Status'
+                  value={{ Component: () => (
+                    <AvailbilityTag
+                      isAvailable={isAvailable}
+                    /> 
+                  )}}
+                />
               </Section>
 
               <Section title='TIPOS DE ALOCAÇÃO' row>
@@ -301,16 +253,15 @@ const roomRentalWizard = (): React.JSX.Element => {
                         { hourSelected &&
                           <>
                             <View className='h-0.5 w-fill bg-gray-200'/>
-
-                            <View className='justify-between flex-row w-full'>
-                              <Text className='font-nunito-bold text-medroom-secondary'>
-                                Valor por hora
-                              </Text>
-
-                              <Text className='font-nunito-bold text-green-600'>
-                                { priceFormat(prices.perHour) }
-                              </Text>
-                            </View>
+                            
+                            <Label___Value
+                              label='Valor por hora'
+                              boldLabel
+                              value={{ 
+                                _     : priceFormat(prices.perHour),
+                                color : 'text-green-600',
+                              }}
+                            />                          
                           </>
                         }
                       </>
@@ -352,15 +303,14 @@ const roomRentalWizard = (): React.JSX.Element => {
                       <>
                         <View className='h-0.5 w-fill bg-gray-200'/>
 
-                        <View className='justify-between flex-row w-full'>
-                          <Text className='font-nunito-bold text-medroom-secondary'>
-                            Valor semanal
-                          </Text>
-
-                          <Text className='font-nunito-bold text-green-600'>
-                            { priceFormat(prices._3xWeek) }
-                          </Text>
-                        </View>
+                        <Label___Value
+                          label='Valor semanal'
+                          boldLabel
+                          value={{ 
+                            _     : priceFormat(prices._3xWeek),
+                            color : 'text-green-600',
+                          }}
+                        />  
                       </>
                     }
                   </Section>
@@ -377,27 +327,20 @@ const roomRentalWizard = (): React.JSX.Element => {
               ) : allocationType === 'MONTH' ? (
                 <>
                   <Section title='Resumo'>
-                    <View className='justify-between flex-row w-full'>
-                      <Text className='font-nunito-bold text-medroom-secondary'>
-                        Período
-                      </Text>
+                    <Label___Value
+                      separationRow
+                      label='Período'
+                      value={{ _: '1 mês'}}
+                    />  
 
-                      <Text className='font-nunito-bold text-medroom-primary'>
-                        1 mês
-                      </Text>
-                    </View>
-
-                    <View className='h-0.5 w-fill bg-gray-200'/>
-
-                    <View className='justify-between flex-row w-full'>
-                      <Text className='font-nunito-bold text-medroom-secondary'>
-                        Valor mensal
-                      </Text>
-
-                      <Text className='font-nunito-bold text-green-600'>
-                        { priceFormat(prices.month) }
-                      </Text>
-                    </View>
+                    <Label___Value
+                      label='Valor mensal'
+                      boldLabel
+                      value={{ 
+                        _     : priceFormat(prices.month),
+                        color : 'text-green-600',
+                      }}
+                    />  
                   </Section>
 
                   <Button.Default
@@ -425,84 +368,75 @@ const roomRentalWizard = (): React.JSX.Element => {
           ) : (
             <>
               <Section title='Resumo'>
-                <View className='justify-between flex-row w-full'>
-                  <Text className='font-nunito text-medroom-secondary'>
-                    Sala
-                  </Text>
-
-                  <Text className='font-nunito-bold text-medroom-primary'>
-                    { title }
-                  </Text>
-                </View>
+                <Label___Value
+                  separationRow
+                  label='Sala'
+                  value={{ _: title.split('-')[0]}}
+                />  
 
                 { allocationType !== 'MONTH' &&
                   <>
-                    <View className='h-0.5 w-fill bg-gray-200'/>
-
-                    <View className='justify-between flex-row w-full'>
-                      <Text className='font-nunito text-medroom-secondary'>
-                        { allocationType === 'PER_HOUR' ? 'Horários' : 'Dias'}
-                      </Text>
-
-                      <Text className='font-nunito-bold text-medroom-primary'>
-                        { allocationType === 'PER_HOUR' ? hourSelected?.startHour + ' às ' + hourSelected?.endHour : TRANSLATED_DAYS_MAP[daysSelected.at(0)!]  + ', ' + TRANSLATED_DAYS_MAP[daysSelected.at(1)!] + ' e ' + TRANSLATED_DAYS_MAP[daysSelected.at(2)!]}
-                        
-                      </Text>
-                    </View>
+                    <Label___Value
+                      separationRow
+                      label={ allocationType === 'PER_HOUR' 
+                        ? 'Horários' 
+                        : 'Dias'
+                      }
+                      value={{ _: 
+                        allocationType === 'PER_HOUR' 
+                        ?   hourSelected?.startHour 
+                          + ' às ' 
+                          + hourSelected?.endHour 
+                        :   TRANSLATED_DAYS_MAP[daysSelected.at(0)!].split('-')[0]  
+                          + ', ' 
+                          + TRANSLATED_DAYS_MAP[daysSelected.at(1)!].split('-')[0] 
+                          + ' e ' 
+                          + TRANSLATED_DAYS_MAP[daysSelected.at(2)!].split('-')[0]
+                      }}
+                    />  
 
                     { allocationType !== '3X_WEEK' &&
-                      <>
-                        <View className='h-0.5 w-fill bg-gray-200'/>
-                      
-                        <View className='justify-between flex-row w-full'>
-                          <Text className='font-nunito text-medroom-secondary'>
-                            Entrada
-                          </Text>
+                      <>          
+                        <Label___Value
+                          separationRow
+                          label='Entrada'
+                          value={{ _: hourSelected?.startHour }}
+                        />
 
-                          <Text className='font-nunito-bold text-medroom-primary'>
-                            { hourSelected?.startHour }
-                          </Text>
-                        </View>
-
-                        <View className='h-0.5 w-fill bg-gray-200'/>
-
-                        <View className='justify-between items-center flex-row w-full'>
-                          <Text className='font-nunito text-medroom-secondary'>
-                            Saída
-                          </Text>
-
-                          <Text className='font-nunito-bold text-medroom-primary'>
-                            { hourSelected?.endHour }
-                          </Text>
-                        </View>
+                        <Label___Value
+                          separationRow
+                          label='Saída'
+                          value={{ _: hourSelected?.endHour }}
+                        />     
                       </>
                     }
                   </>
                 }
 
-                <View className='h-0.5 w-fill bg-gray-200'/>
+                <Label___Value
+                  separationRow
+                  label={ allocationType === 'MONTH' 
+                    ? 'Duração' 
+                    : 'Sessão' 
+                  }
+                  value={{ _: allocationType === 'MONTH' 
+                    ? '1 mês' 
+                    : '1 hora' 
+                  }}
+                /> 
 
-                <View className='justify-between items-center flex-row w-full'>
-                  <Text className='font-nunito text-medroom-secondary'>
-                    { allocationType === 'MONTH' ? 'Duração' : 'Sessão' }
-                  </Text>
-
-                  <Text className='font-nunito-bold text-medroom-primary'>
-                    { allocationType === 'MONTH' ? '1 mês' : '1 hora' }
-                  </Text>
-                </View>
-
-                <View className='h-0.5 w-fill bg-gray-200'/>
-
-                <View className='justify-between items-center flex-row w-full'>
-                  <Text className='font-nunito-bold text-medroom-secondary'>
-                    Total
-                  </Text>
-
-                  <Text className='font-nunito-bold text-green-600'>
-                    { allocationType === 'MONTH' ? priceFormat(prices.month) : allocationType === '3X_WEEK' ? priceFormat(prices._3xWeek) :  priceFormat(prices.perHour)}
-                  </Text>
-                </View>
+                <Label___Value
+                  label='Total'
+                  boldLabel
+                  value={{ 
+                    color: 'text-green-600',
+                    _: allocationType === 'MONTH' 
+                      ? priceFormat(prices.month) 
+                    : allocationType === '3X_WEEK' 
+                      ? priceFormat(prices._3xWeek) 
+                    :  priceFormat(prices.perHour), 
+                  }}
+                />     
               </Section>
 
               <Section title='Forma de pagamento'>
@@ -531,7 +465,7 @@ const roomRentalWizard = (): React.JSX.Element => {
               { paymentMethod &&
                 <Button.Default
                   label='Confirmar pagamento'
-                  onTouch={() => {}}
+                  onTouch={() => setWizardStep(3)}
                   icon={{ name: 'cash' }}
                   filled
                 />

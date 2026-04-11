@@ -28,7 +28,7 @@ const ShiftHour = (props:Props) => {
       className={`font-nunito text-xs text-medroom-primary ${props.unvailable ? 'text-medroom-primary line-through' : props.selected ? 'text-white' : 'text-medroom-primary'}`}
       style={props.unvailable ? { textDecorationLine: 'line-through' } : {}}
       >
-        às { props.startHour } 
+        às { props.endHour } 
       </Text>
     </TouchableOpacity>
   )

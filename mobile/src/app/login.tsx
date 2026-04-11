@@ -27,7 +27,7 @@ const Login = (): React.JSX.Element => {
 
   useEffect(() => {
     if (token) {
-      router.replace('/(authenticated)/home/professional');
+      router.replace('/(authenticated)/(professional)/home');
     }
   }, [token]);
 
@@ -59,7 +59,7 @@ const Login = (): React.JSX.Element => {
       
       const result = await loginWithEmail(data);
       await signIn(result.token, result.refreshToken || '');
-      router.replace('/(authenticated)/home/professional');
+      router.replace('/(authenticated)/(professional)/home');
     } catch (error) {
       const message = error instanceof ApiError
       ? error.message
@@ -72,7 +72,7 @@ const Login = (): React.JSX.Element => {
     }
   };
 
-  // return <Redirect href="/home/professional" />;
+  // return <Redirect href="/home" />;
 
   return (
     <LayoutWrapper>  

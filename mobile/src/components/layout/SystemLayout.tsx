@@ -3,6 +3,8 @@ import { Text, TouchableOpacity, View } from 'react-native'
 import { Button } from '../button';
 import { SystemTabs } from '@/types/systemTabs.type';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { useRoute } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 type Props = {
   children    : React.ReactNode; 
@@ -10,10 +12,20 @@ type Props = {
   title       : string;
   description : string;
   goBack?     : () => void;
-  layoutType  : 'PROFSSIONAL' | 'ENTERPRISE'; 
+  layoutType  : 'PROFESSIONAL' | 'ENTERPRISE'; 
 };
 
 const SystemLayout = (props:Props) => {
+
+  const router = useRouter();
+
+  const professionalTabs = [
+    { text: 'Início'    , icon: 'home' as const     , id: 'HOME'      , route: '/(authenticated)/(professional)/home'      },
+    { text: 'Horários'  , icon: 'schedule' as const , id: 'SCHEDULES' , route: '/(authenticated)/(professional)/schedules' },
+    { text: 'Pacientes' , icon: 'people' as const   , id: 'PATIENTS'  , route: '/(authenticated)/(professional)/patients'  },
+    { text: 'Perfil'    , icon: 'person' as const   , id: 'PROFILE'   , route: '/(authenticated)/(professional)/profile'   },
+  ];
+
   return (
     <View className='flex-1'>
       <View className='flex-row items-center gap-5 bg-medroom-primary p-6 shadow-md'>
@@ -31,7 +43,10 @@ const SystemLayout = (props:Props) => {
         )}
 
         <View>
-          <Text className='text-white font-nunito-bold text-2xl'>
+          <Text 
+          numberOfLines={1} 
+          className='text-white font-nunito-bold text-2xl'
+          >
             {props.title}
           </Text>
 
@@ -46,56 +61,43 @@ const SystemLayout = (props:Props) => {
       </View>
 
       <View className='flex-row justify-around bg-medroom-primary rounded-t-xl py-3'>
-        { props.layoutType === 'PROFSSIONAL' ? (
-          <>
+        { props.layoutType === 'PROFESSIONAL' ? (
+          professionalTabs.map((item) => (
             <Button.NavMenu
-              text='Início'
-              icon='home'
-              selected={props.tab === 'HOME'}
+              { ...item }
+              key={item.id}
+              selected={props.tab === item.id}
+              onTouch={() => router.replace(item.route as any)}
             />
-
-            <Button.NavMenu
-              text='Horários'
-              icon='schedule'
-              selected={props.tab === 'SCHEDULES'}
-            />
-
-            <Button.NavMenu
-              text='Pacientes'
-              icon='people'
-              selected={props.tab === 'PATIENTS'}
-            />
-
-            <Button.NavMenu
-              text='Perfil'
-              icon='person'
-              selected={props.tab === 'PROFILE'}
-            />
-          </>
+          ))
         ) : (
           <>
             <Button.NavMenu
               text='Painel'
               icon='home'
               selected={props.tab === 'DASHBOARD'}
+              onTouch={() => {}}
             />
 
             <Button.NavMenu
               text='Clientes'
               icon='schedule'
               selected={props.tab === 'CUSTOMERS'}
+              onTouch={() => {}}
             />
 
             <Button.NavMenu
               text='Valores'
               icon='people'
               selected={props.tab === 'VALUES'}
+              onTouch={() => {}}
             />
 
             <Button.NavMenu
               text='Salas'
               icon='person'
               selected={props.tab === 'ROOMS'}
+              onTouch={() => {}}
             />
           </>
         )}
