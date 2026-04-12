@@ -36,6 +36,7 @@ const DisplayRoom = (props:RoomDisplayCard): React.JSX.Element => {
 
             <AvailbilityTag
               isAvailable={props.isAvailable}
+              tagType='AVAILIBITY'
               aboslute='absolute top-2 right-2'
             />
           </View>

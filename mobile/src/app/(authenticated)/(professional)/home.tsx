@@ -143,7 +143,7 @@ const Home = (): React.JSX.Element => {
     }
   }
 
-  // router.replace('/(authenticated)/(professional)/roomRentalSuccess');
+  router.replace('/(authenticated)/(professional)/schedules');
 
   return (
     <LayoutWrapper>
