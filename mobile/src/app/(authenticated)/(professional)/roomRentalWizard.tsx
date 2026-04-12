@@ -143,6 +143,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                   label='Status'
                   value={{ Component: () => (
                     <AvailbilityTag
+                      tagType='AVAILIBITY'
                       isAvailable={isAvailable}
                     /> 
                   )}}
