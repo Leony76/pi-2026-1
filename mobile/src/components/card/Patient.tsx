@@ -1,0 +1,111 @@
+import React from 'react'
+import { Text, TouchableOpacity, View } from 'react-native'
+import AvailbilityTag from '../ui/AvailbilityTag';
+import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName';
+import { Patient as PatientType } from '@/types/patient.type';
+import { formatSessionDate } from '@/utils/formatSessionDate';
+import { History } from '@/types/history.type';
+import { useRouter } from 'expo-router';
+
+type BaseProps = {
+  separationRow? : boolean;
+  gap? : `gap-${number}`;
+};
+
+type Props = | BaseProps & PatientType & {
+  from: 'ACTIVES';
+} | BaseProps & History & {
+  from: 'HISTORY';
+};
+
+const Patient = (props:Props): React.JSX.Element => {
+
+  const router = useRouter();
+
+  const name = props.from === 'ACTIVES' 
+    ? props.name 
+    : props.patientName
+  ;
+
+  const sessionLabel = props.from === 'ACTIVES'
+    ? 'Próxima sessão:'
+    : 'Ùltima sessão:'
+  ;
+
+  const session = props.from === 'ACTIVES'
+    ?  formatSessionDate(props.nextSession)
+    :  new Date(props.lastSession).toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: '2-digit' 
+      }
+    );
+  ;
+
+  const nameArray = name.trim().split(' ') || [];
+
+  const displayName = nameArray.length > 1 
+    ? `${nameArray[0]} ${nameArray[1]}` 
+    : nameArray[0]
+  ;
+    
+  const initials = nameArray.length > 1 
+    ? `${nameArray[0]?.[0]}${nameArray[1]?.[0]}` 
+    :    nameArray[0]?.[0]
+  ;
+
+  const colors = getColorByName(name);
+
+  return (
+    <View className={`${props.gap ?? ''}`}>
+      <TouchableOpacity
+      activeOpacity={0.67}
+      onPress={() => router.push({
+        /// @ts-ignore
+        pathname: "/(authenticated)/(professional)/patients/[id]",
+        params: { id: props.id }
+      })}
+      >
+        <View className='flex-row items-center justify-between gap-3'>
+          <View className='flex-row items-center gap-3'>
+            <View 
+            className='rounded-[50%] justify-center items-center w-[50px] h-[50px] p-4'
+            style={{ backgroundColor: colors?.bg }}
+            >
+              <Text 
+              className='font-nunito-bold text-base'
+              style={{ color: colors?.text }}
+              >
+                { initials?.toUpperCase() }
+              </Text>
+            </View>
+
+            <View>
+              <Text className='text-medroom-primary text-xl font-nunito-bold'>
+                { displayName }
+              </Text>
+
+              <Text className='text-[13px] font-nunito text-gray-600'>
+                { sessionLabel } { session }
+              </Text>
+            </View>
+          </View>
+
+          <View className='relative self-start'>
+            <AvailbilityTag
+              tagType={'ACTIVITY'}
+              closed={props.status === 'CLOSED'}
+              isAvailable={props.status === 'ACTIVE'}
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      { props.separationRow &&
+        <View className='h-0.5 w-fill bg-gray-200'/>
+      }
+    </View>
+  )
+}
+
+export default Patient
