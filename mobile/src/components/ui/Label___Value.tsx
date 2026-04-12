@@ -5,6 +5,7 @@ type Props = {
   label          : string;
   separationRow? : boolean;
   boldLabel?     : boolean;
+  gap? : `gap-${number}`;
   value: {
     _?         : string;
     color?     : string;
@@ -17,7 +18,7 @@ const Label___Value = (props:Props) => {
   const ValueComponent = props.value.Component;
 
   return (
-    <>
+    <View className={`${props.gap ? props.gap : 'gap-3'}`}>
       <View className='justify-between flex-row w-full items-center'>
         <Text className={`text-medroom-secondary ${ props.boldLabel ? 'font-nunito-bold' : 'font-nunito' }`}>
           { props.label }
@@ -35,7 +36,7 @@ const Label___Value = (props:Props) => {
       { props.separationRow && 
         <View className='h-0.5 w-fill bg-gray-200'/>
       }
-    </>
+    </View>
   )
 }
 

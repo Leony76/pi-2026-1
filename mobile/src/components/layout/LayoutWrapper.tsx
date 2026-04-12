@@ -23,14 +23,9 @@ const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
         translucent={true} 
       />
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
-           { children }
-        </View>
-      </KeyboardAvoidingView>
+      <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+        { children }
+      </View>
 
       <View style={{ 
         height: insets.bottom, 

@@ -1,0 +1,27 @@
+export type Patient = {
+  readonly id : number;
+  name        : string;
+  nextSession : string;
+  status      : 'ACTIVE' | 'INACTIVE';
+};
+
+export type PatientInfos = Pick<Patient, 'id' | 'name' | 'status'> & {
+  phone     : string;
+  createdAt : string;
+  sessionHistory : {
+    totalMade : number;
+    session: {
+      lastOneDate    : string;
+      valueByEach    : number;
+      totalGenerated : number;
+    };
+  };
+  sessions : {
+    date : string;
+    room : string;
+    hour : {
+      start : string;
+      end   : string;
+    };
+  }[];
+};

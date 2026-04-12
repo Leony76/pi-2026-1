@@ -4,7 +4,7 @@ import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag';
 import Label___Value from '@/components/ui/Label___Value';
 import Section from '@/components/ui/Section';
-import { DAYS } from '@/constants/maps/days.map';
+import { DAYS } from '@/constants/misc/days.misc';
 import { HOURS_MAP } from '@/constants/maps/roomsHours.map';
 import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
 import { systemColors } from '@/constants/misc/systemColors.misc';
