@@ -10,7 +10,7 @@ import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 
-const roomRentalSuccess = () => {
+const roomRentalSuccess = (): React.JSX.Element => {
 
   const params = useLocalSearchParams();
   const router = useRouter();

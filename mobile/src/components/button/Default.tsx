@@ -24,7 +24,7 @@ type Props = {
   };
 };
 
-const Default = (props:Props) => {
+const Default = (props:Props): React.JSX.Element => {
   return (
     <TouchableOpacity
     disabled={props.disable}

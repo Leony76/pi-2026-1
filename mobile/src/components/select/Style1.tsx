@@ -23,7 +23,7 @@ type Props = {
   };
 };
 
-const Style1 = (props:Props) => {
+const Style1 = (props:Props): React.JSX.Element => {
 
   const optionsMap = OPTIONS_MAP[props.optionsMap];
 
@@ -110,7 +110,7 @@ const Style1 = (props:Props) => {
 
           <FlatList
             data={optionsMap}
-            keyExtractor={(item) => item.value}
+            keyExtractor={(item, index) => `${item.label}-${index}`}
             ItemSeparatorComponent={() => <View className="h-2" />}
             className='p-1'
             renderItem={({ item, index }) => (

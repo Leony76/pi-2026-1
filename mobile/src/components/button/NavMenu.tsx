@@ -10,7 +10,7 @@ type Props = {
   icon     : IconName;
 };
 
-const NavMenu = (props:Props) => {
+const NavMenu = (props:Props): React.JSX.Element => {
   return (
     <TouchableOpacity
     className='justify-center items-center'

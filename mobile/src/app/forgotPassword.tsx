@@ -11,7 +11,7 @@ import { Button } from '@/components/button';
 import { formatTime } from '@/utils/formatTime';
 import { useRouter } from 'expo-router';
 
-const forgotPassword = ():React.JSX.Element => {
+const forgotPassword = (): React.JSX.Element => {
   const { 
     control, 
     handleSubmit,

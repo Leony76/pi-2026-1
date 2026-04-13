@@ -16,7 +16,7 @@ export function ErrorModal({
   message,
   onClose,
   isLoading = false,
-}: ErrorModalProps) {
+}: ErrorModalProps): React.JSX.Element {
   return (
     <Modal
     visible={visible}

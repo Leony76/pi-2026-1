@@ -1,9 +1,9 @@
 import React from 'react'
-import { View, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, StatusBar } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 
-const LayoutWrapper = ({children}:{children:React.ReactNode}) => {
+const LayoutWrapper = ({children}:{children:React.ReactNode}): React.JSX.Element => {
 
   const insets = useSafeAreaInsets();
 

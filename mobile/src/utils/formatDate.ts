@@ -1,4 +1,9 @@
-export const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('pt-BR');
+export const formatDate = (date: string | Date) => {
+  if (!date) return '';
+
+  const d = new Date(date);
+  
+  if (isNaN(d.getTime())) return '';
+
+  return d.toLocaleDateString('pt-BR');
 };

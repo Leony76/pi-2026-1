@@ -60,8 +60,8 @@ const Patient = (props:Props): React.JSX.Element => {
     <View className={`${props.gap ?? ''}`}>
       <TouchableOpacity
       activeOpacity={0.67}
+      disabled={props.from === 'HISTORY'}
       onPress={() => router.push({
-        /// @ts-ignore
         pathname: "/(authenticated)/(professional)/patients/[id]",
         params: { id: props.id }
       })}

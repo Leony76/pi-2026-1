@@ -28,7 +28,7 @@ type Props = {
  * ```
  */
 
-const Icon = ({ name, color, sizes }: Props) => {
+const Icon = ({ name, color, sizes }: Props): React.JSX.Element | null => {
 
   const SvgIcon: React.FC<SvgProps> = Icons[name];
   const finalColor = color || systemColors.primary;

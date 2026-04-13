@@ -13,7 +13,7 @@ type Props = {
   }
 };
 
-const Label___Value = (props:Props) => {
+const Label___Value = (props:Props): React.JSX.Element => {
 
   const ValueComponent = props.value.Component;
 

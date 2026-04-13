@@ -2,10 +2,9 @@ import { useAuth } from '@/contexts/auth.context';
 import { ApiError } from '@/services/api';
 import { CurrentUserResponse } from '@/services/auth';
 import { apiGetWithAuth } from '@/services/auth-api';
-import { FULL_OPTIONS_MAP } from '@/constants/maps/selectOptions.map';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react'
-import { Alert, FlatList, Text, View } from 'react-native'
+import { Alert, FlatList, View } from 'react-native'
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import SystemLayout from '@/components/layout/SystemLayout';
 import { Button } from '@/components/button';
@@ -13,6 +12,7 @@ import { RoomDisplayCard } from '@/types/room.type';
 import { Card } from '@/components/card';
 import Section from '@/components/ui/Section';
 import { Allocation } from '@/types/allocation.type';
+import { getFirstName } from '@/utils/getFirstName';
 
 type ProfileState = {
   name: string;
@@ -50,8 +50,8 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
     },
     prices: {
       perHour : 64.9,
-      month   : 479.9,
-      _3xWeek : 779.9,
+      _3xWeek : 479.9,
+      month   : 779.9,
     }
   },
   { 
@@ -83,17 +83,15 @@ const Home = (): React.JSX.Element => {
 
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  function getSpecialtyLabel(value?: string) {
-    const specialty = FULL_OPTIONS_MAP.SPECIALTY.find((item) => item.value === value);
+  // function getSpecialtyLabel(value?: string) {
+  //   const specialty = FULL_OPTIONS_MAP.SPECIALTY.find((item) => item.value === value);
 
-    return specialty?.label ?? value ?? '';
-  }
+  //   return specialty?.label ?? value ?? '';
+  // }
 
   useEffect(() => {
     async function loadProfile() {
-      if (!token || !refreshToken) {
-        return;
-      }
+      if (!token || !refreshToken) return;
 
       try {
         setIsLoadingProfile(true);
@@ -143,12 +141,10 @@ const Home = (): React.JSX.Element => {
     }
   }
 
-  router.replace('/(authenticated)/(professional)/patients');
-
   return (
     <LayoutWrapper>
       <SystemLayout 
-      title={`Olá Dr. ${profile?.name ?? 'Desconhecido'}!`} 
+      title={`Olá Dr. ${profile ? getFirstName(profile.name) : 'Desconhecido'} !`} 
       description={'Escolha seu espaço e horário'} 
       layoutType={'PROFESSIONAL'}      
       tab='HOME'
@@ -179,7 +175,7 @@ const Home = (): React.JSX.Element => {
 
           <FlatList
             data={DISPLAY_ROOMS_DATA}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             ItemSeparatorComponent={() => <View className='h-5'/>}
             className='mt-6'
             contentContainerClassName='pb-6'
