@@ -56,7 +56,7 @@ const Style1 = (props:Props): React.JSX.Element => {
       </View>
       
       <View 
-      className='flex-row border-b-2 items-center border-b-medroom-secondary'
+      className='flex-row border-b-2 items-center border-b-medroom-primary'
       >
         <Pressable
         className='flex-1 py-2 color-medroom-secondary font-nunito'

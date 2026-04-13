@@ -1,10 +1,6 @@
-import { useAuth } from '@/contexts/auth.context';
-import { ApiError } from '@/services/api';
-import { CurrentUserResponse } from '@/services/auth';
-import { apiGetWithAuth } from '@/services/auth-api';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react'
-import { Alert, FlatList, View } from 'react-native'
+import React, { useState } from 'react'
+import { FlatList, View } from 'react-native'
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import SystemLayout from '@/components/layout/SystemLayout';
 import { Button } from '@/components/button';
@@ -13,12 +9,7 @@ import { Card } from '@/components/card';
 import Section from '@/components/ui/Section';
 import { Allocation } from '@/types/allocation.type';
 import { getFirstName } from '@/utils/getFirstName';
-
-type ProfileState = {
-  name: string;
-  specialty: string;
-  email: string;
-};
+import { useLoggedUserData } from '@/contexts/LoggedUserData.context';
 
 // Considere isso sendo as informações vindas da API
 const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
@@ -73,73 +64,11 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
 ]; 
 
 const Home = (): React.JSX.Element => {
-  const { signOut, token, refreshToken, updateTokens } = useAuth();
 
-  const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
-  const [profile, setProfile] = useState<ProfileState | null>(null);
-
+  const { profile } = useLoggedUserData(); 
   const [allocationType, setAllocationType] = useState<Allocation | null>(null);
 
-  const [profileError, setProfileError] = useState<string | null>(null);
-
-  // function getSpecialtyLabel(value?: string) {
-  //   const specialty = FULL_OPTIONS_MAP.SPECIALTY.find((item) => item.value === value);
-
-  //   return specialty?.label ?? value ?? '';
-  // }
-
-  useEffect(() => {
-    async function loadProfile() {
-      if (!token || !refreshToken) return;
-
-      try {
-        setIsLoadingProfile(true);
-        setProfileError(null);
-        
-        const currentUser = await apiGetWithAuth<CurrentUserResponse>(
-          '/users/me',
-          token,
-          refreshToken,
-          updateTokens,
-          signOut
-        );
-        
-        setProfile({
-          name: currentUser.name,
-          specialty: currentUser.specialty,
-          email: currentUser.email,
-        });
-      } catch (error) {
-        const message =
-          error instanceof ApiError
-            ? error.message
-            : 'Não foi possível carregar seu perfil.';
-
-        setProfileError(message);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    }
-
-    loadProfile();
-  }, [token, refreshToken, updateTokens, signOut]);
-
-  async function handleLogout() {
-    if (isSigningOut) {
-      return;
-    }
-
-    try {
-      setIsSigningOut(true);
-      await signOut();
-      router.replace('/login');
-    } catch {
-      Alert.alert('Erro', 'Não foi possível sair da sua conta.');
-    } finally {
-      setIsSigningOut(false);
-    }
-  }
+  // router.push('/(authenticated)/(professional)/profile')
 
   return (
     <LayoutWrapper>

@@ -25,6 +25,9 @@ import NewPerson from './new_person.svg'
 import Cash from './cash.svg';
 import Phone from './phone.svg';
 import Lupe from './lupe.svg';
+import Bell from './bell.svg';
+import Logout from './logout.svg';
+import Edit from './edit.svg';
 
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
@@ -57,6 +60,9 @@ export const Icons = {
   new_person     : NewPerson,
   phone          : Phone,
   lupe           : Lupe,
+  bell           : Bell,
+  logout         : Logout,
+  edit           : Edit
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

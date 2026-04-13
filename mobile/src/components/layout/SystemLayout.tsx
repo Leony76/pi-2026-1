@@ -10,6 +10,8 @@ type Props = {
   tab         : SystemTabs;
   title       : string;
   description : string;
+  headerHidden? : boolean;
+  mainPxOff?  : boolean;
   goBack?     : () => void;
   layoutType  : 'PROFESSIONAL' | 'ENTERPRISE'; 
 };
@@ -27,35 +29,37 @@ const SystemLayout = (props:Props): React.JSX.Element => {
 
   return (
     <View className='flex-1'>
-      <View className='flex-row items-center gap-5 bg-medroom-primary p-6 shadow-md'>
-        { props.goBack && (
-          <TouchableOpacity 
-          onPress={props.goBack}
-          className='bg-cyan-100/25 px-3 py-2.5 rounded-full'
-          >
-            <FontAwesome5 
-              name="arrow-left" 
-              size={24} 
-              color="white" 
-            />
-          </TouchableOpacity>
-        )}
+      { !props.headerHidden &&  
+        <View className='flex-row items-center gap-5 bg-medroom-primary p-6 shadow-md'>
+          { props.goBack && (
+            <TouchableOpacity 
+            onPress={props.goBack}
+            className='bg-cyan-100/25 px-3 py-2.5 rounded-full'
+            >
+              <FontAwesome5 
+                name="arrow-left" 
+                size={24} 
+                color="white" 
+              />
+            </TouchableOpacity>
+          )}
 
-        <View>
-          <Text 
-          numberOfLines={1} 
-          className='text-white font-nunito-bold text-2xl'
-          >
-            {props.title}
-          </Text>
+          <View>
+            <Text 
+            numberOfLines={1} 
+            className='text-white font-nunito-bold text-2xl'
+            >
+              {props.title}
+            </Text>
 
-          <Text className='text-white font-nunito'>
-            {props.description}
-          </Text>
+            <Text className='text-white font-nunito'>
+              {props.description}
+            </Text>
+          </View>
         </View>
-      </View>
+      }
 
-      <View className='flex-1 px-6 gap-5'>
+      <View className={`flex-1 gap-5 ${props.mainPxOff ? 'px-0' : 'px-6'}`}>
         {props.children}
       </View>
 
