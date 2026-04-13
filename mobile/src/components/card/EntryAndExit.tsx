@@ -7,7 +7,7 @@ type Props = {
   type         : 'ENTRY' | 'EXIT';        
 };
 
-const EntryAndExit = (props:Props) => {
+const EntryAndExit = (props:Props): React.JSX.Element => {
   return (
     <View className={`
       border-2 flex-1 p-3 rounded-xl 

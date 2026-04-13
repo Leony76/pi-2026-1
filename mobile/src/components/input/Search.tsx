@@ -10,7 +10,7 @@ type Props = {
   value        : string;
 };
 
-const Search = (props:Props) => {
+const Search = (props:Props): React.JSX.Element => {
   return (
     <View className='flex-row border-2 rounded-xl border-medroom-primaryLight items-center'>
       <Feather
@@ -21,7 +21,7 @@ const Search = (props:Props) => {
       />
 
       <TextInput
-        className='flex-1 py-2'
+        className='flex-1 py-2 text-medroom-secondary font-nunito'
         placeholder='Pesquisar'
         placeholderTextColor={systemColors.primary}
         onChangeText={props.onChangeText}

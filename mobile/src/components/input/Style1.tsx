@@ -1,35 +1,12 @@
 import React, { useState } from 'react'
-import { View, TextInput, Text, KeyboardTypeOptions, Pressable } from 'react-native'
+import { View, TextInput, Text, Pressable } from 'react-native'
 import Icon from '../ui/Icon'
-import { IconName } from 'root/assets/icons';
-import { InputType } from '@/types/input.type';
 import { systemColors } from '@/constants/misc/systemColors.misc';
+import { DefaultInputProps } from '@/types/defaultInputProps.type';
 
-type Props = {
-  label           : string;
-  value           : string;
-  type            : InputType;
-  autoCorrect?    : boolean;
-  maxLength?      : number;
-  keyboardType?   : KeyboardTypeOptions; 
-  autoCapitalize? : "none" | "sentences" | "words" | "characters";
-  onChange        : (text: string) => void;
-  onFocus?        : () => void;
-  onBlur?         : () => void;
-  icon : {
-    name : IconName;
-    size?: { 
-      width  : number; 
-      height : number; 
-    };
-  };
-  placeholder : {
-    color?: string;
-    text  : string;
-  };
-};
+type Props = DefaultInputProps;
 
-const Style1 = (props:Props) => {
+const Style1 = (props:Props): React.JSX.Element => {
 
   const [passwordVisible, setPasswordVisible] = useState<boolean>(false);
 

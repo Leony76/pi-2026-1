@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from './Icon';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 
-const LoadingScreen = ({ message = "Carregando sua área de saúde..." }: { message?: string }) => {
+const LoadingScreen = ({ message = "Carregando sua área de saúde..." }: { message?: string }): React.JSX.Element => {
   return (
     <LinearGradient
     colors={[systemColors.primary, '#0B4C4E']} 

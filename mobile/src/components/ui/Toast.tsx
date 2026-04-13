@@ -12,7 +12,7 @@ const Toast = ({
   visible, 
   message, 
   onClose 
-}:Props) => {
+}:Props): React.JSX.Element | null => {
   const opacity = new Animated.Value(0);
 
   useEffect(() => {

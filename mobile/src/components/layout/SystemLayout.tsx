@@ -3,7 +3,6 @@ import { Text, TouchableOpacity, View } from 'react-native'
 import { Button } from '../button';
 import { SystemTabs } from '@/types/systemTabs.type';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { useRoute } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 type Props = {
@@ -15,7 +14,7 @@ type Props = {
   layoutType  : 'PROFESSIONAL' | 'ENTERPRISE'; 
 };
 
-const SystemLayout = (props:Props) => {
+const SystemLayout = (props:Props): React.JSX.Element => {
 
   const router = useRouter();
 

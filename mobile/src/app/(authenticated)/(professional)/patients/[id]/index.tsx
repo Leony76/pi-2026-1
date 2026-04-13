@@ -11,7 +11,7 @@ import { formatHour } from '@/utils/formatHour'
 import { priceFormat } from '@/utils/priceFormat'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { FlatList, ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 
 // Supondo que essas serão as informações dos paciente no banco, e que será buscado
 // no back a partir do id provida na url, trazendo somente o pacinete selecionado
@@ -122,7 +122,7 @@ const PatientDetails = (): React.JSX.Element => {
     : nameArray[0]
   ;
 
-  const handleGetPatientById = async(id: number): Promise<void> => {
+  const getPatientById = async(id: number): Promise<void> => {
     try {
       // Simulando um requisão GET da API pelo ID do paciente
       const response: (PatientInfos | undefined) = PATIENTS_GENERAL_INFOS_DATA.find((patient) => patient.id === Number(id));
@@ -136,7 +136,7 @@ const PatientDetails = (): React.JSX.Element => {
   };
 
   useEffect(() => {
-    handleGetPatientById(Number(id));
+    getPatientById(Number(id));
   }, []);
 
   return (
@@ -184,35 +184,42 @@ const PatientDetails = (): React.JSX.Element => {
           SideComponent={() => (
             <Button.Default
               label='Ver mais'
-              onTouch={() => router.replace('/(authenticated)/(professional)/patients/history')}
-              customStyle={{ container: 'py-[3px] px-4', text: 'text-[12.5px]' }}
+              onTouch={() => router.replace({
+                pathname: '/(authenticated)/(professional)/patients/[id]/nextSessions',
+                params: {
+                  id: patient?.id!,
+                },
+              })}
+              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
             />
           )}
           >
-            <FlatList
-              data={patient?.sessions}
-              contentContainerClassName='gap-3'
-              ListEmptyComponent={ <ContentNotFound text='Nenhuma sessão encontrada'/> }
-              renderItem={({ item, index }) => (
-                <Label___Value
-                  boldLabel
-                  gap='gap-3'
-                  separationRow={(patient?.sessions.length! - 1) !== index}
-                  label={formatDate(item.date)}
-                  value={{ Component: () => (
-                    <View className='items-end'> 
-                      <Text className="text-medroom-primary font-nunito-bold">
-                        {formatHour(item.hour.start)} às {formatHour(item.hour.end)}
-                      </Text>
+            <View className="gap-3">
+              {patient?.sessions && patient.sessions.length > 0 ? (
+                patient.sessions.slice(0, 2).map((item, index) => (
+                  <Label___Value
+                    key={`${item.date}-${index}`}
+                    boldLabel
+                    gap='gap-3'
+                    separationRow={index === 0 && patient.sessions.length > 1}
+                    label={formatDate(item.date)}
+                    value={{ Component: () => (
+                      <View className='items-end'> 
+                        <Text className="text-medroom-primary font-nunito-bold">
+                          {formatHour(item.hour.start)} às {formatHour(item.hour.end)}
+                        </Text>
 
-                      <Text className="text-medroom-secondary font-nunito text-right">
-                        {item.room}
-                      </Text>
-                    </View>
-                  )}}
-                />
+                        <Text className="text-medroom-secondary font-nunito text-right">
+                          {item.room}
+                        </Text>
+                      </View>
+                    )}}
+                  />
+                ))
+              ) : (
+                <ContentNotFound text='Nenhuma sessão encontrada'/>
               )}
-            />
+            </View>
           </Section>
 
           <Section title='Histórico de sessões'>

@@ -3,7 +3,7 @@ import SystemLayout from '@/components/layout/SystemLayout'
 import React from 'react'
 import { Text } from 'react-native'
 
-const profile = () => {
+const profile = (): React.JSX.Element => {
   return (
     <LayoutWrapper>
       <SystemLayout

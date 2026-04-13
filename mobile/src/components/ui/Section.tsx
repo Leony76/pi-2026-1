@@ -9,7 +9,7 @@ type Props = {
   SideComponent?: React.ElementType;
 };
 
-const Section = (props:Props) => {
+const Section = (props:Props): React.JSX.Element => {
 
   const Component = props.SideComponent;
 

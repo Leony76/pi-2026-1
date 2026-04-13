@@ -9,7 +9,7 @@ import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { NewPasswordFormData, newPasswordSchema } from "@/schemas/newPassword.schema";
 import { useRouter } from "expo-router";
 
-const NewPassword = ():React.JSX.Element => {
+const NewPassword = (): React.JSX.Element => {
 
   const { 
     control, 

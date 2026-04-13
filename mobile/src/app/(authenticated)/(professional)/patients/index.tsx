@@ -3,11 +3,12 @@ import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import Section from '@/components/ui/Section'
+import Toast from '@/components/ui/Toast'
 import { History } from '@/types/history.type'
 import { Patient } from '@/types/patient.type'
-import { useRouter } from 'expo-router'
-import React from 'react'
-import { FlatList, View } from 'react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import React, { useEffect, useState } from 'react'
+import { View } from 'react-native'
 
 // Supondo que virá essas informações da API (Lista de apenas 3)
 const ACTIVE_PATIENTS_DATA: Patient[] = [
@@ -22,12 +23,32 @@ const HISTORY: History[] = [
   { id: 5, lastSession: '2026-04-12T12:00:00.000Z' , patientName: 'JONH CENAAH', status: 'CLOSED'},
 ];
 
-const patients = () => {
+const Patients = (): React.JSX.Element => {
 
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  const [toastVisible, setToastVisible] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (params.message) {
+      setToastVisible(true);
+    }
+  }, [params.message]);
+
+  const handleCloseToast = () => {
+    setToastVisible(false);
+    router.setParams({ message: '' });
+  };
 
   return (
     <LayoutWrapper>
+      <Toast
+        message={params.message as string}
+        onClose={handleCloseToast}
+        visible={toastVisible}
+      />
+
       <SystemLayout
       title='Meus pacientes'
       description='Clientes cadastrados'
@@ -41,22 +62,21 @@ const patients = () => {
             <Button.Default
               label='Ver mais'
               onTouch={() => router.replace('/(authenticated)/(professional)/patients/actives')}
-              customStyle={{ container: 'py-[3px] px-4', text: 'text-[12.5px]' }}
+              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
             />
           )}
           >
-            <FlatList
-              data={ACTIVE_PATIENTS_DATA}
-              contentContainerClassName='gap-4 py-1'
-              renderItem={({ item, index }) => (
+            <View className="gap-4 py-1">
+              {ACTIVE_PATIENTS_DATA.map((item, index) => (
                 <Card.Patient
-                  { ...item }
+                  key={item.id}
+                  {...item}
                   from='ACTIVES'
                   gap={'gap-3'}
                   separationRow={(ACTIVE_PATIENTS_DATA.length - 1) !== index}
                 />
-              )}
-            />
+              ))}
+            </View>
           </Section>
 
           <Section 
@@ -65,28 +85,28 @@ const patients = () => {
             <Button.Default
               label='Ver mais'
               onTouch={() => router.replace('/(authenticated)/(professional)/patients/history')}
-              customStyle={{ container: 'py-[3px] px-4', text: 'text-[12.5px]' }}
+              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
             />
           )}
           >
-            <FlatList
-              data={HISTORY}
-              contentContainerClassName='gap-4 py-1'
-              renderItem={({ item, index }) => (
+            <View className="gap-4 py-1">
+              {HISTORY.map((item, index) => (
                 <Card.Patient
-                  { ...item }
+                  key={item.id}
+                  {...item}
                   from='HISTORY'
                   gap={'gap-3'}
                   separationRow={(HISTORY.length - 1) !== index}
                 />
-              )}
-            />
+              ))}
+            </View>
           </Section>
 
           <Button.Default
             label='Cadastrar paciente'
             filled
-            onTouch={() => {}}
+            icon={{ name: 'new_person' }}
+            onTouch={() => router.push('/(authenticated)/(professional)/patients/newPatient')}
           />
         </View>
       </SystemLayout>
@@ -94,4 +114,4 @@ const patients = () => {
   )
 }
 
-export default patients
+export default Patients

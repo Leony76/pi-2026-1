@@ -8,7 +8,7 @@ type Props = {
   tagType     : 'ACTIVITY' | 'AVAILIBITY';
 };
 
-const AvailbilityTag = (props:Props) => {
+const AvailbilityTag = (props:Props): React.JSX.Element => {
   return (
     <View className={`
       py-1 rounded-lg justify-center items-center border 
@@ -21,13 +21,13 @@ const AvailbilityTag = (props:Props) => {
       ${props.aboslute ?? ''}
       ${props.tagType === 'ACTIVITY' ? 'px-3' : 'px-6'}
     `}>
-      <Text className={
+      <Text className={`font-nunito ${
         props.closed
           ? 'text-medroom-secondary' :
         props.isAvailable 
           ? 'text-green-600' 
           : 'text-red-600'
-      }>
+      }`}>
         { props.closed 
             ? 'Encerrado' :  
           props.isAvailable 

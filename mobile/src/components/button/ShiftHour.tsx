@@ -9,7 +9,7 @@ type Props = {
   unvailable : boolean;
 };
 
-const ShiftHour = (props:Props) => {
+const ShiftHour = (props:Props): React.JSX.Element => {
   return (
     <TouchableOpacity
     activeOpacity={0.67}

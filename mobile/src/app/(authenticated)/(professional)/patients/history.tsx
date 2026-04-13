@@ -43,6 +43,7 @@ const History = (): React.JSX.Element => {
             <FlatList
               data={filteredList}
               contentContainerClassName='gap-4 py-1'
+              keyExtractor={(item, index) => `${item.id}-${index}`}
               ListEmptyComponent={ <ContentNotFound text={`Nenhum resultado para "${ searchValue }"`}/> }
               renderItem={({ item, index }) => (
                 <Card.Patient
