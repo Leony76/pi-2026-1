@@ -37,7 +37,7 @@ const NewPatient = (): React.JSX.Element => {
     router.push({
       pathname: '/(authenticated)/(professional)/patients',
       params: {
-        message: 'Paciente cadastrado com sucesso'
+        message: 'Paciente cadastrado com sucesso!'
       },
     })
   };
@@ -114,7 +114,7 @@ const NewPatient = (): React.JSX.Element => {
                     type='TEXT'
                     onBlur={onBlur}
                     value={value ?? ''}
-                    keyboardType='number-pad'
+                    keyboardType='default'
                   />
                 )}
               />

@@ -139,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(nextToken);
         setRefreshToken(nextRefreshToken);
       },
+      
       async signOut() {
         const useSecureStore = await isSecureStoreAvailable();
 

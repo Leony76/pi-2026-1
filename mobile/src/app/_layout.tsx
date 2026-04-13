@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { systemColors } from "@/constants/misc/systemColors.misc";
 import { AuthProvider } from "@/contexts/auth.context";
+import { UserProvider } from "@/contexts/LoggedUserData.context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,14 +27,16 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <SafeAreaProvider>
-        <StatusBar 
-          barStyle="dark-content" 
-          backgroundColor={systemColors.primary} 
-         />
+      <UserProvider>
+        <SafeAreaProvider>
+          <StatusBar 
+            barStyle="dark-content" 
+            backgroundColor={systemColors.primary} 
+          />
 
-         <Stack screenOptions={{ headerShown: false }} />
-      </SafeAreaProvider>
+          <Stack screenOptions={{ headerShown: false }} />
+        </SafeAreaProvider>
+      </UserProvider>
     </AuthProvider>
   );
 }
