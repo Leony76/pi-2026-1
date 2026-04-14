@@ -5,6 +5,7 @@ type Props = {
   isAvailable : boolean;
   closed?     : boolean;
   aboslute?   : string;
+  textSm?     : boolean;
   tagType     : 'ACTIVITY' | 'AVAILIBITY';
 };
 
@@ -27,6 +28,8 @@ const AvailbilityTag = (props:Props): React.JSX.Element => {
         props.isAvailable 
           ? 'text-green-600' 
           : 'text-red-600'
+      } ${
+        props.textSm ? 'text-sm' : ''
       }`}>
         { props.closed 
             ? 'Encerrado' :  
