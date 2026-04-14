@@ -94,7 +94,7 @@ const Profile = (): React.JSX.Element => {
 
             <View className='items-center'>
               <Text className='text-white text-2xl font-nunito-bold text-center'>
-                Dr(a) { profile?.name }
+                Dr(a) { profile?.name ?? '[ Desconhecido ]' }
               </Text>
 
               <Text className='text-white text-lg font-nunito'>

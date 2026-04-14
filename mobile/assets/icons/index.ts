@@ -28,6 +28,10 @@ import Lupe from './lupe.svg';
 import Bell from './bell.svg';
 import Logout from './logout.svg';
 import Edit from './edit.svg';
+import Customers from './customers.svg';
+import Dashboard from './dashboard.svg';
+import Room from './room.svg';
+import Values from './values.svg';
 
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
@@ -62,7 +66,11 @@ export const Icons = {
   lupe           : Lupe,
   bell           : Bell,
   logout         : Logout,
-  edit           : Edit
+  edit           : Edit,
+  customers      : Customers,
+  dashboard      : Dashboard,
+  room           : Room,
+  values         : Values,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

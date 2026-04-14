@@ -27,6 +27,13 @@ const SystemLayout = (props:Props): React.JSX.Element => {
     { text: 'Perfil'    , icon: 'person' as const   , id: 'PROFILE'   , route: '/(authenticated)/(professional)/profile'   },
   ];
 
+  const enterpriseTabs = [
+    { text: 'Painel'    , icon: 'dashboard' as const     , id: 'DASHBOARD' , route: '/(authenticated)/(enterprise)/home'      },
+    { text: 'Clientes'  , icon: 'customers' as const     , id: 'CUSTOMERS' , route: '/(authenticated)/(enterprise)/customers' },
+    { text: 'Valores'   , icon: 'values' as const        , id: 'VALUES'    , route: '/(authenticated)/(enterprise)/values'  },
+    { text: 'Salas'     , icon: 'room' as const          , id: 'ROOMS'      , route: '/(authenticated)/(enterprise)/rooms'   },
+  ];
+
   return (
     <View className='flex-1'>
       { !props.headerHidden &&  
@@ -74,36 +81,14 @@ const SystemLayout = (props:Props): React.JSX.Element => {
             />
           ))
         ) : (
-          <>
+          enterpriseTabs.map((item) => (
             <Button.NavMenu
-              text='Painel'
-              icon='home'
-              selected={props.tab === 'DASHBOARD'}
-              onTouch={() => {}}
+              key={item.id}
+              { ...item }
+              selected={props.tab === item.id}
+              onTouch={() => router.replace(item.route as any)}
             />
-
-            <Button.NavMenu
-              text='Clientes'
-              icon='schedule'
-              selected={props.tab === 'CUSTOMERS'}
-              onTouch={() => {}}
-            />
-
-            <Button.NavMenu
-              text='Valores'
-              icon='people'
-              selected={props.tab === 'VALUES'}
-              onTouch={() => {}}
-            />
-
-            <Button.NavMenu
-              text='Salas'
-              icon='person'
-              selected={props.tab === 'ROOMS'}
-              onTouch={() => {}}
-            />
-          </>
-        )}
+        )))}
       </View>
     </View>
   )
