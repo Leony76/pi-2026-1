@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, Pressable, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, Pressable } from 'react-native';
 import { Button } from '../button';
 
 type ErrorModalProps = {

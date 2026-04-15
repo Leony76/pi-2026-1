@@ -68,7 +68,7 @@ const Home = (): React.JSX.Element => {
   const { profile } = useLoggedUserData(); 
   const [allocationType, setAllocationType] = useState<Allocation | null>(null);
 
-  router.push('/(authenticated)/(enterprise)/customers')
+  router.push('/(authenticated)/(enterprise)/values')
 
   return (
     <LayoutWrapper>
