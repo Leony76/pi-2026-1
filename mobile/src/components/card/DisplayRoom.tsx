@@ -7,10 +7,14 @@ import { priceFormat } from '@/utils/priceFormat';
 import { Link } from 'expo-router';
 import AvailbilityTag from '../ui/AvailbilityTag';
 
-const DisplayRoom = (props:RoomDisplayCard): React.JSX.Element => {
+type Props = RoomDisplayCard & {
+  pressable?: boolean;
+};
+
+const DisplayRoom = (props:Props): React.JSX.Element => {
   return (
     <Link
-    disabled={!props.isAvailable}
+    disabled={!props.isAvailable || !props.pressable}
     asChild
     href={{
       pathname: '/(authenticated)/(professional)/roomRentalWizard',

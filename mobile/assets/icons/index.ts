@@ -32,6 +32,24 @@ import Customers from './customers.svg';
 import Dashboard from './dashboard.svg';
 import Room from './room.svg';
 import Values from './values.svg';
+import New from './new.svg';
+import Stairs from './stairs.svg';
+import AirConditioning from './air_conditioning.svg';
+import Bed from './bed.svg';
+import ChairWithWheels from './chair_with_wheels.svg';
+import Couch from './couch.svg';
+import Description from './description.svg';
+import Gabinet from './gabinet.svg';
+import Illumination from './illumination.svg';
+import IVBag from './iv_bag.svg';
+import Mirror from './mirror.svg';
+import Monitor from './monitor.svg';
+import PlantsVsZombies from './plants_vs_zombies.svg';
+import RightArrow from './right_arrow.svg';
+import Rule from './rule.svg';
+import Toilet from './toilet.svg';
+import TV from './tv.svg';
+import XCircle from './x_circle.svg';
 
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
@@ -71,6 +89,24 @@ export const Icons = {
   dashboard      : Dashboard,
   room           : Room,
   values         : Values,
+  new            : New,
+  stairs         : Stairs,
+  air_conditioning  : AirConditioning,
+  bed            : Bed,
+  chair_with_wheels : ChairWithWheels,
+  couch          : Couch,
+  description    : Description,
+  gabinet        : Gabinet,
+  illumination   : Illumination,
+  iv_bag         : IVBag,
+  mirror         : Mirror,
+  monitor        : Monitor,
+  plants_vs_zombies : PlantsVsZombies,
+  right_arrow    : RightArrow,
+  rule           : Rule,
+  toilet         : Toilet,
+  tv             : TV, 
+  x_circle       : XCircle,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

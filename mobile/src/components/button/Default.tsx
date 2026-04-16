@@ -5,9 +5,10 @@ import Icon from '../ui/Icon';
 import { systemColors } from '@/constants/misc/systemColors.misc';
 
 type Props = {
-  onTouch  : () => void;
-  disable? : boolean;
-  loading? : boolean;
+  onTouch      : () => void;
+  disable?     : boolean;
+  loading?     : boolean; 
+  borderStyle? :  'DASHED';
   textLineThrough? : boolean;
   icon? : {
     name : IconName;
@@ -37,6 +38,9 @@ const Default = (props:Props): React.JSX.Element => {
         ? 'bg-medroom-primary' 
         : 'bg-[#1aafb408] border border-[#1aafb482]'
       }  
+      ${props.borderStyle === 'DASHED'
+        ? 'border-dashed' : ''
+      }
       ${props.disable 
         ? 'opacity-50' 
         : undefined

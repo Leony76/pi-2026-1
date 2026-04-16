@@ -11,6 +11,7 @@ import { systemColors } from '@/constants/misc/systemColors.misc';
 type Props = {
   label      : string;
   optionsMap : FullOptionsMapKeys;
+  value?     : string;    
   onChange   : (text: string) => void;
   onFocus?   : () => void;
   onBlur?    : () => void;
@@ -65,7 +66,7 @@ const Style2 = (props:Props): React.JSX.Element => {
           onPress={() => setOptionsVisible(true)}
           > 
             <Text className='font-nunito text-medroom-secondary'>
-              { selectedLabel }
+              { props.value || selectedLabel }
             </Text>
           </Pressable>
 
@@ -115,7 +116,7 @@ const Style2 = (props:Props): React.JSX.Element => {
               className='p-1'
               renderItem={({ item, index }) => (
                 <Button.Default
-                  filled={item.label === selectedLabel}
+                  filled={item.label ===  (props.value || selectedLabel)}
                   customStyle={{ container: 'py-[6px]', text: 'text-[14px] font-normal' }}
                   key={index}
                   label={item.label}
