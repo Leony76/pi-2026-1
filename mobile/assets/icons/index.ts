@@ -41,15 +41,17 @@ import Couch from './couch.svg';
 import Description from './description.svg';
 import Gabinet from './gabinet.svg';
 import Illumination from './illumination.svg';
-import IVBag from './iv_bag.svg';
+import MedicalEquipament from './medical_equipament.svg';
 import Mirror from './mirror.svg';
 import Monitor from './monitor.svg';
 import PlantsVsZombies from './plants_vs_zombies.svg';
+import PlantsVsZombiesBlue from './plants_vs_zombies_blue.svg';
 import RightArrow from './right_arrow.svg';
 import Rule from './rule.svg';
-import Toilet from './toilet.svg';
+import Sink from './sink.svg';
 import TV from './tv.svg';
 import XCircle from './x_circle.svg';
+import Misc from './misc.svg';
 
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
@@ -98,15 +100,17 @@ export const Icons = {
   description    : Description,
   gabinet        : Gabinet,
   illumination   : Illumination,
-  iv_bag         : IVBag,
+  medical_equipment : MedicalEquipament,
   mirror         : Mirror,
   monitor        : Monitor,
-  plants_vs_zombies : PlantsVsZombies,
+  plants_vs_zombies      : PlantsVsZombies,
+  plants_vs_zombies_blue : PlantsVsZombiesBlue,
   right_arrow    : RightArrow,
   rule           : Rule,
-  toilet         : Toilet,
+  sink           : Sink,
   tv             : TV, 
   x_circle       : XCircle,
+  misc           : Misc,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;

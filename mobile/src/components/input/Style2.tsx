@@ -4,7 +4,9 @@ import Icon from '../ui/Icon'
 import { systemColors } from '@/constants/misc/systemColors.misc';
 import { DefaultInputProps } from '@/types/defaultInputProps.type';
 
-type Props = DefaultInputProps;
+type Props = DefaultInputProps & {
+  noLabel?: boolean;
+};
 
 const Style2 = (props:Props): React.JSX.Element => {
 
@@ -13,11 +15,13 @@ const Style2 = (props:Props): React.JSX.Element => {
 
   return (
     <View className='gap-1'>
-      <View className="flex-row items-center gap-2">
-        <Text className="font-nunito-bold text-lg font-semibold text-medroom-primary">
-          { props.label }
-        </Text>
-      </View>
+      { !props.noLabel &&
+        <View className="flex-row items-center gap-2">
+          <Text className="font-nunito-bold text-lg font-semibold text-medroom-primary">
+            { props.label }
+          </Text>
+        </View>
+      }
       
       <View 
       className='flex-row border-[1.5px] items-center border-medroom-primary rounded-xl'

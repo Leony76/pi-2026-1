@@ -2,6 +2,7 @@ import Customer from "./Customer";
 import DisplayRoom from "./DisplayRoom";
 import EntryAndExit from "./EntryAndExit";
 import Patient from "./Patient";
+import QuantityByItem from "./QuantityByItem";
 import RoomOccupation from "./RoomOccupation";
 
 export const Card = {
@@ -10,4 +11,5 @@ export const Card = {
   Patient,
   RoomOccupation,
   Customer,
+  QuantityByItem,
 };

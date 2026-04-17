@@ -2,9 +2,10 @@ import { Button } from '@/components/button'
 import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
+import Toast from '@/components/ui/Toast'
 import { RoomDisplayCard } from '@/types/room.type'
-import { router } from 'expo-router'
-import React from 'react'
+import { router, useLocalSearchParams } from 'expo-router'
+import React, { useEffect, useState } from 'react'
 import { FlatList, View } from 'react-native'
 
 const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
@@ -59,8 +60,31 @@ const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
 ]; 
 
 const Rooms = (): React.JSX.Element => {
+
+  const [toastVisible, setToastVisible] = useState<boolean>(false);
+  const params = useLocalSearchParams();
+  
+  useEffect(() => {
+    if (params.message) {
+      setToastVisible(true);
+    }
+  }, [params.message]);
+
+  const handleCloseToast = () => {
+    setToastVisible(false);
+    router.setParams({ message: '' });
+  };
+
   return (
     <LayoutWrapper>
+      { toastVisible &&
+        <Toast
+          message={params.message as string}
+          onClose={handleCloseToast}
+          visible={toastVisible}
+        />
+      }
+
       <SystemLayout 
       title='Gerenciar salas' 
       description={'Adicione e edite'} 
