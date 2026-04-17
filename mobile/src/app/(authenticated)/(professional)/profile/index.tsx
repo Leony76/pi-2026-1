@@ -24,11 +24,10 @@ const Profile = (): React.JSX.Element => {
   const { signOut } = useAuth();
 
   const router = useRouter();
+  const [toastVisible, setToastVisible] = useState<boolean>(false);
   const params = useLocalSearchParams();
 
   const [profileImageExpand, setProfileExpand] = useState<boolean>(false);
-
-  const [toastVisible, setToastVisible] = useState<boolean>(false);
   
   useEffect(() => {
     if (params.message) {

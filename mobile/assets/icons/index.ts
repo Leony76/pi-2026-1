@@ -32,6 +32,26 @@ import Customers from './customers.svg';
 import Dashboard from './dashboard.svg';
 import Room from './room.svg';
 import Values from './values.svg';
+import New from './new.svg';
+import Stairs from './stairs.svg';
+import AirConditioning from './air_conditioning.svg';
+import Bed from './bed.svg';
+import ChairWithWheels from './chair_with_wheels.svg';
+import Couch from './couch.svg';
+import Description from './description.svg';
+import Gabinet from './gabinet.svg';
+import Illumination from './illumination.svg';
+import MedicalEquipament from './medical_equipament.svg';
+import Mirror from './mirror.svg';
+import Monitor from './monitor.svg';
+import PlantsVsZombies from './plants_vs_zombies.svg';
+import PlantsVsZombiesBlue from './plants_vs_zombies_blue.svg';
+import RightArrow from './right_arrow.svg';
+import Rule from './rule.svg';
+import Sink from './sink.svg';
+import TV from './tv.svg';
+import XCircle from './x_circle.svg';
+import Misc from './misc.svg';
 
 import { FC } from "react";
 import { SvgProps } from "react-native-svg";
@@ -71,6 +91,26 @@ export const Icons = {
   dashboard      : Dashboard,
   room           : Room,
   values         : Values,
+  new            : New,
+  stairs         : Stairs,
+  air_conditioning  : AirConditioning,
+  bed            : Bed,
+  chair_with_wheels : ChairWithWheels,
+  couch          : Couch,
+  description    : Description,
+  gabinet        : Gabinet,
+  illumination   : Illumination,
+  medical_equipment : MedicalEquipament,
+  mirror         : Mirror,
+  monitor        : Monitor,
+  plants_vs_zombies      : PlantsVsZombies,
+  plants_vs_zombies_blue : PlantsVsZombiesBlue,
+  right_arrow    : RightArrow,
+  rule           : Rule,
+  sink           : Sink,
+  tv             : TV, 
+  x_circle       : XCircle,
+  misc           : Misc,
 } satisfies Record<string, FC<SvgProps>>;
 
 export type IconName = keyof typeof Icons;
