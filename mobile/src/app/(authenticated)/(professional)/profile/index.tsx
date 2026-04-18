@@ -23,6 +23,8 @@ const Profile = (): React.JSX.Element => {
   const { profile } = useLoggedUserData();  
   const { signOut } = useAuth();
 
+  const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
+
   const router = useRouter();
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const params = useLocalSearchParams();
@@ -47,6 +49,15 @@ const Profile = (): React.JSX.Element => {
         onRequestClose={() => setProfileExpand(false)}
         visible={profileImageExpand}
       />
+
+      { signOutConfirm &&
+        <Modal.ConfirmAction
+          onConfirm={signOut}
+          confirmMessage='Tem certeza em sair do sistema ?'
+          onRequestClose={() => setSignOutConfirm(false)}
+          visible={signOutConfirm}
+        />
+      }
 
       <Toast
         message={params.message as string}
@@ -330,8 +341,8 @@ const Profile = (): React.JSX.Element => {
 
             <Button.Default
               label='Sair da conta'
-              icon={{ name: 'logout', size: { height: 22, width: 22 } }}
-              onTouch={signOut}
+              icon={{ name: 'logout', color: 'red', size: { height: 22, width: 22 } }}
+              onTouch={() => setSignOutConfirm(true)}
               customStyle={{ 
                 container : 'bg-red-100/50 border-red-600', 
                 text      : 'text-red-600' 

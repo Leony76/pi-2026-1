@@ -8,7 +8,7 @@ import { History } from '@/types/history.type'
 import { Patient } from '@/types/patient.type'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 
 // Supondo que virá essas informações da API (Lista de apenas 3)
 const ACTIVE_PATIENTS_DATA: Patient[] = [
@@ -55,7 +55,7 @@ const Patients = (): React.JSX.Element => {
       tab='PATIENTS'
       layoutType='PROFESSIONAL'    
       >
-        <View className='flex-1 py-6 gap-5'>
+        <ScrollView contentContainerClassName='py-6 gap-5'>
           <Section 
           title='Ativos'
           SideComponent={() => (
@@ -108,7 +108,7 @@ const Patients = (): React.JSX.Element => {
             icon={{ name: 'new_person' }}
             onTouch={() => router.push('/(authenticated)/(professional)/patients/newPatient')}
           />
-        </View>
+        </ScrollView>
       </SystemLayout>
     </LayoutWrapper>
   )

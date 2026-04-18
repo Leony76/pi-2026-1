@@ -1,12 +1,9 @@
-import { router } from 'expo-router';
 import React, { useState } from 'react'
 import { FlatList, View } from 'react-native'
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import SystemLayout from '@/components/layout/SystemLayout';
-import { Button } from '@/components/button';
 import { RoomDisplayCard } from '@/types/room.type';
 import { Card } from '@/components/card';
-import Section from '@/components/ui/Section';
 import { Allocation } from '@/types/allocation.type';
 import { getFirstName } from '@/utils/getFirstName';
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context';
@@ -68,8 +65,6 @@ const Home = (): React.JSX.Element => {
   const { profile } = useLoggedUserData(); 
   const [allocationType, setAllocationType] = useState<Allocation | null>(null);
 
-  router.push('/(authenticated)/(enterprise)/rooms/newRoomWizard')
-
   return (
     <LayoutWrapper>
       <SystemLayout 
@@ -78,44 +73,18 @@ const Home = (): React.JSX.Element => {
       layoutType={'PROFESSIONAL'}      
       tab='HOME'
       > 
-        <View className='flex-1 pt-6'>
-          <Section title='TIPOS DE ALOCAÇÃO' row>
-            <Button.Default
-              label='Por hora'
-              filled={allocationType === 'PER_HOUR'}
-              onTouch={() => setAllocationType(allocationType === 'PER_HOUR' ? null : 'PER_HOUR')}
-              customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
+        <FlatList
+          data={DISPLAY_ROOMS_DATA}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+          ItemSeparatorComponent={() => <View className='h-5'/>}
+          contentContainerClassName='py-6'
+          renderItem={({ item }) => (
+            <Card.DisplayRoom
+              key={item.id}
+              { ...item }
             />
-
-            <Button.Default
-              label='3x Semana'
-              filled={allocationType === '3X_WEEK'}
-              onTouch={() => setAllocationType(allocationType === '3X_WEEK' ? null : '3X_WEEK')}
-              customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-            />
-
-            <Button.Default
-              label='Mês'
-              filled={allocationType === 'MONTH'}
-              onTouch={() => setAllocationType(allocationType === 'MONTH' ? null : 'MONTH')}
-              customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-            />
-          </Section>
-
-          <FlatList
-            data={DISPLAY_ROOMS_DATA}
-            keyExtractor={(item, index) => `${item.id}-${index}`}
-            ItemSeparatorComponent={() => <View className='h-5'/>}
-            className='mt-6'
-            contentContainerClassName='pb-6'
-            renderItem={({ item }) => (
-              <Card.DisplayRoom
-                key={item.id}
-                { ...item }
-              />
-            )}
-          />
-        </View>
+          )}
+        />
       </SystemLayout>
     </LayoutWrapper>
   )
