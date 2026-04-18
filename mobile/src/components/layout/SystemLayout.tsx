@@ -1,9 +1,12 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import { Button } from '../button';
 import { SystemTabs } from '@/types/systemTabs.type';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useRouter } from 'expo-router';
+import Icon from '../ui/Icon';
+import { useAuth } from '@/contexts/auth.context';
+import { Modal } from '../modal';
 
 type Props = {
   children    : React.ReactNode; 
@@ -20,6 +23,9 @@ const SystemLayout = (props:Props): React.JSX.Element => {
 
   const router = useRouter();
 
+  const { signOut } = useAuth();
+  const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
+
   const professionalTabs = [
     { text: 'Início'    , icon: 'home' as const     , id: 'HOME'      , route: '/(authenticated)/(professional)/home'      },
     { text: 'Horários'  , icon: 'schedule' as const , id: 'SCHEDULES' , route: '/(authenticated)/(professional)/schedules' },
@@ -28,7 +34,7 @@ const SystemLayout = (props:Props): React.JSX.Element => {
   ];
 
   const enterpriseTabs = [
-    { text: 'Painel'    , icon: 'dashboard' as const     , id: 'DASHBOARD' , route: '/(authenticated)/(enterprise)/home'      },
+    { text: 'Painel'    , icon: 'dashboard' as const     , id: 'DASHBOARD' , route: '/(authenticated)/(enterprise)/dashboard'      },
     { text: 'Clientes'  , icon: 'customers' as const     , id: 'CUSTOMERS' , route: '/(authenticated)/(enterprise)/customers' },
     { text: 'Valores'   , icon: 'values' as const        , id: 'VALUES'    , route: '/(authenticated)/(enterprise)/values'  },
     { text: 'Salas'     , icon: 'room' as const          , id: 'ROOMS'      , route: '/(authenticated)/(enterprise)/rooms'   },
@@ -36,6 +42,16 @@ const SystemLayout = (props:Props): React.JSX.Element => {
 
   return (
     <View className='flex-1'>
+
+      { signOutConfirm &&
+        <Modal.ConfirmAction
+          onConfirm={signOut}
+          confirmMessage='Tem certeza em sair do sistema ?'
+          onRequestClose={() => setSignOutConfirm(false)}
+          visible={signOutConfirm}
+        />
+      }
+
       { !props.headerHidden &&  
         <View className='flex-row items-center gap-5 bg-medroom-primary p-6 shadow-md'>
           { props.goBack && (
@@ -63,6 +79,18 @@ const SystemLayout = (props:Props): React.JSX.Element => {
               {props.description}
             </Text>
           </View>
+
+          <TouchableOpacity 
+          className='ml-auto'
+          activeOpacity={0.67}
+          onPress={() => setSignOutConfirm(true)}
+          >
+            <Icon
+              name='logout' 
+              color='#ffffff' 
+              sizes={{ height: 28, width: 28 }}
+            />
+          </TouchableOpacity>
         </View>
       }
 

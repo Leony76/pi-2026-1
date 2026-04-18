@@ -4,9 +4,9 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { RoomOccupation } from '@/types/roomOccupation.type'
-import { router } from 'expo-router'
+import { useRouter } from 'expo-router'
 import React from 'react'
-import { Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 
 const ROOM_OCCUPATION_DATA: RoomOccupation[] = [
   {
@@ -42,6 +42,9 @@ const ROOM_OCCUPATION_DATA: RoomOccupation[] = [
 ];
 
 const Home = (): React.JSX.Element => {
+
+  const router = useRouter();
+
   return (
     <LayoutWrapper>
       <SystemLayout 
@@ -50,7 +53,7 @@ const Home = (): React.JSX.Element => {
       layoutType={'ENTERPRISE'}      
       tab='DASHBOARD'
       > 
-        <View className='flex-1 pt-6 gap-5'>
+        <ScrollView contentContainerClassName='py-6 gap-5'>
           <View className='flex-row justify-between gap-3'>
             <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
               <Text className='font-nunito-bold text-medroom-primary text-4xl'>
@@ -127,7 +130,7 @@ const Home = (): React.JSX.Element => {
 
               <Button.Default
                 label='Ver mais'
-                onTouch={() => router.push('/(authenticated)/(enterprise)/home/occupationRooms')}
+                onTouch={() => router.push('/(authenticated)/(enterprise)/dashboard/occupationRooms')}
                 customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
               />
             </View>
@@ -143,7 +146,7 @@ const Home = (): React.JSX.Element => {
               <ContentNotFound text='Nenhum sala encontrada!'/>
             )}
           </View>      
-        </View>
+        </ScrollView>
       </SystemLayout>
     </LayoutWrapper>
   )

@@ -12,6 +12,7 @@ type Props = {
   textLineThrough? : boolean;
   icon? : {
     name : IconName;
+    color?: string;
     size?: {
       width  : number;
       height : number;
@@ -55,7 +56,7 @@ const Default = (props:Props): React.JSX.Element => {
       ) : props.icon ? (
         <Icon 
           name={props.icon.name}
-          color={props.filled ? '#FFFFFF' : systemColors.primary}
+          color={props.icon.color ? props.icon.color : props.filled ? '#FFFFFF' : systemColors.primary}
           sizes={{ 
             width: props.icon.size?.width || 24, 
             height: props.icon.size?.height || 24, 

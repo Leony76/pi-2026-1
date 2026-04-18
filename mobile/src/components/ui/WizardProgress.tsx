@@ -16,13 +16,11 @@ const WizardProgress = ({ currentWizardStep }: Props): React.JSX.Element => {
 
     const bgStyle = isAtLeastActive ? 'bg-medroom-primary text-white' : 'bg-white text-medroom-primary';
     
-    const paddingStyle = isCompleted ? 'px-2' : 'px-3.5';
+    const paddingStyle = isCompleted ? 'px-2.5' : 'px-3.5';
 
     return (
       <View key={step} className="justify-center items-center border-2 border-medroom-primaryLight rounded-full p-2">
-        <Text
-          className={`text-2xl text-center rounded-full font-nunito-bold py-1.5 ${bgStyle} ${paddingStyle}`}
-        >
+        <Text className={`text-2xl text-center rounded-full font-nunito-bold py-1.5 ${bgStyle} ${paddingStyle}`}>
           {isCompleted ? <Feather name="check" size={24} color="white" /> : step}
         </Text>
       </View>

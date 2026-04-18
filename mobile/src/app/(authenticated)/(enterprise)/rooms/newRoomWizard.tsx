@@ -54,7 +54,8 @@ const NewRoomWizard = (): React.JSX.Element => {
     area: '',
   });
 
-  const [customItemInput, setCustomItemInput] = useState('');
+  const [customItemInput, setCustomItemInput] = useState<string>('');
+  const [customItemAlreadyIncludedError, setCustomItemAlreadyIncludedError] = useState<string | null>(null);
   const [customItems, setCustomItems] = useState<string[]>([]);
 
   const handleNextStep = async () => {
@@ -88,9 +89,13 @@ const NewRoomWizard = (): React.JSX.Element => {
     const trimmed = customItemInput.trim();
 
     if (!trimmed) return;
-    if (customItems.includes(trimmed)) return;
+    if (customItems.includes(trimmed)) {
+      setCustomItemAlreadyIncludedError(`"${customItemInput}" já está incluído`)
+      return;
+    };
 
     setCustomItems(prev => [...prev, trimmed]);
+    setCustomItemAlreadyIncludedError(null);
     setCustomItemInput('');
   };
 
@@ -105,7 +110,7 @@ const NewRoomWizard = (): React.JSX.Element => {
   };
 
   const step1ActiveErros = errors.roomName || errors.floor || errors.area || errors.characteristics;
-  const step2ActiveErros = errors.roomName || errors.floor || errors.area || errors.characteristics;
+  const step2ActiveErros = errors.pricePerHour || errors.pricePerMonth || errors.price_3xWeek;
 
   useEffect(() => {
     setValue('area'     , persistDataOnInput.area);
@@ -124,7 +129,7 @@ const NewRoomWizard = (): React.JSX.Element => {
           tab='ROOMS'
           goBack={wizardStep > 1 ? () => setWizardStep(prev => prev - 1) : () => router.back()}
           > 
-            <ScrollView contentContainerClassName='gap-5 flex-1 py-6'>
+            <ScrollView contentContainerClassName='gap-5 py-6'>
               <View className='py-3'>
                 <WizardProgress currentWizardStep={wizardStep} />
               </View>
@@ -228,7 +233,6 @@ const NewRoomWizard = (): React.JSX.Element => {
                   icon={{ name: 'right_arrow', size: { width: 20, height: 20 } }}
                   label='Próximo'
                   onTouch={handleNextStep}
-                  // onTouch={() => setWizardStep(prev => prev + 1)}
                 />
               </View>
             </ScrollView>
@@ -245,7 +249,7 @@ const NewRoomWizard = (): React.JSX.Element => {
           tab='ROOMS'
           goBack={wizardStep > 1 ? () => setWizardStep(prev => prev - 1) : () => router.back()}
           > 
-            <ScrollView contentContainerClassName='gap-5 flex-1 py-6'>
+            <ScrollView contentContainerClassName='gap-5 py-6'>
               <View className='py-3'>
                 <WizardProgress currentWizardStep={wizardStep} />
               </View>
@@ -325,7 +329,6 @@ const NewRoomWizard = (): React.JSX.Element => {
                     icon={{ name: 'right_arrow', size: { width: 20, height: 20 } }}
                     label='Próximo'
                     onTouch={handleNextStep}
-                    // onTouch={() => setWizardStep(prev => prev + 1)}
                   />
 
                   <Button.Default
@@ -499,30 +502,38 @@ const NewRoomWizard = (): React.JSX.Element => {
                 </View>
 
                 {customItems.length > 0 ? (
-                  customItems.map((item) => (
+                  <>
                     <View className={`gap-3 flex-wrap rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-row flex-1`}>
-                      <View
-                      key={item}
-                      className='bg-cyan-50/50 gap-3 flex-row justify-center border-2 border-medroom-primaryLight pl-6 pr-4 py-1 rounded-xl items-center'
-                      >
-                        <Text className='text-medroom-primary font-nunito-bold'>
-                          { item }
-                        </Text>
+                      {customItems.map((item) => (
+                          <View
+                          key={item}
+                          className='bg-cyan-50/50 gap-3 flex-row justify-center border border-medroom-primaryLight pl-6 pr-4 py-1 rounded-xl items-center'
+                          >
+                            <Text className='text-medroom-primary font-nunito-bold'>
+                              { item }
+                            </Text>
 
-                        <TouchableOpacity 
-                        onPress={() => handleRemoveCustomItem(item)}
-                        className='items-center justify-center'
-                        activeOpacity={0.67}
-                        >
-                          <AntDesign 
-                            name="close" 
-                            size={13} 
-                            color={systemColors.primary}
-                          />
-                        </TouchableOpacity>
-                      </View>
+                            <TouchableOpacity 
+                            onPress={() => handleRemoveCustomItem(item)}
+                            className='items-center justify-center'
+                            activeOpacity={0.67}
+                            >
+                              <AntDesign 
+                                name="close" 
+                                size={13} 
+                                color={systemColors.primary}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                      ))}
                     </View>
-                  ))
+
+                    {customItemAlreadyIncludedError && (
+                      <View className='mt-[-14px]'>
+                        <Input.Error error={customItemAlreadyIncludedError ?? ''} /> 
+                      </View>
+                    )}
+                  </>
                 ) : (
                   <View className='justify-center items-center w-full flex-row gap-2'>
                     <Entypo name="info-with-circle" size={18} color={systemColors.primary} />

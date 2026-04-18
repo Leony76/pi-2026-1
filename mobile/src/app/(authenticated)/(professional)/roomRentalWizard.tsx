@@ -43,7 +43,6 @@ const roomRentalWizard = (): React.JSX.Element => {
   const [shiftSelected, setShiftSelected] = useState<'MORNING' | 'AFTERNOON' | 'NIGHT' | 'UNSELECTED'>('UNSELECTED');
   const [hourSelected, setHourSelected] = useState<HourShift | null>(null);
   const [daysSelected, setDaysSelected] = useState<Days[]>([]);
-  const [daySelected, setDaySelected] = useState<Days | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | null>(null);
 
   const title = params.title as string ?? '[Não fornecido]';
@@ -76,7 +75,6 @@ const roomRentalWizard = (): React.JSX.Element => {
     setShiftSelected('UNSELECTED');
     setHourSelected(null);
     setPaymentMethod(null);
-    setDaySelected(null);
     setDaysSelected([]);
   };
 
@@ -85,6 +83,7 @@ const roomRentalWizard = (): React.JSX.Element => {
       router.replace({
         pathname: '/(authenticated)/(professional)/roomRentalSuccess',
         params: {
+          roomId    : roomId,
           roomName  : title.split('-')[0],
           allocationType : allocationType,
           startHour : hourSelected?.startHour, 
