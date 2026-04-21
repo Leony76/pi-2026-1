@@ -1,18 +1,18 @@
 import bcrypt from "bcrypt";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../src/lib/prisma", () => {
-  const user = {
-    findFirst: vi.fn(),
-    findUnique: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-  };
+// ─── Mocks ───────────────────────────────────────────────────────────────────
 
-  return {
-    default: { user },
-  };
-});
+vi.mock("../src/lib/prisma", () => ({
+  default: {
+    user: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+  },
+}));
 
 vi.mock("bcrypt", () => ({
   default: {
@@ -34,11 +34,55 @@ vi.mock("jsonwebtoken", () => ({
   },
 }));
 
+// ─── Imports ────────────────────────────────────────────────────
+
 import prisma from "../src/lib/prisma";
-import { register, login, refreshSession, requestPasswordReset, resetPassword } from "../src/modules/auth/service";
+import { generateOpaqueToken } from "../src/lib/token";
+import {
+  login,
+  refreshSession,
+  register,
+  requestPasswordReset,
+  resetPassword,
+} from "../src/modules/auth/service";
+
+// ─── Factories ───────────────────────────────────────────────────────────────
+
+const makeUser = (overrides = {}) => ({
+  id: "user-1",
+  name: "Ana",
+  specialty: "Psicologia",
+  crmCrp: "CRM12345",
+  email: "ana@teste.com",
+  passwordHash: "hashed-password",
+  emailVerifiedAt: new Date("2026-04-08T00:00:00.000Z"),
+  refreshTokenHash: null,
+  refreshTokenExpiresAt: null,
+  passwordResetTokenHash: null,
+  passwordResetTokenExpiresAt: null,
+  createdAt: new Date("2026-04-08T00:00:00.000Z"),
+  updatedAt: new Date("2026-04-08T00:00:00.000Z"),
+  ...overrides,
+});
+
+const REGISTER_PAYLOAD = {
+  name: "Ana",
+  specialty: "psychology",
+  crmCrp: "crm12345",
+  email: "ana@teste.com",
+  password: "12345678",
+  repeatPassword: "12345678",
+};
+
+const LOGIN_PAYLOAD = {
+  email: "ana@teste.com",
+  password: "12345678",
+};
+
+// ─── Suite ───────────────────────────────────────────────────────────────────
 
 describe("auth service", () => {
-  const previousJwtSecret = process.env.JWT_SECRET;
+  const originalJwtSecret = process.env.JWT_SECRET;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,120 +90,182 @@ describe("auth service", () => {
   });
 
   afterEach(() => {
-    process.env.JWT_SECRET = previousJwtSecret;
+    process.env.JWT_SECRET = originalJwtSecret;
   });
 
-  it("registers users with Portuguese specialty and returns auth tokens", async () => {
-    vi.mocked(prisma.user.findFirst).mockResolvedValue(null as never);
-    vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
-    vi.mocked(prisma.user.create).mockResolvedValue({
-      id: "user-1",
-      name: "Ana",
-      specialty: "Psicologia",
-      crmCrp: "CRM12345",
-      email: "ana@teste.com",
-      emailVerifiedAt: null,
-      createdAt: new Date("2026-04-08T00:00:00.000Z"),
-    } as never);
+  // ── register ──────────────────────────────────────────────────────────────
 
-    const response = await register({
-      name: "Ana",
-      specialty: "psychology",
-      crmCrp: "crm12345",
-      email: "ana@teste.com",
-      password: "12345678",
-      repeatPassword: "12345678",
+  describe("register", () => {
+    it("returns access token, refresh token and email verification token on success", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null as never);
+      vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
+      vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
+
+      const response = await register(REGISTER_PAYLOAD);
+
+      expect(response.token).toBe("access-token");
+      expect(response.refreshToken).toBe("opaque-token");
+      expect(response.emailVerificationToken).toBe("opaque-token");
     });
 
-    expect(response.user.specialty).toBe("Psicologia");
-    expect(response.token).toBe("access-token");
-    expect(response.refreshToken).toBe("opaque-token");
-    expect(response.emailVerificationToken).toBe("opaque-token");
-  });
+    it("translates English specialty to Portuguese before persisting", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null as never);
+      vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
+      vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
 
-  it("logs in and issues a new refresh token", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      name: "Ana",
-      specialty: "Psicologia",
-      crmCrp: "CRM12345",
-      email: "ana@teste.com",
-      passwordHash: "hashed-password",
-      emailVerifiedAt: new Date(),
-      createdAt: new Date("2026-04-08T00:00:00.000Z"),
-    } as never);
-    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
-    vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+      await register(REGISTER_PAYLOAD);
 
-    const response = await login({
-      email: "ana@teste.com",
-      password: "12345678",
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            specialty: "Psicologia",
+          }),
+        })
+      );
     });
 
-    expect(response.token).toBe("access-token");
-    expect(response.refreshToken).toBe("opaque-token");
+    it("hashes the password before creating the user", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null as never);
+      vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
+      vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
+
+      await register(REGISTER_PAYLOAD);
+
+      expect(bcrypt.hash).toHaveBeenCalledWith("12345678", expect.any(Number));
+    });
   });
 
-  it("refreshes the session using the refresh token", async () => {
-    vi.mocked(prisma.user.findFirst).mockResolvedValue({
-      id: "user-1",
-      name: "Ana",
-      specialty: "Psicologia",
-      crmCrp: "CRM12345",
-      email: "ana@teste.com",
-      passwordHash: "hashed-password",
-      emailVerifiedAt: new Date(),
-      refreshTokenHash: "hash:opaque-token",
-      refreshTokenExpiresAt: new Date("2026-04-09T00:00:00.000Z"),
-      createdAt: new Date("2026-04-08T00:00:00.000Z"),
-      updatedAt: new Date("2026-04-08T00:00:00.000Z"),
-    } as never);
-    vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+  // ── login ─────────────────────────────────────────────────────────────────
 
-    const response = await refreshSession({ refreshToken: "opaque-token" });
+  describe("login", () => {
+    it("returns access token and a new refresh token on valid credentials", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(makeUser() as never);
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-    expect(response.token).toBe("access-token");
-    expect(response.refreshToken).toBe("opaque-token");
-  });
+      const response = await login(LOGIN_PAYLOAD);
 
-  it("generates a password reset token and updates the user", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      name: "Ana",
-      specialty: "Psicologia",
-      crmCrp: "CRM12345",
-      email: "ana@teste.com",
-      passwordHash: "hashed-password",
-      emailVerifiedAt: new Date(),
-      createdAt: new Date("2026-04-08T00:00:00.000Z"),
-      updatedAt: new Date("2026-04-08T00:00:00.000Z"),
-    } as never);
-    vi.mocked(prisma.user.update).mockResolvedValue({} as never);
-
-    const resetRequest = await requestPasswordReset({ email: "ana@teste.com" });
-    expect(resetRequest.resetToken).toBe("opaque-token");
-
-    vi.mocked(prisma.user.findFirst).mockResolvedValue({
-      id: "user-1",
-      name: "Ana",
-      specialty: "Psicologia",
-      crmCrp: "CRM12345",
-      email: "ana@teste.com",
-      passwordHash: "hashed-password",
-      emailVerifiedAt: new Date(),
-      passwordResetTokenHash: "hash:opaque-token",
-      passwordResetTokenExpiresAt: new Date("2026-04-08T01:00:00.000Z"),
-      createdAt: new Date("2026-04-08T00:00:00.000Z"),
-      updatedAt: new Date("2026-04-08T00:00:00.000Z"),
-    } as never);
-    vi.mocked(bcrypt.hash).mockResolvedValue("new-hash" as never);
-
-    const resetResponse = await resetPassword({
-      token: "opaque-token",
-      password: "87654321",
-      repeatPassword: "87654321",
+      expect(response.token).toBe("access-token");
+      expect(response.refreshToken).toBe("opaque-token");
     });
 
-    expect(resetResponse.message).toBe("Password updated");
+    it("persists the hashed refresh token after login", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(makeUser() as never);
+      vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+
+      await login(LOGIN_PAYLOAD);
+
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ refreshTokenHash: "hash:opaque-token" }),
+        })
+      );
+    });
+  });
+
+  // ── refreshSession ────────────────────────────────────────────────────────
+
+  describe("refreshSession", () => {
+    it("returns a new access token and a rotated refresh token", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(
+        makeUser({
+          refreshTokenHash: "hash:opaque-token",
+          refreshTokenExpiresAt: new Date("2026-04-09T00:00:00.000Z"),
+        }) as never
+      );
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+
+      const response = await refreshSession({ refreshToken: "opaque-token" });
+
+      expect(response.token).toBe("access-token");
+      expect(response.refreshToken).toBe("opaque-token");
+    });
+
+    it("rotates the stored refresh token hash on every refresh", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(
+        makeUser({
+          refreshTokenHash: "hash:opaque-token",
+          refreshTokenExpiresAt: new Date("2026-04-09T00:00:00.000Z"),
+        }) as never
+      );
+      vi.mocked(generateOpaqueToken).mockReturnValueOnce("opaque-token-2");
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+
+      const response = await refreshSession({ refreshToken: "opaque-token" });
+
+      expect(response.refreshToken).toBe("opaque-token-2");
+
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ refreshTokenHash: "hash:opaque-token-2" }),
+        })
+      );
+    });
+  });
+
+  // ── requestPasswordReset ──────────────────────────────────────────────────
+
+  describe("requestPasswordReset", () => {
+    it("returns a reset token and stores its hash on the user record", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(makeUser() as never);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+
+      const response = await requestPasswordReset({ email: "ana@teste.com" });
+
+      expect(response.resetToken).toBe("opaque-token");
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ passwordResetTokenHash: "hash:opaque-token" }),
+        })
+      );
+    });
+  });
+
+  // ── resetPassword ─────────────────────────────────────────────────────────
+
+  describe("resetPassword", () => {
+    it("updates the password hash and returns a success message", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(
+        makeUser({
+          passwordResetTokenHash: "hash:opaque-token",
+          passwordResetTokenExpiresAt: new Date("2026-04-08T01:00:00.000Z"),
+        }) as never
+      );
+      vi.mocked(bcrypt.hash).mockResolvedValue("new-hash" as never);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+
+      const response = await resetPassword({
+        token: "opaque-token",
+        password: "87654321",
+        repeatPassword: "87654321",
+      });
+
+      expect(response.message).toBe("Senha redefinida!");
+    });
+
+    it("hashes the new password before saving", async () => {
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(
+        makeUser({
+          passwordResetTokenHash: "hash:opaque-token",
+          passwordResetTokenExpiresAt: new Date("2026-04-08T01:00:00.000Z"),
+        }) as never
+      );
+      vi.mocked(bcrypt.hash).mockResolvedValue("new-hash" as never);
+      vi.mocked(prisma.user.update).mockResolvedValue({} as never);
+
+      await resetPassword({
+        token: "opaque-token",
+        password: "87654321",
+        repeatPassword: "87654321",
+      });
+
+      expect(bcrypt.hash).toHaveBeenCalledWith("87654321", expect.any(Number));
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ passwordHash: "new-hash" }),
+        })
+      );
+    });
   });
 });
