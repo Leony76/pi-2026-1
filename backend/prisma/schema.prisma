@@ -25,6 +25,9 @@ model User {
   emailVerificationTokenExpiresAt DateTime?
   passwordResetTokenHash        String?
   passwordResetTokenExpiresAt   DateTime?
+  passwordResetAttempts         Int       @default(0)
+  passwordResetSessionTokenHash String?
+  passwordResetSessionExpiresAt DateTime?
   refreshTokenHash              String?
   refreshTokenExpiresAt         DateTime?
   createdAt                     DateTime  @default(now())

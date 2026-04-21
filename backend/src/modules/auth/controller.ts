@@ -8,6 +8,7 @@ import {
 	requestEmailVerification,
 	requestPasswordReset,
 	resetPassword,
+	verifyResetCode,
 	verifyEmail,
 } from "./service";
 import { sendSuccessResponse } from "../../lib/auth-response";
@@ -69,6 +70,15 @@ export async function verifyEmailController(request: Request, response: Response
 export async function requestPasswordResetController(request: Request, response: Response, next: NextFunction): Promise<void> {
 	try {
 		const result = await requestPasswordReset(request.body);
+		sendSuccessResponse(response, 200, result);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function verifyResetCodeController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const result = await verifyResetCode(request.body);
 		sendSuccessResponse(response, 200, result);
 	} catch (error) {
 		next(error);

@@ -1,7 +1,9 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 import prisma from "../../lib/prisma";
 import { createHttpError } from "../../lib/http-error";
+import { sendPasswordResetCodeEmail } from "../../lib/mailer";
 import {
 	generateAccessToken,
 	generateOpaqueToken,
@@ -39,8 +41,13 @@ type PasswordResetRequestInput = {
 	email: string;
 };
 
+type VerifyResetCodeInput = {
+	email: string;
+	code: string;
+};
+
 type PasswordResetInput = {
-	token: string;
+	sessionToken: string;
 	password: string;
 	repeatPassword: string;
 };
@@ -69,7 +76,9 @@ type AuthResponse = {
 
 const REFRESH_TOKEN_TTL_DAYS = 30;
 const EMAIL_VERIFICATION_TOKEN_TTL_DAYS = 7;
-const PASSWORD_RESET_TOKEN_TTL_HOURS = 1;
+const PASSWORD_RESET_CODE_TTL_MINUTES = 10;
+const PASSWORD_RESET_MAX_ATTEMPTS = 3;
+const PASSWORD_RESET_SESSION_TTL_MINUTES = 10;
 
 function addDays(date: Date, days: number): Date {
 	return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
@@ -77,6 +86,10 @@ function addDays(date: Date, days: number): Date {
 
 function addHours(date: Date, hours: number): Date {
 	return new Date(date.getTime() + hours * 60 * 60 * 1000);
+}
+
+function addMinutes(date: Date, minutes: number): Date {
+	return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
 function normalizeEmail(email: string): string {
@@ -148,9 +161,73 @@ async function savePasswordResetToken(userId: string, resetToken: string): Promi
 		where: { id: userId },
 		data: {
 			passwordResetTokenHash: hashToken(resetToken),
-			passwordResetTokenExpiresAt: addHours(new Date(), PASSWORD_RESET_TOKEN_TTL_HOURS),
+			passwordResetTokenExpiresAt: addMinutes(new Date(), PASSWORD_RESET_CODE_TTL_MINUTES),
+			passwordResetAttempts: 0,
+			passwordResetSessionTokenHash: null,
+			passwordResetSessionExpiresAt: null,
 		},
 	});
+}
+
+async function savePasswordResetSessionToken(userId: string, sessionToken: string): Promise<void> {
+	await prisma.user.update({
+		where: { id: userId },
+		data: {
+			passwordResetTokenHash: null,
+			passwordResetTokenExpiresAt: null,
+			passwordResetAttempts: 0,
+			passwordResetSessionTokenHash: hashToken(sessionToken),
+			passwordResetSessionExpiresAt: addMinutes(new Date(), PASSWORD_RESET_SESSION_TTL_MINUTES),
+		},
+	});
+}
+
+async function registerInvalidPasswordResetCodeAttempt(email: string): Promise<void> {
+	const user = await prisma.user.findFirst({
+		where: {
+			email,
+			passwordResetTokenHash: {
+				not: null,
+			},
+			passwordResetTokenExpiresAt: {
+				gt: new Date(),
+			},
+		},
+		select: {
+			id: true,
+			passwordResetAttempts: true,
+		},
+	});
+
+	if (!user) {
+		return;
+	}
+
+	const nextAttempts = user.passwordResetAttempts + 1;
+
+	if (nextAttempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
+		await prisma.user.update({
+			where: { id: user.id },
+			data: {
+				passwordResetAttempts: nextAttempts,
+				passwordResetTokenHash: null,
+				passwordResetTokenExpiresAt: null,
+			},
+		});
+
+		return;
+	}
+
+	await prisma.user.update({
+		where: { id: user.id },
+		data: {
+			passwordResetAttempts: nextAttempts,
+		},
+	});
+}
+
+function generateSixDigitCode(): string {
+	return crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
 async function findUserByRefreshToken(refreshToken: string) {
@@ -175,11 +252,26 @@ async function findUserByEmailVerificationToken(token: string) {
 	});
 }
 
-async function findUserByPasswordResetToken(token: string) {
+async function findUserByPasswordResetCode(email: string, code: string) {
 	return prisma.user.findFirst({
 		where: {
-			passwordResetTokenHash: hashToken(token),
+			email,
+			passwordResetTokenHash: hashToken(code),
 			passwordResetTokenExpiresAt: {
+				gt: new Date(),
+			},
+			passwordResetAttempts: {
+				lt: PASSWORD_RESET_MAX_ATTEMPTS,
+			},
+		},
+	});
+}
+
+async function findUserByPasswordResetSessionToken(sessionToken: string) {
+	return prisma.user.findFirst({
+		where: {
+			passwordResetSessionTokenHash: hashToken(sessionToken),
+			passwordResetSessionExpiresAt: {
 				gt: new Date(),
 			},
 		},
@@ -362,26 +454,63 @@ export async function verifyEmail(data: VerifyEmailInput): Promise<{ message: st
 	return { message: "E-mail verificado!" };
 }
 
-export async function requestPasswordReset(data: PasswordResetRequestInput): Promise<{ message: string; resetToken: string }> {
-	const email = normalizeEmail(data.email);
+export async function requestPasswordReset(data: PasswordResetRequestInput): Promise<{ message: string }> {
+	const email = data.email?.trim();
 
-	const user = await prisma.user.findUnique({ where: { email } });
-
-	if (!user) {
-		throw createHttpError(404, "not_found", "Usuário não encontrado!");
+	if (!email) {
+		throw createHttpError(400, "bad_request", "E-mail não provido!");
 	}
 
-	const resetToken = generateOpaqueToken();
-	await savePasswordResetToken(user.id, resetToken);
+	const normalizedEmail = normalizeEmail(email);
+
+	const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+	if (!user) {
+		return {
+			message: "Se esse e-mail estiver cadastrado, enviaremos um código de redefinição.",
+		};
+	}
+
+ 	const resetCode = generateSixDigitCode();
+	await savePasswordResetToken(user.id, resetCode);
+	await sendPasswordResetCodeEmail(user.email, resetCode);
 
 	return {
-		message: "Token de redefinição de senha gerado!",
-		resetToken,
+		message: "Se esse e-mail estiver cadastrado, enviaremos um código de redefinição.",
+	};
+}
+
+export async function verifyResetCode(data: VerifyResetCodeInput): Promise<{ message: string; sessionToken: string }> {
+	const email = data.email?.trim();
+	const code = data.code?.trim();
+
+	if (!email || !code) {
+		throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
+	}
+
+	if (!/^\d{6}$/.test(code)) {
+		throw createHttpError(400, "bad_request", "Código de redefinição inválido!");
+	}
+
+	const normalizedEmail = normalizeEmail(email);
+	const user = await findUserByPasswordResetCode(normalizedEmail, code);
+
+	if (!user) {
+		await registerInvalidPasswordResetCodeAttempt(normalizedEmail);
+		throw createHttpError(401, "unauthorized", "Código de redefinição inválido ou expirado!");
+	}
+
+	const sessionToken = generateOpaqueToken();
+	await savePasswordResetSessionToken(user.id, sessionToken);
+
+	return {
+		message: "Código de redefinição validado!",
+		sessionToken,
 	};
 }
 
 export async function resetPassword(data: PasswordResetInput): Promise<{ message: string }> {
-	if (!data.token || !data.password || !data.repeatPassword) {
+	if (!data.sessionToken || !data.password || !data.repeatPassword) {
 		throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
 	}
 
@@ -389,10 +518,10 @@ export async function resetPassword(data: PasswordResetInput): Promise<{ message
 		throw createHttpError(400, "bad_request", "Senhas não coincidem!");
 	}
 
-	const user = await findUserByPasswordResetToken(data.token);
+	const user = await findUserByPasswordResetSessionToken(data.sessionToken);
 
 	if (!user) {
-		throw createHttpError(401, "unauthorized", "Token de redefinição inválido!");
+		throw createHttpError(401, "unauthorized", "Sessão de redefinição inválida ou expirada!");
 	}
 
 	const passwordHash = await bcrypt.hash(data.password, 10);
@@ -403,6 +532,9 @@ export async function resetPassword(data: PasswordResetInput): Promise<{ message
 			passwordHash,
 			passwordResetTokenHash: null,
 			passwordResetTokenExpiresAt: null,
+			passwordResetAttempts: 0,
+			passwordResetSessionTokenHash: null,
+			passwordResetSessionExpiresAt: null,
 		},
 	});
 

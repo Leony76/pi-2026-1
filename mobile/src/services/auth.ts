@@ -44,12 +44,45 @@ export type LoginPayload = {
   password: string;
 };
 
+export type RequestPasswordResetResponse = {
+  message: string;
+};
+
+export type VerifyResetCodeResponse = {
+  message: string;
+  sessionToken: string;
+};
+
+export type ResetPasswordResponse = {
+  message: string;
+};
+
 export function registerWithEmail(data: RegisterPayload): Promise<AuthResponse> {
   return apiPost<AuthResponse>("/auth/register", data);
 }
 
 export function loginWithEmail(data: LoginPayload): Promise<AuthResponse> {
   return apiPost<AuthResponse>("/auth/login", data);
+}
+
+export function requestPasswordReset(email: string): Promise<RequestPasswordResetResponse> {
+  return apiPost<RequestPasswordResetResponse>("/auth/request-password-reset", { email });
+}
+
+export function verifyResetCode(email: string, code: string): Promise<VerifyResetCodeResponse> {
+  return apiPost<VerifyResetCodeResponse>("/auth/verify-reset-code", { email, code });
+}
+
+export function resetPassword(
+  token: string,
+  password: string,
+  repeatPassword: string,
+): Promise<ResetPasswordResponse> {
+  return apiPost<ResetPasswordResponse>("/auth/reset-password", {
+    sessionToken: token,
+    password,
+    repeatPassword,
+  });
 }
 
 export function refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
