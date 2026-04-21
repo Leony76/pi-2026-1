@@ -18,7 +18,7 @@ describe("app", () => {
     expect(response.body).toMatchObject({
       success: false,
       code: "not_found",
-      message: "Route not found",
+      message: "Rota não encontrada!",
     });
   });
 });
