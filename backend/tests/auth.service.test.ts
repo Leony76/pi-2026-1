@@ -37,6 +37,7 @@ vi.mock("jsonwebtoken", () => ({
 // ─── Imports ────────────────────────────────────────────────────
 
 import prisma from "../src/lib/prisma";
+import { generateOpaqueToken } from "../src/lib/token";
 import {
   login,
   refreshSession,
@@ -182,13 +183,16 @@ describe("auth service", () => {
           refreshTokenExpiresAt: new Date("2026-04-09T00:00:00.000Z"),
         }) as never
       );
+      vi.mocked(generateOpaqueToken).mockReturnValueOnce("opaque-token-2");
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      await refreshSession({ refreshToken: "opaque-token" });
+      const response = await refreshSession({ refreshToken: "opaque-token" });
+
+      expect(response.refreshToken).toBe("opaque-token-2");
 
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ refreshTokenHash: "hash:opaque-token" }),
+          data: expect.objectContaining({ refreshTokenHash: "hash:opaque-token-2" }),
         })
       );
     });
