@@ -24,7 +24,7 @@ docker compose -f docker/docker-compose.yml up -d postgres-master
 cd backend
 cp .env.example .env   # Windows: Copy-Item .env.example .env
 npm install
-npm run prisma:migrate -- --name init
+npm run prisma:migrate
 npm run dev
 ```
 
