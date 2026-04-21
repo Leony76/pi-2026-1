@@ -13,23 +13,267 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+}
+
+enum Floor {
+  GROUND_FLOOR
+  FIRST_FLOOR
+  SECOND_FLOOR
+  THIRD_FLOOR
+  FOURTH_FLOOR
+  FIFTH_FLOOR
+}
+
+enum RoomCharacteristic {
+  AIR_CONDITIONER
+  SOUNDPROOFED
+  AIR_CONDITIONER_PLUS_SOUNDPROOFED
+  DEFAULT
+}
+
+enum RoomItemName {
+  SOFA_DIVA
+  CADEIRA
+  COMPUTADOR
+  MACA
+  ARMARIO
+  BANHEIRO
+  AR_CONDI
+  TV_MONITOR
+  EQUIP_MEDICO
+  ESPELHO
+  PLANTAS
+  ILUMI_ESPECIAL
+}
+
+enum AllocationType {
+  PER_HOUR
+  THREE_X_WEEK @map("3X_WEEK")
+  MONTH
+}
+
+enum PaymentMethod {
+  PIX
+  BANK_SLIP
+  CREDIT_CARD
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum EntryExitBillingType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model User {
-  id                            String    @id @default(uuid())
-  name                          String
-  specialty                     String
-  crmCrp                        String    @unique
-  email                         String    @unique
-  passwordHash                  String
-  emailVerifiedAt               DateTime?
-  emailVerificationTokenHash    String?
+  id                              String    @id @default(uuid())
+  name                            String
+  specialty                       String
+  crmCrp                          String    @unique
+  email                           String    @unique
+  phone                           String?
+  passwordHash                    String
+  emailVerifiedAt                 DateTime?
+  emailVerificationTokenHash      String?
   emailVerificationTokenExpiresAt DateTime?
-  passwordResetTokenHash        String?
-  passwordResetTokenExpiresAt   DateTime?
-  passwordResetAttempts         Int       @default(0)
-  passwordResetSessionTokenHash String?
-  passwordResetSessionExpiresAt DateTime?
-  refreshTokenHash              String?
-  refreshTokenExpiresAt         DateTime?
-  createdAt                     DateTime  @default(now())
-  updatedAt                     DateTime  @updatedAt
+  passwordResetTokenHash          String?
+  passwordResetTokenExpiresAt     DateTime?
+  passwordResetAttempts           Int       @default(0)
+  passwordResetSessionTokenHash   String?
+  passwordResetSessionExpiresAt   DateTime?
+  refreshTokenHash                String?
+  refreshTokenExpiresAt           DateTime?
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+
+  patients   Patient[]    @relation("ProfessionalPatients")
+  ownedRooms Room[]       @relation("EnterpriseRooms")
+  rentals    RoomRental[] @relation("ProfessionalRentals")
+  sessions   Session[]    @relation("ProfessionalSessions")
+  entryExits EntryExit[]  @relation("ProfessionalEntryExits")
+  expenses   Expense[]    @relation("EnterpriseExpenses")
+
+  @@index([refreshTokenHash, refreshTokenExpiresAt],                     map: "User_refresh_token_lookup_idx")
+  @@index([emailVerificationTokenHash, emailVerificationTokenExpiresAt], map: "User_email_verification_lookup_idx")
+  @@index([passwordResetTokenHash, passwordResetTokenExpiresAt],         map: "User_password_reset_lookup_idx")
+  @@index([passwordResetSessionTokenHash, passwordResetSessionExpiresAt],map: "User_password_reset_session_lookup_idx")
+}
+
+model Patient {
+  id             String        @id @default(uuid())
+  professionalId String
+  name           String
+  phone          String
+  email          String?
+  initialDate    DateTime
+  observations   String?
+  status         PatientStatus @default(ACTIVE)
+  nextSessionAt  DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  professional User      @relation("ProfessionalPatients", fields: [professionalId], references: [id], onDelete: Cascade)
+  sessions     Session[]
+
+  @@index([professionalId])
+  @@index([status])
+}
+
+model Room {
+  id                String             @id @default(uuid())
+  enterpriseOwnerId String
+  title             String
+  displayImage      String?
+  floor             Floor
+  area              Decimal            @db.Decimal(5, 2)
+  characteristic    RoomCharacteristic
+  isAvailable       Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  enterpriseOwner User          @relation("EnterpriseRooms", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
+  prices          RoomPrice?
+  items           RoomItem[]
+  rentals         RoomRental[]
+  sessions        Session[]
+  entryExits      EntryExit[]
+  revenues        RoomRevenue[]
+
+  @@index([enterpriseOwnerId])
+  @@unique([enterpriseOwnerId, title])
+}
+
+model RoomPrice {
+  id            String   @id @default(uuid())
+  roomId        String   @unique
+  pricePerHour  Decimal  @db.Decimal(10, 2)
+  price3xWeek   Decimal  @db.Decimal(10, 2)
+  pricePerMonth Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model RoomItem {
+  id        String       @id @default(uuid())
+  roomId    String
+  name      RoomItemName
+  quantity  Int
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@unique([roomId, name])
+}
+
+model RoomRental {
+  id              String         @id @default(uuid())
+  professionalId  String
+  roomId          String
+  allocationType  AllocationType
+  paymentMethod   PaymentMethod?
+  startDate       DateTime
+  endDate         DateTime
+  totalPrice      Decimal        @db.Decimal(10, 2)
+  selectedHours   Json?
+  selectedWeekDay WeekDay[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  professional User @relation("ProfessionalRentals", fields: [professionalId], references: [id], onDelete: Cascade)
+  room         Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId])
+  @@index([roomId])
+}
+
+model Session {
+  id             String   @id @default(uuid())
+  patientId      String
+  professionalId String
+  roomId         String
+  startsAt       DateTime
+  endsAt         DateTime
+  price          Decimal  @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient      Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professional User    @relation("ProfessionalSessions", fields: [professionalId], references: [id], onDelete: Cascade)
+  room         Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([professionalId])
+  @@index([roomId])
+}
+
+model EntryExit {
+  id             String               @id @default(uuid())
+  professionalId String
+  roomId         String
+  enteredAt      DateTime
+  exitedAt       DateTime?
+  sessionsCount  Int                  @default(0)
+  billingType    EntryExitBillingType
+  totalValue     Decimal              @db.Decimal(10, 2)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  professional User @relation("ProfessionalEntryExits", fields: [professionalId], references: [id], onDelete: Cascade)
+  room         Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([professionalId])
+  @@index([roomId])
+  @@index([enteredAt])
+}
+
+model RoomRevenue {
+  id             String   @id @default(uuid())
+  roomId         String
+  month          Int
+  year           Int
+  revenuePerHour Decimal  @default(0) @db.Decimal(10, 2)
+  revenue3xWeek  Decimal  @default(0) @db.Decimal(10, 2)
+  revenueMonthly Decimal  @default(0) @db.Decimal(10, 2)
+  totalRevenue   Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, month, year])
+  @@index([year, month])
+}
+
+model Expense {
+  id                String   @id @default(uuid())
+  enterpriseOwnerId String
+  date              DateTime
+  maintenance       Decimal  @default(0) @db.Decimal(10, 2)
+  electricalEnergy  Decimal  @default(0) @db.Decimal(10, 2)
+  cleaning          Decimal  @default(0) @db.Decimal(10, 2)
+  totalValue        Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  enterpriseOwner User @relation("EnterpriseExpenses", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
+
+  @@index([enterpriseOwnerId])
+  @@index([date])
 }
