@@ -113,9 +113,15 @@ describe("auth service", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
       vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
 
-      const response = await register(REGISTER_PAYLOAD);
+      await register(REGISTER_PAYLOAD);
 
-      expect(response.user.specialty).toBe("Psicologia");
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            specialty: "Psicologia",
+          }),
+        })
+      );
     });
 
     it("hashes the password before creating the user", async () => {
