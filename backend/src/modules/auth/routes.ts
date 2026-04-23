@@ -9,6 +9,7 @@ import {
 	requestEmailVerificationController,
 	requestPasswordResetController,
 	resetPasswordController,
+	verifyResetCodeController,
 	verifyEmailController,
 } from "./controller";
 
@@ -30,6 +31,7 @@ authRoutes.post("/logout", logoutController);
 authRoutes.post("/request-email-verification", requestEmailVerificationController);
 authRoutes.post("/verify-email", verifyEmailController);
 authRoutes.post("/request-password-reset", requestPasswordResetController);
+authRoutes.post("/verify-reset-code", verifyResetCodeController);
 authRoutes.post("/reset-password", resetPasswordController);
 
 export default authRoutes;

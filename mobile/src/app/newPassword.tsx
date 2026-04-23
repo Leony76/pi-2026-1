@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text } from "react-native";
 import Icon from "../components/ui/Icon";
 import { Input } from "../components/input";
@@ -7,9 +7,17 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { NewPasswordFormData, newPasswordSchema } from "@/schemas/newPassword.schema";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ErrorModal } from "@/components/modal";
+import { ApiError } from "@/services/api";
+import { resetPassword } from "@/services/auth";
 
 const NewPassword = (): React.JSX.Element => {
+  const params = useLocalSearchParams<{ token?: string }>();
+  const token = typeof params.token === 'string' ? params.token : '';
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const { 
     control, 
@@ -28,17 +36,50 @@ const NewPassword = (): React.JSX.Element => {
 
   const router = useRouter();
 
-  const handleChangePassword = (data: NewPasswordFormData) => {
-    console.log("Senha alterada!");
-    
-    router.replace({
-      pathname: "/login",
-      params: { changed: "true" }
-    });
+  const handleChangePassword = async (data: NewPasswordFormData) => {
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!token) {
+      setSubmitError('Sessão de redefinição inválida ou expirada!');
+      setShowErrorModal(true);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      setShowErrorModal(false);
+
+      await resetPassword(token, data.newPassword, data.repeatNewPassword);
+
+      router.replace({
+        pathname: "/login",
+        params: { changed: "true" }
+      });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Não foi possível alterar a senha. Tente novamente.';
+
+      setSubmitError(message);
+      setShowErrorModal(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <LayoutWrapper>
+      <ErrorModal
+        visible={showErrorModal}
+        title="Erro ao redefinir senha"
+        message={submitError || 'Ocorreu um erro. Tente novamente.'}
+        onClose={() => setShowErrorModal(false)}
+      />
+
       <View className="flex-1 bg-white px-8 pt-16 pb-10 gap-5">
         <View className="items-center">
           <Icon
@@ -106,7 +147,9 @@ const NewPassword = (): React.JSX.Element => {
 
         <Button.Default
           onTouch={handleSubmit(handleChangePassword)}
-          label="Salvar nova senha"
+          disable={isSubmitting}
+          loading={isSubmitting}
+          label={isSubmitting ? 'Salvando...' : 'Salvar nova senha'}
           filled
           icon={{ name: 'lock' }}
         />
