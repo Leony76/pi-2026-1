@@ -94,6 +94,8 @@ const roomRentalWizard = (): React.JSX.Element => {
           : allocationType === 'MONTH'
             ? prices.month
             : prices.perHour
+          ,
+          ...(paymentMethod ? { paymentMethod } : {})
         }
       });
     }
