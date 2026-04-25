@@ -89,12 +89,13 @@ const roomRentalWizard = (): React.JSX.Element => {
           startHour : hourSelected?.startHour, 
           endHour   : hourSelected?.endHour, 
           days      : JSON.stringify(daysSelected),
-          paymentMethod: paymentMethod,
           pricePaid : allocationType === '3X_WEEK'
             ? prices._3xWeek
           : allocationType === 'MONTH'
             ? prices.month
             : prices.perHour
+          ,
+          ...(paymentMethod ? { paymentMethod } : {})
         }
       });
     }

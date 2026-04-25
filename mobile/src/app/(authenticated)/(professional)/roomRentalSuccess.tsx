@@ -10,13 +10,32 @@ import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 import { useAuth } from '@/contexts/auth.context';
-import { createRoomRental } from '@/services/rooms';
+import { createRoomRentalWithAuth } from '@/services/rooms';
+
+function parseHourToMinutes(hour: string): number {
+  const [hoursString = '0', minutesString = '0'] = hour.split(':');
+  const hours = Number(hoursString);
+  const minutes = Number(minutesString);
+
+  return (hours * 60) + minutes;
+}
+
+function buildDateFromHour(baseDate: Date, hour: string): Date {
+  const [hoursString = '0', minutesString = '0'] = hour.split(':');
+  const hours = Number(hoursString);
+  const minutes = Number(minutesString);
+  const date = new Date(baseDate);
+
+  date.setHours(hours, minutes, 0, 0);
+
+  return date;
+}
 
 const roomRentalSuccess = (): React.JSX.Element => {
 
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
 
   const roomId = params.roomId as string ?? '';
   const roomName = params.roomName as string ?? '[Nome não provido]';
@@ -25,50 +44,76 @@ const roomRentalSuccess = (): React.JSX.Element => {
   const startHour = params.startHour as string ?? '[Entrada não provida]';
   const endHour = params.endHour as string ?? '[Saída não provida]';
   const pricePaid = params.pricePaid as unknown as number ?? 0;
-  const days: Days[] = params.days 
-    ? JSON.parse(params.days as string) 
-    : [];
+  const daysParam = params.days as string | undefined;
+  const days: Days[] = React.useMemo(
+    () => (daysParam ? JSON.parse(daysParam) : []),
+    [daysParam]
+  );
 
   const [isSaving, setIsSaving] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const hasSavedRental = React.useRef(false);
 
   useEffect(() => {
     const saveRental = async () => {
-      if (!token || !roomId) {
+      if (hasSavedRental.current) {
+        return;
+      }
+
+      if (!token || !refreshToken || !roomId) {
         setSaveError('Erro ao salvar reserva: dados insuficientes');
         setIsSaving(false);
         return;
       }
 
-      try {
-        const now = new Date();
-        const endDate = new Date(now);
+      hasSavedRental.current = true;
 
-        // Calcula a data final baseada no tipo de alocação
+      try {
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+
         if (allocationType === 'PER_HOUR') {
-          endDate.setHours(endDate.getHours() + 1);
+          const startDateFromSelection = buildDateFromHour(startDate, startHour);
+          const endDateFromSelection = buildDateFromHour(startDate, endHour);
+
+          if (parseHourToMinutes(endHour) <= parseHourToMinutes(startHour)) {
+            endDateFromSelection.setDate(endDateFromSelection.getDate() + 1);
+          }
+
+          await createRoomRentalWithAuth(
+            {
+              roomId,
+              allocationType,
+              paymentMethod,
+              startDate: startDateFromSelection,
+              endDate: endDateFromSelection,
+              totalPrice: pricePaid,
+              selectedHours: { startHour, endHour },
+            },
+            { token, refreshToken, updateTokens, signOut }
+          );
+
+          setIsSaving(false);
+          return;
         } else if (allocationType === '3X_WEEK') {
           endDate.setDate(endDate.getDate() + 7);
         } else if (allocationType === 'MONTH') {
           endDate.setMonth(endDate.getMonth() + 1);
         }
 
-        await createRoomRental(
+        await createRoomRentalWithAuth(
           {
             roomId,
             allocationType,
             paymentMethod,
-            startDate: now,
+            startDate,
             endDate,
             totalPrice: pricePaid,
-            selectedHours: allocationType === 'PER_HOUR' 
-              ? { startHour, endHour }
-              : undefined,
             selectedWeekDays: allocationType === '3X_WEEK' 
               ? days
               : undefined,
           },
-          token
+          { token, refreshToken, updateTokens, signOut }
         );
         setIsSaving(false);
       } catch (error) {
@@ -78,7 +123,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
     };
 
     saveRental();
-  }, [token, roomId, allocationType, paymentMethod, startHour, endHour, pricePaid, days]);
+  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, startHour, endHour, pricePaid, days]);
 
   if (isSaving) {
     return (

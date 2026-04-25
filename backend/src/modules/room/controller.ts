@@ -52,8 +52,8 @@ export async function createRentalController(request: Request, response: Respons
 		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
 
 		const rental = await createRoomRental({
-			professionalId: payload.sub,
 			...request.body,
+			professionalId: payload.sub,
 		});
 
 		sendSuccessResponse(response, 201, rental);

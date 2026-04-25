@@ -50,6 +50,44 @@ function toWeekDays(days?: string[]): WeekDay[] {
 	return days.filter((day): day is WeekDay => validDays.includes(day as WeekDay));
 }
 
+function isSelectedHours(value: unknown): value is { startHour: string; endHour: string } {
+	return typeof value === "object"
+		&& value !== null
+		&& "startHour" in value
+		&& "endHour" in value
+		&& typeof (value as { startHour?: unknown }).startHour === "string"
+		&& typeof (value as { endHour?: unknown }).endHour === "string";
+}
+
+function mapRoomRentalToClient(rental: {
+	id: string;
+	room: {
+		title: string;
+		floor: string;
+		characteristic: string;
+	};
+	allocationType: string;
+	startDate: Date;
+	endDate: Date;
+	totalPrice: { toString(): string };
+	selectedHours?: unknown;
+	selectedWeekDay: WeekDay[];
+}) {
+	return {
+		id: rental.id,
+		roomTitle: rental.room.title,
+		roomFloor: translateFloor(rental.room.floor),
+		roomCharacteristic: translateCharacteristic(rental.room.characteristic),
+		allocationType: toClientAllocationType(rental.allocationType),
+		startDate: rental.startDate,
+		endDate: rental.endDate,
+		totalPrice: parseFloat(rental.totalPrice.toString()),
+		selectedHours: isSelectedHours(rental.selectedHours) ? rental.selectedHours : null,
+		selectedWeekDays: rental.selectedWeekDay,
+		isActive: new Date() >= rental.startDate && new Date() <= rental.endDate,
+	};
+}
+
 export async function getRoomsList() {
 	const rooms = await prisma.room.findMany({
 		select: {
@@ -65,12 +103,6 @@ export async function getRoomsList() {
 					pricePerHour: true,
 					price3xWeek: true,
 					pricePerMonth: true,
-				},
-			},
-			items: {
-				select: {
-					name: true,
-					quantity: true,
 				},
 			},
 		},
@@ -141,7 +173,7 @@ export async function createRoomRental(data: {
 		},
 	});
 
-	return rental;
+	return mapRoomRentalToClient(rental);
 }
 
 export async function getUserRentals(professionalId: string) {
@@ -172,17 +204,5 @@ export async function getUserRentals(professionalId: string) {
 		},
 	});
 
-	return rentals.map((rental) => ({
-		id: rental.id,
-		roomTitle: rental.room.title,
-		roomFloor: translateFloor(rental.room.floor),
-		roomCharacteristic: translateCharacteristic(rental.room.characteristic),
-		allocationType: toClientAllocationType(rental.allocationType),
-		startDate: rental.startDate,
-		endDate: rental.endDate,
-		totalPrice: parseFloat(rental.totalPrice.toString()),
-		selectedHours: rental.selectedHours,
-		selectedWeekDays: rental.selectedWeekDay,
-		isActive: new Date() >= rental.startDate && new Date() <= rental.endDate,
-	}));
+	return rentals.map((rental) => mapRoomRentalToClient(rental));
 }

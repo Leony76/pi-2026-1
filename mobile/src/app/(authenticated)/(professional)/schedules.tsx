@@ -10,18 +10,18 @@ import { priceFormat } from '@/utils/priceFormat'
 import React, { useEffect, useState } from 'react'
 import { ScrollView, Text, View, ActivityIndicator } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchUserRentals, RoomRental } from '@/services/rooms'
+import { fetchUserRentalsWithAuth, RoomRental } from '@/services/rooms'
 import { formatSessionDate } from '@/utils/formatSessionDate'
 
 const schedules = (): React.JSX.Element => {
-  const { token } = useAuth();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [rentals, setRentals] = useState<RoomRental[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadRentals = async () => {
-      if (!token) {
+      if (!token || !refreshToken) {
         setError('Não autenticado');
         setLoading(false);
         return;
@@ -30,7 +30,12 @@ const schedules = (): React.JSX.Element => {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchUserRentals(token);
+        const data = await fetchUserRentalsWithAuth({
+          token,
+          refreshToken,
+          updateTokens,
+          signOut,
+        });
         setRentals(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar horários');
@@ -41,7 +46,7 @@ const schedules = (): React.JSX.Element => {
     };
 
     loadRentals();
-  }, [token]);
+  }, [token, refreshToken, updateTokens, signOut]);
 
   if (loading) {
     return (
@@ -107,7 +112,7 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(new Date(rental.startDate))}
+                          {formatSessionDate(rental.startDate)}
                         </Text>
                       </View>
                     </View>
@@ -125,13 +130,13 @@ const schedules = (): React.JSX.Element => {
                       <Card.EntryAndExit
                         hour={rental.selectedHours.startHour}
                         type='ENTRY'
-                        dayMonthYear={formatSessionDate(new Date(rental.startDate))}
+                        dayMonthYear={formatSessionDate(rental.startDate)}
                       />
 
                       <Card.EntryAndExit
                         hour={rental.selectedHours.endHour}
                         type='EXIT'
-                        dayMonthYear={formatSessionDate(new Date(rental.startDate))}
+                        dayMonthYear={formatSessionDate(rental.startDate)}
                       />         
                     </View>
                   ) : null}
@@ -170,7 +175,7 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(new Date(rental.startDate))} até {formatSessionDate(new Date(rental.endDate))}
+                          {formatSessionDate(rental.startDate)} até {formatSessionDate(rental.endDate)}
                         </Text>
                       </View>
                     </View>
