@@ -1,8 +1,8 @@
 export type Patient = {
-  readonly id : number;
+  readonly id : string;
   name        : string;
   nextSession : string;
-  status      : 'ACTIVE' | 'INACTIVE';
+  status      : 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 };
 
 export type PatientInfos = Pick<Patient, 'id' | 'name' | 'status'> & {

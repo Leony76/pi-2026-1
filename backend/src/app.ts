@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/user/routes";
 import roomRoutes from "./modules/room/routes";
+import patientRoutes from "./modules/patient/routes";
 import { errorHandler, notFoundHandler } from "./lib/error-handler";
 
 export const app = express();
@@ -37,6 +38,7 @@ app.get("/health", (_request, response) => {
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/rooms", roomRoutes);
+app.use("/patients", patientRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

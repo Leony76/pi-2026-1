@@ -21,6 +21,7 @@ authRoutes.post("/logout", controller_1.logoutController);
 authRoutes.post("/request-email-verification", controller_1.requestEmailVerificationController);
 authRoutes.post("/verify-email", controller_1.verifyEmailController);
 authRoutes.post("/request-password-reset", controller_1.requestPasswordResetController);
+authRoutes.post("/verify-reset-code", controller_1.verifyResetCodeController);
 authRoutes.post("/reset-password", controller_1.resetPasswordController);
 exports.default = authRoutes;
 //# sourceMappingURL=routes.js.map

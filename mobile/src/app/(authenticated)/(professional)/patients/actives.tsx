@@ -3,32 +3,49 @@ import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
+import { useAuth } from '@/contexts/auth.context'
+import { fetchActivePatientsWithAuth } from '@/services/patients'
 import { Patient } from '@/types/patient.type'
 import { useRouter } from 'expo-router'
-import React, { useMemo, useState } from 'react'
-import { FlatList, View } from 'react-native'
-
-// Supondo que virá essas informações da API (Completa)
-const ACTIVE_PATIENTS_DATA: Patient[] = [
-  { id: 1, name: 'Maria Costa', nextSession: '2026-04-12T12:00:00.000Z', status: 'ACTIVE' },
-  { id: 2, name: 'Roberto Pinto', nextSession: '2026-04-13T13:00:00.000Z', status: 'ACTIVE' },
-  { id: 3, name: 'Fernanda Souza', nextSession: '2026-04-14T14:00:00.000Z', status: 'ACTIVE' },
-  { id: 4, name: 'Maria Costa', nextSession: '2026-04-12T12:00:00.000Z', status: 'ACTIVE' },
-  { id: 5, name: 'Roberto Pinto', nextSession: '2026-04-13T13:00:00.000Z', status: 'ACTIVE' },
-  { id: 6, name: 'Fernanda Souza', nextSession: '2026-04-14T14:00:00.000Z', status: 'ACTIVE' },
-  { id: 7, name: 'Maria Costa', nextSession: '2026-04-12T12:00:00.000Z', status: 'ACTIVE' },
-  { id: 8, name: 'Roberto Pinto', nextSession: '2026-04-13T13:00:00.000Z', status: 'ACTIVE' },
-  { id: 9, name: 'Fernanda Souza', nextSession: '2026-04-14T14:00:00.000Z', status: 'ACTIVE' },
-];
+import React, { useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 
 const ActivePatients = (): React.JSX.Element => {
 
   const router = useRouter();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [searchValue, setSearchValue] = useState<string | null>(null);
+  const [activePatients, setActivePatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadPatients = async (): Promise<void> => {
+      if (!token || !refreshToken) {
+        setError('Não autenticado');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await fetchActivePatientsWithAuth({ token, refreshToken, updateTokens, signOut });
+        setActivePatients(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar pacientes ativos');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatients();
+  }, [token, refreshToken, updateTokens, signOut]);
 
   const filteredList = useMemo(() => 
-    ACTIVE_PATIENTS_DATA.filter((patient) => patient.name.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
-  [searchValue, ACTIVE_PATIENTS_DATA]);
+    activePatients.filter((patient) => patient.name.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
+  [searchValue, activePatients]);
 
   return (
     <LayoutWrapper>
@@ -39,6 +56,15 @@ const ActivePatients = (): React.JSX.Element => {
       goBack={() => router.replace('/(authenticated)/(professional)/patients')}
       layoutType='PROFESSIONAL'    
       >
+        {isLoading ? (
+          <View className='flex-1 justify-center items-center'>
+            <ActivityIndicator size='large' color='#3b82f6' />
+          </View>
+        ) : error ? (
+          <View className='flex-1 justify-center items-center'>
+            <Text className='text-red-500 text-center'>{error}</Text>
+          </View>
+        ) : (
         <View className='flex-1 py-6 gap-5'>
           <Input.Search
             onChangeText={(text) => setSearchValue(text)}
@@ -58,12 +84,13 @@ const ActivePatients = (): React.JSX.Element => {
                   { ...item }
                   from='ACTIVES'
                   gap={'gap-3'}
-                  separationRow={(ACTIVE_PATIENTS_DATA.length - 1) !== index}
+                  separationRow={(filteredList.length - 1) !== index}
                 />
               )}
             />
           </View>
         </View>
+        )}
       </SystemLayout>
     </LayoutWrapper>
   )

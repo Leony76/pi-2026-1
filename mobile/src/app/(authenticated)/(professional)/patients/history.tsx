@@ -3,25 +3,49 @@ import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
+import { useAuth } from '@/contexts/auth.context'
+import { fetchPatientHistoryWithAuth } from '@/services/patients'
 import { useRouter } from 'expo-router'
-import React, { useMemo, useState } from 'react'
-import { FlatList, View } from 'react-native'
+import React, { useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 import { History as HistoryType } from '@/types/history.type'
-
-// Supondo que virá essas informações da API (Completa)
-const HISTORY: HistoryType[] = [
-  { id: 1,lastSession: '2026-04-12T12:00:00.000Z' , patientName: 'Tiago Lima', status: 'CLOSED'},
-  { id: 2,lastSession: '2026-04-12T12:00:00.000Z' , patientName: 'JONH CENAAH', status: 'CLOSED'},
-];
 
 const History = (): React.JSX.Element => {
 
   const router = useRouter();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [searchValue, setSearchValue] = useState<string | null>(null);
+  const [historyPatients, setHistoryPatients] = useState<HistoryType[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadHistory = async (): Promise<void> => {
+      if (!token || !refreshToken) {
+        setError('Não autenticado');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await fetchPatientHistoryWithAuth({ token, refreshToken, updateTokens, signOut });
+        setHistoryPatients(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar histórico de pacientes');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHistory();
+  }, [token, refreshToken, updateTokens, signOut]);
 
   const filteredList = useMemo(() => 
-    HISTORY.filter((patient) => patient.patientName.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
-  [searchValue, HISTORY]);
+    historyPatients.filter((patient) => patient.patientName.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
+  [searchValue, historyPatients]);
 
   return (
     <LayoutWrapper>
@@ -32,6 +56,15 @@ const History = (): React.JSX.Element => {
       goBack={() => router.replace('/(authenticated)/(professional)/patients')}
       layoutType='PROFESSIONAL'    
       >
+        {isLoading ? (
+          <View className='flex-1 justify-center items-center'>
+            <ActivityIndicator size='large' color='#3b82f6' />
+          </View>
+        ) : error ? (
+          <View className='flex-1 justify-center items-center'>
+            <Text className='text-red-500 text-center'>{error}</Text>
+          </View>
+        ) : (
         <View className='flex-1 py-6 gap-5'>
           <Input.Search
             onChangeText={(text) => setSearchValue(text)}
@@ -51,12 +84,13 @@ const History = (): React.JSX.Element => {
                   { ...item }
                   from='HISTORY'
                   gap={'gap-3'}
-                  separationRow={(HISTORY.length - 1) !== index}
+                  separationRow={(filteredList.length - 1) !== index}
                 />
               )}
             />
           </View>
         </View>
+        )}
       </SystemLayout>
     </LayoutWrapper>
   )

@@ -3,132 +3,66 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
+import { useAuth } from '@/contexts/auth.context'
+import { fetchPatientByIdWithAuth } from '@/services/patients'
 import { PatientInfos } from '@/types/patient.type'
 import { formatDate } from '@/utils/formatDate'
 import { formatHour } from '@/utils/formatHour'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { FlatList, Text, View } from 'react-native'
-
-// Supondo que essas serão as informações dos paciente no banco, e que será buscado
-// no back a partir do id provida na url, trazendo somente o paciente selecionado
-const PATIENTS_GENERAL_INFOS_DATA: PatientInfos[] = [
-  {
-    id: 1,
-    name: 'Maria Letícia Sampaio',
-    phone: '(88) 92321-2393',
-    status: 'ACTIVE',
-    createdAt: '2011-10-05T14:48:00.000Z',
-    sessionHistory: {
-      totalMade: 12,
-      session: {
-        lastOneDate    : '2026-03-05T14:00:00.000Z',
-        totalGenerated : 66420.9,
-        valueByEach    : 233.3,
-      },
-    },
-    sessions: [
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Cícero Antoniel do Fodase',
-    phone: '(88) 92321-2393',
-    status: 'ACTIVE',
-    createdAt: '2011-10-05T14:48:00.000Z',
-    sessionHistory: {
-      totalMade: 12,
-      session: {
-        lastOneDate    : '2026-03-05T14:00:00.000Z',
-        totalGenerated : 66420.9,
-        valueByEach    : 233.3,
-      },
-    },
-    sessions: [
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Eduardo Correia Fudido',
-    phone: '(88) 92321-2393',
-    status: 'ACTIVE',
-    createdAt: '2011-10-05T14:48:00.000Z',
-    sessionHistory: {
-      totalMade: 12,
-      session: {
-        lastOneDate    : '2026-03-05T14:00:00.000Z',
-        totalGenerated : 66420.9,
-        valueByEach    : 233.3,
-      },
-    },
-    sessions: [
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      }
-    ],
-  },
-];
+import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 
 const NextSessions = (): React.JSX.Element => {
 
   const router = useRouter();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [searchValue, setSearchValue] = useState<string | null>(null);
   const [ sessions, setSession ] = useState<PatientInfos['sessions'] | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { id } = useLocalSearchParams();
 
-  const getPatientSessionsByHisId = async(id: number): Promise<void> => {
+  const getPatientSessionsByHisId = async(patientId: string): Promise<void> => {
     try {
-      const response: (PatientInfos | undefined) = PATIENTS_GENERAL_INFOS_DATA.find((patient) => patient.id === Number(id));
+      if (!token || !refreshToken) {
+        setError('Não autenticado');
+        return;
+      }
+
+      const response = await fetchPatientByIdWithAuth(patientId, {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      });
 
       if (response) setSession(response.sessions);
     } catch (error:unknown) {
       if (error instanceof Error) {
-        console.error('Houver um erro ao carregar as informações do paciente: ' + error.message);
+        setError(error.message);
       }
     }
   };
 
   useEffect(() => {
-    getPatientSessionsByHisId(Number(id));
-  }, []);
+    const patientId = typeof id === 'string' ? id : '';
+
+    if (!patientId) {
+      setError('Paciente não identificado');
+      setIsLoading(false);
+      return;
+    }
+
+    const loadSessions = async (): Promise<void> => {
+      setIsLoading(true);
+      setError(null);
+      await getPatientSessionsByHisId(patientId);
+      setIsLoading(false);
+    };
+
+    loadSessions();
+  }, [id, token, refreshToken, updateTokens, signOut]);
 
   const filteredPatientNextSessions = sessions?.filter((session) => 
     session.room.toLocaleLowerCase().includes(searchValue?.toLocaleLowerCase() ?? '')
@@ -143,6 +77,15 @@ const NextSessions = (): React.JSX.Element => {
       goBack={() => router.back()}
       layoutType='PROFESSIONAL'    
       >
+        {isLoading ? (
+          <View className='flex-1 justify-center items-center'>
+            <ActivityIndicator size='large' color='#3b82f6' />
+          </View>
+        ) : error ? (
+          <View className='flex-1 justify-center items-center'>
+            <Text className='text-red-500 text-center'>{error}</Text>
+          </View>
+        ) : (
         <View className='flex-1 py-6 gap-5'>
           <Input.Search
             onChangeText={(text) => setSearchValue(text)}
@@ -178,6 +121,7 @@ const NextSessions = (): React.JSX.Element => {
             />
           </View>
         </View>
+        )}
       </SystemLayout>
     </LayoutWrapper>
   )

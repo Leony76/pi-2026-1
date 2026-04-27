@@ -7,6 +7,7 @@ exports.logoutController = logoutController;
 exports.requestEmailVerificationController = requestEmailVerificationController;
 exports.verifyEmailController = verifyEmailController;
 exports.requestPasswordResetController = requestPasswordResetController;
+exports.verifyResetCodeController = verifyResetCodeController;
 exports.resetPasswordController = resetPasswordController;
 const service_1 = require("./service");
 const auth_response_1 = require("../../lib/auth-response");
@@ -67,6 +68,15 @@ async function verifyEmailController(request, response, next) {
 async function requestPasswordResetController(request, response, next) {
     try {
         const result = await (0, service_1.requestPasswordReset)(request.body);
+        (0, auth_response_1.sendSuccessResponse)(response, 200, result);
+    }
+    catch (error) {
+        next(error);
+    }
+}
+async function verifyResetCodeController(request, response, next) {
+    try {
+        const result = await (0, service_1.verifyResetCode)(request.body);
         (0, auth_response_1.sendSuccessResponse)(response, 200, result);
     }
     catch (error) {

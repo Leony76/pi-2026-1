@@ -10,18 +10,18 @@ const auth_response_1 = require("../../lib/auth-response");
 const http_error_1 = require("../../lib/http-error");
 function getTokenFromHeader(authHeader) {
     if (!authHeader) {
-        throw (0, http_error_1.createHttpError)(401, "unauthorized", "Authorization header is required");
+        throw (0, http_error_1.createHttpError)(401, "unauthorized", "Cabeçalho de autorização é requerível!");
     }
     const [scheme, token] = authHeader.split(" ");
     if (scheme !== "Bearer" || !token) {
-        throw (0, http_error_1.createHttpError)(401, "unauthorized", "Invalid authorization header");
+        throw (0, http_error_1.createHttpError)(401, "unauthorized", "Cabeçalho de autorização inválido!");
     }
     return token;
 }
 function getJwtSecret() {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-        throw (0, http_error_1.createHttpError)(500, "internal_server_error", "JWT_SECRET not configured");
+        throw (0, http_error_1.createHttpError)(500, "internal_server_error", "JWT_SECRET não configurado!");
     }
     return secret;
 }
@@ -31,7 +31,7 @@ async function meController(request, response, next) {
         const payload = jsonwebtoken_1.default.verify(token, getJwtSecret());
         const user = await (0, service_1.getProfileById)(payload.sub);
         if (!user) {
-            throw (0, http_error_1.createHttpError)(404, "not_found", "User not found");
+            throw (0, http_error_1.createHttpError)(404, "not_found", "Usuário não encontrado!");
         }
         (0, auth_response_1.sendSuccessResponse)(response, 200, user);
     }
