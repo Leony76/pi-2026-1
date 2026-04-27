@@ -2,19 +2,24 @@ import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
+import { useAuth } from '@/contexts/auth.context'
 import { NewPatientFormData, newPatientSchema } from '@/schemas/newPatient.schema'
+import { createPatientWithAuth } from '@/services/patients'
 import { formatPhone } from '@/utils/formatPhone'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
-import React from 'react'
+import React, { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView, View } from 'react-native'
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import Feather from '@expo/vector-icons/Feather';
 import { systemColors } from '@/constants/misc/systemColors.misc'
 
 const NewPatient = (): React.JSX.Element => {
 
   const router = useRouter();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control, 
@@ -32,14 +37,46 @@ const NewPatient = (): React.JSX.Element => {
   }); 
 
   const handleSaveNewPatient = async( data: NewPatientFormData ): Promise<void> => {
-    console.log(data);
+    if (!token || !refreshToken) {
+      setSubmitError('Não autenticado');
+      return;
+    }
 
-    router.push({
-      pathname: '/(authenticated)/(professional)/patients',
-      params: {
-        message: 'Paciente cadastrado com sucesso!'
-      },
-    })
+    try {
+      setIsSaving(true);
+      setSubmitError(null);
+
+      await createPatientWithAuth(
+        {
+          name: data.name,
+          phone: data.phone,
+          email: data.email?.trim() ? data.email : undefined,
+          initialDate: data.initialDate,
+          observations: data.observations?.trim() ? data.observations : undefined,
+        },
+        {
+          token,
+          refreshToken,
+          updateTokens,
+          signOut,
+        }
+      );
+
+      router.push({
+        pathname: '/(authenticated)/(professional)/patients',
+        params: {
+          message: 'Paciente cadastrado com sucesso!'
+        },
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError('Erro ao cadastrar paciente');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -53,6 +90,10 @@ const NewPatient = (): React.JSX.Element => {
       >
         <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-center'>
           <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
+            {submitError && (
+              <Text className='text-red-500 text-center'>{submitError}</Text>
+            )}
+
             <View>
               <Controller
                 control={control}
@@ -168,11 +209,17 @@ const NewPatient = (): React.JSX.Element => {
             <Button.Default
               customStyle={{ container: 'mt-3' }}
               filled
-              disable={Object.keys(errors).length > 1}
+              disable={Object.keys(errors).length > 0 || isSaving}
               label='Salvar pasciente'
               onTouch={handleSubmit(handleSaveNewPatient)}
               icon={{ name: 'new_person' }}
             />
+
+            {isSaving && (
+              <View className='items-center'>
+                <ActivityIndicator size='small' color='#3b82f6' />
+              </View>
+            )}
           </View>
         </ScrollView>
       </SystemLayout>

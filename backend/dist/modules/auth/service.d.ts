@@ -22,8 +22,12 @@ type VerifyEmailInput = {
 type PasswordResetRequestInput = {
     email: string;
 };
+type VerifyResetCodeInput = {
+    email: string;
+    code: string;
+};
 type PasswordResetInput = {
-    token: string;
+    sessionToken: string;
     password: string;
     repeatPassword: string;
 };
@@ -61,7 +65,10 @@ export declare function verifyEmail(data: VerifyEmailInput): Promise<{
 }>;
 export declare function requestPasswordReset(data: PasswordResetRequestInput): Promise<{
     message: string;
-    resetToken: string;
+}>;
+export declare function verifyResetCode(data: VerifyResetCodeInput): Promise<{
+    message: string;
+    sessionToken: string;
 }>;
 export declare function resetPassword(data: PasswordResetInput): Promise<{
     message: string;

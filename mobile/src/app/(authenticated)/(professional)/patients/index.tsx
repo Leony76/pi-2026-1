@@ -4,37 +4,60 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import Section from '@/components/ui/Section'
 import Toast from '@/components/ui/Toast'
+import { useAuth } from '@/contexts/auth.context'
+import { fetchActivePatientsWithAuth, fetchPatientHistoryWithAuth } from '@/services/patients'
 import { History } from '@/types/history.type'
 import { Patient } from '@/types/patient.type'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
-
-// Supondo que virá essas informações da API (Lista de apenas 3)
-const ACTIVE_PATIENTS_DATA: Patient[] = [
-  { id: 1, name: 'Maria Letícia Sampaio', nextSession: '2026-04-12T12:00:00.000Z', status: 'ACTIVE' },
-  { id: 2, name: 'Cícero Antoniel do Fodase', nextSession: '2026-04-13T13:00:00.000Z', status: 'ACTIVE' },
-  { id: 3, name: 'Eduardo Correia Fudido', nextSession: '2026-04-14T14:00:00.000Z', status: 'ACTIVE' },
-];
-
-// Supondo que virá essas informações da API (Lista de apenas 2)
-const HISTORY: History[] = [
-  { id: 4, lastSession: '2026-04-12T12:00:00.000Z' , patientName: 'Tiago Lima', status: 'CLOSED'},
-  { id: 5, lastSession: '2026-04-12T12:00:00.000Z' , patientName: 'JONH CENAAH', status: 'CLOSED'},
-];
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 
 const Patients = (): React.JSX.Element => {
 
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
 
   const [toastVisible, setToastVisible] = useState<boolean>(false);
+  const [activePatients, setActivePatients] = useState<Patient[]>([]);
+  const [historyPatients, setHistoryPatients] = useState<History[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.message) {
       setToastVisible(true);
     }
   }, [params.message]);
+
+  useEffect(() => {
+    const loadPatients = async (): Promise<void> => {
+      if (!token || !refreshToken) {
+        setError('Não autenticado');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const [active, history] = await Promise.all([
+          fetchActivePatientsWithAuth({ token, refreshToken, updateTokens, signOut }, 3),
+          fetchPatientHistoryWithAuth({ token, refreshToken, updateTokens, signOut }, 2),
+        ]);
+
+        setActivePatients(active);
+        setHistoryPatients(history);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar pacientes');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatients();
+  }, [token, refreshToken, updateTokens, signOut]);
 
   const handleCloseToast = () => {
     setToastVisible(false);
@@ -55,6 +78,15 @@ const Patients = (): React.JSX.Element => {
       tab='PATIENTS'
       layoutType='PROFESSIONAL'    
       >
+        {isLoading ? (
+          <View className='flex-1 justify-center items-center'>
+            <ActivityIndicator size='large' color='#3b82f6' />
+          </View>
+        ) : error ? (
+          <View className='flex-1 justify-center items-center'>
+            <Text className='text-red-500 text-center'>{error}</Text>
+          </View>
+        ) : (
         <ScrollView contentContainerClassName='py-6 gap-5'>
           <Section 
           title='Ativos'
@@ -67,13 +99,13 @@ const Patients = (): React.JSX.Element => {
           )}
           >
             <View className="gap-4 py-1">
-              {ACTIVE_PATIENTS_DATA.map((item, index) => (
+              {activePatients.map((item, index) => (
                 <Card.Patient
                   key={item.id}
                   {...item}
                   from='ACTIVES'
                   gap={'gap-3'}
-                  separationRow={(ACTIVE_PATIENTS_DATA.length - 1) !== index}
+                  separationRow={(activePatients.length - 1) !== index}
                 />
               ))}
             </View>
@@ -90,13 +122,13 @@ const Patients = (): React.JSX.Element => {
           )}
           >
             <View className="gap-4 py-1">
-              {HISTORY.map((item, index) => (
+              {historyPatients.map((item, index) => (
                 <Card.Patient
                   key={item.id}
                   {...item}
                   from='HISTORY'
                   gap={'gap-3'}
-                  separationRow={(HISTORY.length - 1) !== index}
+                  separationRow={(historyPatients.length - 1) !== index}
                 />
               ))}
             </View>
@@ -109,6 +141,7 @@ const Patients = (): React.JSX.Element => {
             onTouch={() => router.push('/(authenticated)/(professional)/patients/newPatient')}
           />
         </ScrollView>
+        )}
       </SystemLayout>
     </LayoutWrapper>
   )

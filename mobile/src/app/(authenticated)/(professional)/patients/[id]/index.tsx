@@ -5,115 +5,24 @@ import AvailbilityTag from '@/components/ui/AvailbilityTag'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
+import { useAuth } from '@/contexts/auth.context'
+import { fetchPatientByIdWithAuth } from '@/services/patients'
 import { PatientInfos } from '@/types/patient.type'
 import { formatDate } from '@/utils/formatDate'
 import { formatHour } from '@/utils/formatHour'
 import { priceFormat } from '@/utils/priceFormat'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
-
-// Supondo que essas serão as informações dos paciente no banco, e que será buscado
-// no back a partir do id provida na url, trazendo somente o pacinete selecionado
-const PATIENTS_GENERAL_INFOS_DATA: PatientInfos[] = [
-  {
-    id: 1,
-    name: 'Maria Letícia Sampaio',
-    phone: '(88) 92321-2393',
-    status: 'ACTIVE',
-    createdAt: '2011-10-05T14:48:00.000Z',
-    sessionHistory: {
-      totalMade: 12,
-      session: {
-        lastOneDate    : '2026-03-05T14:00:00.000Z',
-        totalGenerated : 66420.9,
-        valueByEach    : 233.3,
-      },
-    },
-    sessions: [
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Cícero Antoniel do Fodase',
-    phone: '(88) 92321-2393',
-    status: 'ACTIVE',
-    createdAt: '2011-10-05T14:48:00.000Z',
-    sessionHistory: {
-      totalMade: 12,
-      session: {
-        lastOneDate    : '2026-03-05T14:00:00.000Z',
-        totalGenerated : 66420.9,
-        valueByEach    : 233.3,
-      },
-    },
-    sessions: [
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Eduardo Correia Fudido',
-    phone: '(88) 92321-2393',
-    status: 'ACTIVE',
-    createdAt: '2011-10-05T14:48:00.000Z',
-    sessionHistory: {
-      totalMade: 12,
-      session: {
-        lastOneDate    : '2026-03-05T14:00:00.000Z',
-        totalGenerated : 66420.9,
-        valueByEach    : 233.3,
-      },
-    },
-    sessions: [
-      { 
-        date: '2026-03-05T14:00:00.000Z', 
-        hour: {
-          start : '2026-03-05T14:00:00.000Z',
-          end   : '2026-03-05T15:00:00.000Z',
-        },
-        room: 'Sala 01'
-      }
-    ],
-  },
-];
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 
 const PatientDetails = (): React.JSX.Element => {
 
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [ patient, setPatient ] = useState<PatientInfos | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const nameArray = patient?.name.trim().split(' ') || [];
 
@@ -122,22 +31,46 @@ const PatientDetails = (): React.JSX.Element => {
     : nameArray[0]
   ;
 
-  const getPatientById = async(id: number): Promise<void> => {
+  const getPatientById = async(patientId: string): Promise<void> => {
     try {
-      // Simulando um requisão GET da API pelo ID do paciente
-      const response: (PatientInfos | undefined) = PATIENTS_GENERAL_INFOS_DATA.find((patient) => patient.id === Number(id));
+      if (!token || !refreshToken) {
+        setError('Não autenticado');
+        return;
+      }
 
-      if (response) setPatient(response);
+      const response = await fetchPatientByIdWithAuth(patientId, {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      });
+
+      setPatient(response);
     } catch (error:unknown) {
       if (error instanceof Error) {
-        console.error('Houver um erro ao carregar as informações do paciente: ' + error.message);
+        setError(error.message);
       }
     }
   };
 
   useEffect(() => {
-    getPatientById(Number(id));
-  }, []);
+    const patientId = typeof id === 'string' ? id : '';
+
+    if (!patientId) {
+      setError('Paciente não identificado');
+      setIsLoading(false);
+      return;
+    }
+
+    const loadPatient = async (): Promise<void> => {
+      setIsLoading(true);
+      setError(null);
+      await getPatientById(patientId);
+      setIsLoading(false);
+    };
+
+    loadPatient();
+  }, [id, token, refreshToken, updateTokens, signOut]);
 
   return (
     <LayoutWrapper>
@@ -148,6 +81,15 @@ const PatientDetails = (): React.JSX.Element => {
       layoutType='PROFESSIONAL'    
       goBack={() => router.back()}
       >
+        {isLoading ? (
+          <View className='flex-1 justify-center items-center'>
+            <ActivityIndicator size='large' color='#3b82f6' />
+          </View>
+        ) : error ? (
+          <View className='flex-1 justify-center items-center'>
+            <Text className='text-red-500 text-center'>{error}</Text>
+          </View>
+        ) : (
         <ScrollView contentContainerClassName='py-6 gap-5'>
           <Section title='Informações'>
             <Label___Value
@@ -253,6 +195,7 @@ const PatientDetails = (): React.JSX.Element => {
             />
           </Section>
         </ScrollView>
+        )}
       </SystemLayout>
     </LayoutWrapper>
   )

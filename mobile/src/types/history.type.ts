@@ -1,5 +1,5 @@
 export type History = {
-  readonly id : number;
+  readonly id : string;
   patientName : string;
   lastSession : string;
   status      : 'CLOSED';
