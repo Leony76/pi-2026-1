@@ -5,7 +5,7 @@ import { systemColors } from '@/constants/misc/systemColors.misc'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useState } from 'react'
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { priceFormat } from '@/utils/priceFormat'
 import Section from '@/components/ui/Section'
@@ -20,7 +20,7 @@ import Toast from '@/components/ui/Toast'
 
 const Profile = (): React.JSX.Element => {
 
-  const { profile } = useLoggedUserData();  
+  const { profile, isLoading, error } = useLoggedUserData();  
   const { signOut } = useAuth();
 
   const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
@@ -41,6 +41,46 @@ const Profile = (): React.JSX.Element => {
     setToastVisible(false);
     router.setParams({ message: '' });
   };
+
+  if (isLoading) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          title='Perfil'
+          description='Carregando seus dados'
+          tab='PROFILE'
+          mainPxOff
+          headerHidden
+          layoutType='PROFESSIONAL'
+        >
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color={systemColors.primary} />
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          title='Perfil'
+          description='Não foi possível carregar seus dados'
+          tab='PROFILE'
+          mainPxOff
+          headerHidden
+          layoutType='PROFESSIONAL'
+        >
+          <View className='flex-1 items-center justify-center px-6'>
+            <Text className='text-center text-red-500 font-nunito-bold'>
+              {error}
+            </Text>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
@@ -108,7 +148,7 @@ const Profile = (): React.JSX.Element => {
               </Text>
 
               <Text className='text-white text-lg font-nunito'>
-                CRM {'12345-SP'}
+                CRM {profile?.crmCrp ?? '[ Desconhecido ]'}
               </Text>
             </View>
 
@@ -121,7 +161,7 @@ const Profile = (): React.JSX.Element => {
                 />
 
                 <Text className='text-white font-nunito'>
-                  Psicologia
+                  {profile?.specialtyLabel ?? 'Especialidade'}
                 </Text>
               </View>
 
@@ -148,7 +188,7 @@ const Profile = (): React.JSX.Element => {
               <View className='flex-row justify-between gap-3'>
                 <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
                   <Text className='font-nunito-bold text-medroom-primary text-4xl'>
-                    {'42'}
+                    {profile?.stats.sessions ?? 0}
                   </Text>
 
                   <Text className='font-nunito-bold text-medroom-secondary'>
@@ -158,7 +198,7 @@ const Profile = (): React.JSX.Element => {
 
                 <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
                   <Text className='font-nunito-bold text-medroom-primary text-4xl'>
-                    {'3'}
+                    {profile?.stats.patients ?? 0}
                   </Text>
 
                   <Text className='font-nunito-bold text-medroom-secondary'>
@@ -168,7 +208,7 @@ const Profile = (): React.JSX.Element => {
 
                 <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
                   <Text className='font-nunito-bold text-green-600 text-base'>
-                    { priceFormat(3200) }
+                    { priceFormat(profile?.stats.totalSpent ?? 0) }
                   </Text>
 
                   <Text className='font-nunito-bold text-medroom-secondary'>

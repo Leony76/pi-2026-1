@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { getProfileById } from "./service";
+import { getProfileById, updateProfileById } from "./service";
 import { sendSuccessResponse } from "../../lib/auth-response";
 import { createHttpError } from "../../lib/http-error";
 
@@ -42,6 +42,23 @@ export async function meController(request: Request, response: Response, next: N
 		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
 
 		const user = await getProfileById(payload.sub);
+
+		if (!user) {
+			throw createHttpError(404, "not_found", "Usuário não encontrado!");
+		}
+
+		sendSuccessResponse(response, 200, user);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function updateMeController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+
+		const user = await updateProfileById(payload.sub, request.body);
 
 		if (!user) {
 			throw createHttpError(404, "not_found", "Usuário não encontrado!");

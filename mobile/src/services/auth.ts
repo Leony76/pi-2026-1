@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "./api";
+import { apiPatchWithAuth } from "./auth-api";
 
 export type AuthUser = {
   id: string;
@@ -24,10 +25,25 @@ export type CurrentUserResponse = {
   id: string;
   name: string;
   specialty: string;
+  specialtyLabel: string;
   crmCrp: string;
   email: string;
+  phone: string | null;
   createdAt: string;
   updatedAt: string;
+  stats: {
+    sessions: number;
+    patients: number;
+    totalSpent: number;
+  };
+};
+
+export type UpdateCurrentUserPayload = {
+  name: string;
+  specialty: string;
+  crmCrp: string;
+  email: string;
+  phone: string;
 };
 
 export type RegisterPayload = {
@@ -95,4 +111,25 @@ export function logoutUser(token: string): Promise<{ message: string }> {
 
 export function fetchCurrentUser(token: string): Promise<CurrentUserResponse> {
   return apiGet<CurrentUserResponse>("/users/me", token);
+}
+
+type AuthHandlers = {
+  token: string;
+  refreshToken: string;
+  updateTokens: (token: string, refreshToken: string) => Promise<void>;
+  signOut: () => Promise<void>;
+};
+
+export function updateCurrentUserWithAuth(
+  data: UpdateCurrentUserPayload,
+  auth: AuthHandlers
+): Promise<CurrentUserResponse> {
+  return apiPatchWithAuth<CurrentUserResponse>(
+    "/users/me",
+    data,
+    auth.token,
+    auth.refreshToken,
+    auth.updateTokens,
+    auth.signOut
+  );
 }

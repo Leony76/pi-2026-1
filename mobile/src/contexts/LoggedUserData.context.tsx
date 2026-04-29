@@ -4,11 +4,7 @@ import { apiGetWithAuth } from '@/services/auth-api';
 import { CurrentUserResponse } from '@/services/auth';
 import { ApiError } from '@/services/api';
 
-type UserProfile = {
-  name: string;
-  specialty: string;
-  email: string;
-};
+type UserProfile = CurrentUserResponse;
 
 type UserContextData = {
   profile: UserProfile | null;
@@ -42,17 +38,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut
       );
 
-      setProfile({
-        name: data.name,
-        specialty: data.specialty,
-        email: data.email,
-      });
+      setProfile(data);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Erro ao carregar perfil');
     } finally {
       setIsLoading(false);
     }
-  }, [token, refreshToken]);
+  }, [token, refreshToken, updateTokens, signOut]);
 
   useEffect(() => {
     loadProfile();
