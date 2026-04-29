@@ -3,111 +3,94 @@ import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
-import { Customer } from '@/types/customer.type'
+import { ApiError } from '@/services/api'
+import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
 import { useRouter } from 'expo-router'
-import React, { useMemo, useState } from 'react'
-import { FlatList, View } from 'react-native'
-
-// Supondo que virá essas informações da API (Completa)
-const ACTIVE_CUSTOMERS_DATA: Customer[] = [
-  { 
-    id: 1,
-    name: 'João Marcelio de Melo', 
-    occupation: {
-      startHour : '08:00',
-      endHour   : '17:00',
-      limitDate : '2026-04-20T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 01',
-    specialty: 'generalMedicine',
-  },
-  { 
-    id: 2,
-    name: 'Henrque Sampáio George', 
-    occupation: {
-      startHour : '10:00',
-      endHour   : '12:00',
-      limitDate : '2026-04-15T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 02',
-    specialty: 'pediatrics',
-  },
-  { 
-    id: 3,
-    name: 'João Marcelio de Melo', 
-    occupation: {
-      startHour : '08:00',
-      endHour   : '17:00',
-      limitDate : '2026-04-20T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 01',
-    specialty: 'generalMedicine',
-  },
-  { 
-    id: 4,
-    name: 'Henrque Sampáio George', 
-    occupation: {
-      startHour : '10:00',
-      endHour   : '12:00',
-      limitDate : '2026-04-15T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 02',
-    specialty: 'pediatrics',
-  },
-  { 
-    id: 5,
-    name: 'João Marcelio de Melo', 
-    occupation: {
-      startHour : '08:00',
-      endHour   : '17:00',
-      limitDate : '2026-04-20T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 01',
-    specialty: 'generalMedicine',
-  },
-  { 
-    id: 6,
-    name: 'Henrque Sampáio George', 
-    occupation: {
-      startHour : '10:00',
-      endHour   : '12:00',
-      limitDate : '2026-04-15T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 02',
-    specialty: 'pediatrics',
-  },
-  { 
-    id: 7,
-    name: 'João Marcelio de Melo', 
-    occupation: {
-      startHour : '08:00',
-      endHour   : '17:00',
-      limitDate : '2026-04-20T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 01',
-    specialty: 'generalMedicine',
-  },
-  { 
-    id: 8,
-    name: 'Henrque Sampáio George', 
-    occupation: {
-      startHour : '10:00',
-      endHour   : '12:00',
-      limitDate : '2026-04-15T00:00:00.000Z'
-    },
-    occupiedRoom: 'Sala 02',
-    specialty: 'pediatrics',
-  },
-];
+import React, { useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Text, View } from 'react-native'
+import { useAuth } from '@/contexts/auth.context'
+import { systemColors } from '@/constants/misc/systemColors.misc'
 
 const Actives = (): React.JSX.Element => {
 
   const router = useRouter();
+  const auth = useAuth();
   const [searchValue, setSearchValue] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<EnterpriseDashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      if (!auth.token || !auth.refreshToken) {
+        setError('Sessão inválida. Entre novamente para ver os clientes.');
+        setIsLoading(false);
+        return;
+      }
+
+      const authenticated = {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      };
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+        setDashboard(response);
+      } catch (requestError) {
+        setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar os clientes ativos.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, [auth]);
 
   const filteredList = useMemo(() => 
-    ACTIVE_CUSTOMERS_DATA.filter((customer) => customer.name.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
-  [searchValue, ACTIVE_CUSTOMERS_DATA]);
+    (dashboard?.activeCustomers ?? []).filter((customer) => customer.name.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
+  [searchValue, dashboard]);
+
+  if (isLoading) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+        title='Clientes ativos'
+        description='Listagem dos clientes ativos'
+        tab='CUSTOMERS'
+        goBack={() => router.back()}
+        layoutType='ENTERPRISE'    
+        >
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color={systemColors.primary} />
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+        title='Clientes ativos'
+        description='Listagem dos clientes ativos'
+        tab='CUSTOMERS'
+        goBack={() => router.back()}
+        layoutType='ENTERPRISE'    
+        >
+          <View className='flex-1 items-center justify-center px-6'>
+            <Text className='text-center text-red-500 font-nunito-bold'>
+              {error}
+            </Text>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
@@ -136,7 +119,7 @@ const Actives = (): React.JSX.Element => {
                   key={item.id}
                   { ...item }
                   gap='gap-3'
-                  separationRow={ACTIVE_CUSTOMERS_DATA.length - 1 !== index}
+                  separationRow={filteredList.length - 1 !== index}
                   from='ACTIVES'
                 />
               )}

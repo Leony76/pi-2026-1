@@ -19,6 +19,9 @@ const Label___Value = (props:Props): React.JSX.Element => {
 
   const ValueComponent = props.value.Component;
   const LabelComponent = props.LabelComponent;
+  const normalizedValue = typeof props.value._ === 'object' && props.value._ !== null
+    ? JSON.stringify(props.value._)
+    : props.value._;
 
   return (
     <TouchableOpacity 
@@ -36,9 +39,9 @@ const Label___Value = (props:Props): React.JSX.Element => {
           </Text>
         )}
 
-        {props.value._ ? (
+        {normalizedValue ? (
           <Text className={`font-nunito-bold ${props.value.color ?? 'text-medroom-primary'}`}>
-            {props.value._}
+            {normalizedValue}
           </Text>
         ) : (
           ValueComponent && <ValueComponent />

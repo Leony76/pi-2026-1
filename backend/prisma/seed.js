@@ -11,6 +11,7 @@ const seedUsers = [
     specialty: "Cardiologia",
     crmCrp: "CRM12345",
     email: "lucas.almeida@checkinmed.test",
+    accountType: "ENTERPRISE",
     password: "12345678",
   },
   {
@@ -18,6 +19,7 @@ const seedUsers = [
     specialty: "Dermatologia",
     crmCrp: "CRM54321",
     email: "marina.souza@checkinmed.test",
+    accountType: "PROFESSIONAL",
     password: "12345678",
   },
 ];
@@ -83,6 +85,7 @@ async function main() {
       data: {
         name: user.name,
         specialty: user.specialty,
+        accountType: user.accountType,
         crmCrp: user.crmCrp,
         email: user.email,
         passwordHash,

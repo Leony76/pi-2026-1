@@ -20,7 +20,7 @@ import Toast from '@/components/ui/Toast'
 
 const Profile = (): React.JSX.Element => {
 
-  const { profile, isLoading, error } = useLoggedUserData();  
+  const { profile, accountType, isLoading, error } = useLoggedUserData();  
   const { signOut } = useAuth();
 
   const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
@@ -111,7 +111,7 @@ const Profile = (): React.JSX.Element => {
       tab='PROFILE'
       mainPxOff
       headerHidden
-      layoutType='PROFESSIONAL'    
+      layoutType={accountType ?? 'PROFESSIONAL'}    
       >
         <ScrollView contentContainerClassName='gap-5 pb-6'>
           <LinearGradient

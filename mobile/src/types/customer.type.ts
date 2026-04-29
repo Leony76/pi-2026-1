@@ -1,7 +1,7 @@
 import { Specialty } from "@/constants/maps/selectOptions.map";
 
 export type Customer = {
-  readonly id   : number;
+  readonly id   : string;
   name          : string;
   specialty     : Specialty;
   occupiedRoom : string | null;

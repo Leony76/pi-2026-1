@@ -19,6 +19,7 @@ LocaleConfig.defaultLocale = 'pt-br';
 type DateProps = Omit<DefaultInputProps, 'onChange' | 'type' | 'value'> & {
   onChange: (date: Date | undefined) => void;
   value: Date | string | undefined;
+  maxDate?: string;
 };
 
 const DateTime = (props: DateProps): React.JSX.Element => {
@@ -77,7 +78,7 @@ const DateTime = (props: DateProps): React.JSX.Element => {
                 <Calendar
                   current={selectedDate}
                   onDayPress={handleDayPress}
-                  maxDate={new Date().toISOString().split('T')[0]}
+                  maxDate={props.maxDate}
                   markedDates={{
                     [selectedDate ?? '']: { selected: true, disableTouchEvent: true }
                   }}

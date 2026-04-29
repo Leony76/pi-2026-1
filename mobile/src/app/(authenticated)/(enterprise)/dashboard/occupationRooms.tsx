@@ -3,90 +3,103 @@ import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
-import { RoomOccupation } from '@/types/roomOccupation.type'
 import { useRouter } from 'expo-router'
-import React, { useMemo, useState } from 'react'
-import { FlatList, View } from 'react-native'
-
-// Supondo que virá essas informações da API (Completa)
-const ROOM_OCCUPATION_DATA: RoomOccupation[] = [
-  {
-    id: 1,
-    isAvailable: false,
-    occupant: 'Victor Gideon',
-    title: 'Sala 01',
-    occupation: {
-      startTime : '2026-04-13T14:00:00.000Z',
-      endTime   : '2026-04-13T15:00:00.000Z',
-    },
-  },
-  {
-    id: 2,
-    isAvailable: true,
-    occupant: null,
-    title: 'Sala 01',
-    occupation: {
-      startTime : null,
-      endTime   : null,
-    },
-  },
-  {
-    id: 3,
-    isAvailable: false,
-    occupant: 'Albert Wesker',
-    title: 'Sala 02',
-    occupation: {
-      startTime : '2026-04-13T16:00:00.000Z',
-      endTime   : '2026-04-13T17:00:00.000Z',
-    },
-  },
-  {
-    id: 1,
-    isAvailable: false,
-    occupant: 'Victor Gideon',
-    title: 'Sala 01',
-    occupation: {
-      startTime : '2026-04-13T14:00:00.000Z',
-      endTime   : '2026-04-13T15:00:00.000Z',
-    },
-  },
-  {
-    id: 2,
-    isAvailable: true,
-    occupant: null,
-    title: 'Sala 01',
-    occupation: {
-      startTime : null,
-      endTime   : null,
-    },
-  },
-  {
-    id: 3,
-    isAvailable: false,
-    occupant: 'Albert Wesker',
-    title: 'Sala 02',
-    occupation: {
-      startTime : '2026-04-13T16:00:00.000Z',
-      endTime   : '2026-04-13T17:00:00.000Z',
-    },
-  },
-];
+import React, { useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, FlatList, Text, View } from 'react-native'
+import { useAuth } from '@/contexts/auth.context'
+import { ApiError } from '@/services/api'
+import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
+import { systemColors } from '@/constants/misc/systemColors.misc'
 
 const OccupationRooms = (): React.JSX.Element => {
 
   const router = useRouter();
+  const auth = useAuth();
   const [searchValue, setSearchValue] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<EnterpriseDashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      if (!auth.token || !auth.refreshToken) {
+        setError('Sessão inválida. Entre novamente para ver o painel.');
+        setIsLoading(false);
+        return;
+      }
+
+      const authenticated = {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      };
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+        setDashboard(response);
+      } catch (requestError) {
+        setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar a ocupação das salas.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, [auth]);
 
   const filteredList = useMemo(() => {
     const search = searchValue?.toLowerCase() ?? '';
+    const rooms = dashboard?.roomOccupation ?? [];
 
-    return ROOM_OCCUPATION_DATA.filter((room) => {
+    return rooms.filter((room) => {
       const titleMatch = room.title.toLowerCase().includes(search);
       const occupantMatch = room.occupant?.toLowerCase().includes(search);
 
       return titleMatch || occupantMatch;
     });
-  }, [searchValue, ROOM_OCCUPATION_DATA]);
+  }, [searchValue, dashboard]);
+
+  if (isLoading) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+        title='Ocupação por sala'
+        description='Listagem das ocupações por sala'
+        tab='DASHBOARD'
+        goBack={() => router.back()}
+        layoutType='ENTERPRISE'    
+        >
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color={systemColors.primary} />
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+        title='Ocupação por sala'
+        description='Listagem das ocupações por sala'
+        tab='DASHBOARD'
+        goBack={() => router.back()}
+        layoutType='ENTERPRISE'    
+        >
+          <View className='flex-1 items-center justify-center px-6'>
+            <Text className='text-center text-red-500 font-nunito-bold'>
+              {error}
+            </Text>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>

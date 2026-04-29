@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { getRoomsList, createRoomRental, getUserRentals } from "./service";
+import { getEnterpriseDashboard, getRoomOccupancy, getRoomsList, createRoomRental, getUserRentals } from "./service";
 import { sendSuccessResponse } from "../../lib/auth-response";
 import { createHttpError } from "../../lib/http-error";
 
@@ -41,6 +41,32 @@ export async function listRoomsController(request: Request, response: Response, 
 		const rooms = await getRoomsList();
 
 		sendSuccessResponse(response, 200, rooms);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function enterpriseDashboardController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const dashboard = await getEnterpriseDashboard(payload.sub);
+
+		sendSuccessResponse(response, 200, dashboard);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function roomOccupancyController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const roomId = request.params.roomId;
+
+		const occupancy = await getRoomOccupancy(roomId);
+
+		sendSuccessResponse(response, 200, occupancy);
 	} catch (error) {
 		next(error);
 	}

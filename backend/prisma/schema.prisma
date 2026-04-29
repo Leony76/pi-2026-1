@@ -78,10 +78,16 @@ enum EntryExitBillingType {
   MONTHLY
 }
 
+enum AccountType {
+  PROFESSIONAL
+  ENTERPRISE
+}
+
 model User {
   id                              String    @id @default(uuid())
   name                            String
   specialty                       String
+  accountType                     AccountType @default(PROFESSIONAL)
   crmCrp                          String    @unique
   email                           String    @unique
   phone                           String?

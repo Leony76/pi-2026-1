@@ -19,7 +19,7 @@ import { ApiError } from '@/services/api'
 const Edit = (): React.JSX.Element => {
 
   const router = useRouter();
-  const { profile, refreshProfile } = useLoggedUserData();
+  const { profile, accountType, refreshProfile } = useLoggedUserData();
   const auth = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -106,7 +106,7 @@ const Edit = (): React.JSX.Element => {
       title='Dados pessoais'
       description='Atualiza suas informações'
       tab='PATIENTS'
-      layoutType='PROFESSIONAL'   
+      layoutType={accountType ?? 'PROFESSIONAL'}   
       goBack={() => router.back()} 
       >
         <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-center'>

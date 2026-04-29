@@ -18,24 +18,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native';
-
-// Supondo que virá essa informação da API.
-const OCCUPIED_HOURS_FROM_ROOM: HourShift[] = [
-  { startHour: '09:00', endHour: '10:00' },
-  { startHour: '14:00', endHour: '15:00' },
-];
-
-// Supondo que virá essa informação da API.
-const OCCUPIED_DAYS_FROM_ROOM: Days[] = [
-  'FRIDAY',
-  'MONDAY',
-  'SATURDAY',
-];
+import { useAuth } from '@/contexts/auth.context';
+import { ApiError } from '@/services/api';
+import { fetchRoomOccupancy, RoomOccupancyResponse } from '@/services/rooms';
 
 const roomRentalWizard = (): React.JSX.Element => {
 
   const params = useLocalSearchParams();
   const router = useRouter();
+  const auth = useAuth();
   
   const [allocationType, setAllocationType] = useState<Allocation | null>(null);
   const [wizardStep, setWizardStep] = useState<number>(1);
@@ -44,6 +35,10 @@ const roomRentalWizard = (): React.JSX.Element => {
   const [hourSelected, setHourSelected] = useState<HourShift | null>(null);
   const [daysSelected, setDaysSelected] = useState<Days[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | null>(null);
+  const [roomOccupancy, setRoomOccupancy] = useState<RoomOccupancyResponse>({
+    occupiedHours: [],
+    occupiedDays: [],
+  });
 
   const title = params.title as string ?? '[Não fornecido]';
   const roomId = params.roomId as string ?? '[Não suposto a existir]';
@@ -56,6 +51,25 @@ const roomRentalWizard = (): React.JSX.Element => {
   const complementaryData: RoomDisplayCard['complementaryData'] = params.complementaryData 
     ? JSON.parse(params.complementaryData as string) 
     : { floor: '[Não fornecido]', area: '[Não fornecida]', additional: '[Não fornecido]' };
+
+  useEffect(() => {
+    async function loadRoomOccupancy() {
+      if (!auth.token || !roomId || roomId.startsWith('[')) {
+        return;
+      }
+
+      try {
+        const data = await fetchRoomOccupancy(roomId, auth.token);
+        setRoomOccupancy(data);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          setRoomOccupancy({ occupiedHours: [], occupiedDays: [] });
+        }
+      }
+    }
+
+    loadRoomOccupancy();
+  }, [auth.token, roomId]);
 
   const handleDayPress = (day: Days): void => {
     setDaysSelected((prev) => {
@@ -226,7 +240,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                           {HOURS_MAP[shiftSelected].map((hour, index) => {
                             
                             const isOccupied = isHourOccupied(
-                              OCCUPIED_HOURS_FROM_ROOM, 
+                              roomOccupancy.occupiedHours, 
                               hour.startHour, 
                               hour.endHour
                             );
@@ -286,7 +300,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                       {DAYS.map((day) => {
                         
                         const isSelected = daysSelected.includes(day);
-                        const isOccupied = OCCUPIED_DAYS_FROM_ROOM.includes(day);
+                        const isOccupied = roomOccupancy.occupiedDays.includes(day);
 
                         return (
                           <Button.Default

@@ -1,5 +1,6 @@
 import prisma from "../../lib/prisma";
 import { WeekDay } from "@prisma/client";
+import { createHttpError } from "../../lib/http-error";
 
 const FLOOR_TRANSLATIONS: Record<string, string> = {
 	GROUND_FLOOR: "Térreo",
@@ -85,6 +86,366 @@ function mapRoomRentalToClient(rental: {
 		selectedHours: isSelectedHours(rental.selectedHours) ? rental.selectedHours : null,
 		selectedWeekDays: rental.selectedWeekDay,
 		isActive: new Date() >= rental.startDate && new Date() <= rental.endDate,
+	};
+}
+
+type EnterpriseDashboardRoomOccupation = {
+	id: string;
+	isAvailable: boolean;
+	occupant: string | null;
+	title: string;
+	occupation: {
+		startTime: string | null;
+		endTime: string | null;
+	};
+};
+
+type EnterpriseDashboardCustomer = {
+	id: string;
+	name: string;
+	specialty: string;
+	occupiedRoom: string | null;
+	occupation: {
+		startHour: string | null;
+		endHour: string | null;
+		limitDate: string | null;
+	};
+};
+
+type EnterpriseDashboardCustomerHistory = {
+	id: string;
+	name: string;
+	specialty: string;
+	occupiedRoom: string | null;
+	unoccupiedRoomAt: string;
+};
+
+type EnterpriseDashboardEntryExitToday = {
+	occupantName: string;
+	room: string;
+	entry: string;
+	exit: string;
+	sessions: number;
+	totalValue: "DAILY" | "WEEKLY" | "MONTHLY";
+} | null;
+
+export type EnterpriseDashboardResponse = {
+	stats: {
+		totalRooms: number;
+		availableRooms: number;
+		occupiedRooms: number;
+		entriesToday: number;
+		exitsToday: number;
+	};
+	roomOccupation: EnterpriseDashboardRoomOccupation[];
+	activeCustomers: EnterpriseDashboardCustomer[];
+	historyCustomers: EnterpriseDashboardCustomerHistory[];
+	entryExitToday: EnterpriseDashboardEntryExitToday;
+};
+
+export type RoomOccupancyResponse = {
+	occupiedHours: { startHour: string; endHour: string }[];
+	occupiedDays: WeekDay[];
+};
+
+function startOfDay(date: Date): Date {
+	const day = new Date(date);
+	day.setHours(0, 0, 0, 0);
+	return day;
+}
+
+function nextDay(date: Date): Date {
+	return new Date(date.getTime() + 24 * 60 * 60 * 1000);
+}
+
+export async function getEnterpriseDashboard(userId: string): Promise<EnterpriseDashboardResponse> {
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: {
+			accountType: true,
+		},
+	});
+
+	if (!user) {
+		throw createHttpError(404, "not_found", "Usuário não encontrado!");
+	}
+
+	if (user.accountType !== "ENTERPRISE") {
+		throw createHttpError(403, "forbidden", "Acesso restrito ao painel da empresa.");
+	}
+
+	const now = new Date();
+	const dayStart = startOfDay(now);
+	const dayEnd = nextDay(dayStart);
+
+	const [rooms, activeRentals, entriesToday, exitsToday] = await Promise.all([
+		prisma.room.findMany({
+			select: {
+				id: true,
+				title: true,
+				isAvailable: true,
+			},
+			orderBy: {
+				createdAt: "asc",
+			},
+		}),
+		prisma.roomRental.findMany({
+			where: {
+				startDate: {
+					lte: now,
+				},
+				endDate: {
+					gte: now,
+				},
+			},
+			select: {
+				roomId: true,
+				startDate: true,
+				endDate: true,
+				professional: {
+					select: {
+						name: true,
+					},
+				},
+				room: {
+					select: {
+						title: true,
+					},
+				},
+			},
+		}),
+		prisma.roomRental.findMany({
+			where: {
+				endDate: {
+					lt: now,
+				},
+			},
+			select: {
+				id: true,
+				startDate: true,
+				endDate: true,
+				professional: {
+					select: {
+						name: true,
+						specialty: true,
+					},
+				},
+				room: {
+					select: {
+						title: true,
+					},
+				},
+			},
+			orderBy: {
+				endDate: "desc",
+			},
+		}),
+		prisma.entryExit.count({
+			where: {
+				enteredAt: {
+					gte: dayStart,
+					lt: dayEnd,
+				},
+			},
+		}),
+		prisma.entryExit.count({
+			where: {
+				exitedAt: {
+					gte: dayStart,
+					lt: dayEnd,
+				},
+			},
+		}),
+		prisma.entryExit.findMany({
+			where: {
+				enteredAt: {
+					gte: dayStart,
+					lt: dayEnd,
+				},
+			},
+			select: {
+				enteredAt: true,
+				exitedAt: true,
+				sessionsCount: true,
+				billingType: true,
+				professional: {
+					select: {
+						name: true,
+					},
+				},
+				room: {
+					select: {
+						title: true,
+					},
+				},
+			},
+			orderBy: {
+				enteredAt: "desc",
+			},
+			take: 1,
+		}),
+	]);
+
+	const activeRentalByRoomId = new Map(activeRentals.map((rental) => [rental.roomId, rental]));
+
+	const roomOccupation = rooms.map((room) => {
+		const activeRental = activeRentalByRoomId.get(room.id);
+
+		return {
+			id: room.id,
+			isAvailable: activeRental ? false : room.isAvailable,
+			occupant: activeRental ? activeRental.professional.name : null,
+			title: room.title,
+			occupation: {
+				startTime: activeRental ? activeRental.startDate.toISOString() : null,
+				endTime: activeRental ? activeRental.endDate.toISOString() : null,
+			},
+		};
+	});
+
+	const activeCustomers = activeRentals.map((rental) => ({
+		id: rental.roomId,
+		name: rental.professional.name,
+		specialty: rental.professional.specialty,
+		occupiedRoom: rental.room.title,
+		occupation: {
+			startHour: rental.startDate.toISOString(),
+			endHour: rental.endDate.toISOString(),
+			limitDate: rental.endDate.toISOString(),
+		},
+	}));
+
+	const historyCustomers = (await prisma.roomRental.findMany({
+		where: {
+			endDate: {
+				lt: now,
+			},
+		},
+		select: {
+			id: true,
+			endDate: true,
+			professional: {
+				select: {
+					name: true,
+					specialty: true,
+				},
+			},
+			room: {
+				select: {
+					title: true,
+				},
+			},
+		},
+		orderBy: {
+			endDate: "desc",
+		},
+	})).map((rental) => ({
+		id: rental.id,
+		name: rental.professional.name,
+		specialty: rental.professional.specialty,
+		occupiedRoom: rental.room.title,
+		unoccupiedRoomAt: rental.endDate.toISOString(),
+	}));
+
+	const latestEntryExit = (await prisma.entryExit.findMany({
+		where: {
+			room: {
+				enterpriseOwnerId: userId,
+			},
+			enteredAt: {
+				gte: dayStart,
+				lt: dayEnd,
+			},
+		},
+		select: {
+			enteredAt: true,
+			exitedAt: true,
+			sessionsCount: true,
+			billingType: true,
+			professional: {
+				select: {
+					name: true,
+				},
+			},
+			room: {
+				select: {
+					title: true,
+				},
+			},
+		},
+		orderBy: {
+			enteredAt: "desc",
+		},
+		take: 1,
+	}))[0];
+
+	const availableRooms = roomOccupation.filter((room) => room.isAvailable).length;
+
+	return {
+		stats: {
+			totalRooms: rooms.length,
+			availableRooms,
+			occupiedRooms: rooms.length - availableRooms,
+			entriesToday,
+			exitsToday,
+		},
+		roomOccupation,
+		activeCustomers,
+		historyCustomers,
+		entryExitToday: latestEntryExit
+			? {
+				occupantName: latestEntryExit.professional.name,
+				room: latestEntryExit.room.title,
+				entry: latestEntryExit.enteredAt.toISOString(),
+				exit: latestEntryExit.exitedAt?.toISOString() ?? latestEntryExit.enteredAt.toISOString(),
+				sessions: latestEntryExit.sessionsCount,
+				totalValue: latestEntryExit.billingType,
+			}
+			: null,
+	};
+}
+
+export async function getRoomOccupancy(roomId: string): Promise<RoomOccupancyResponse> {
+	const room = await prisma.room.findUnique({
+		where: { id: roomId },
+		select: {
+			id: true,
+		},
+	});
+
+	if (!room) {
+		throw createHttpError(404, "not_found", "Sala não encontrada!");
+	}
+
+	const now = new Date();
+	const activeRentals = await prisma.roomRental.findMany({
+		where: {
+			roomId,
+			endDate: {
+				gte: now,
+			},
+		},
+		select: {
+			selectedHours: true,
+			selectedWeekDay: true,
+		},
+	});
+
+	const occupiedHours = activeRentals.flatMap((rental) => {
+		if (!isSelectedHours(rental.selectedHours)) {
+			return [] as { startHour: string; endHour: string }[];
+		}
+
+		return [rental.selectedHours];
+	});
+
+	const occupiedDays = Array.from(
+		new Set(activeRentals.flatMap((rental) => rental.selectedWeekDay))
+	);
+
+	return {
+		occupiedHours,
+		occupiedDays,
 	};
 }
 

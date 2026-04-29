@@ -13,6 +13,7 @@ export type ProfileResponse = {
 	name: string;
 	specialty: string;
 	specialtyLabel: string;
+	accountType: "PROFESSIONAL" | "ENTERPRISE";
 	crmCrp: string;
 	email: string;
 	phone: string | null;
@@ -28,6 +29,7 @@ async function buildProfileResponse(userId: string): Promise<ProfileResponse | n
 			id: true,
 			name: true,
 			specialty: true,
+			accountType: true,
 			crmCrp: true,
 			email: true,
 			phone: true,
@@ -54,12 +56,12 @@ async function buildProfileResponse(userId: string): Promise<ProfileResponse | n
 			},
 		}),
 	]);
-
 	return {
 		id: user.id,
 		name: user.name,
 		specialty: user.specialty,
 		specialtyLabel: normalizeSpecialty(user.specialty),
+		accountType: user.accountType,
 		crmCrp: user.crmCrp,
 		email: user.email,
 		phone: user.phone,

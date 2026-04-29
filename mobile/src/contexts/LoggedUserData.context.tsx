@@ -8,6 +8,7 @@ type UserProfile = CurrentUserResponse;
 
 type UserContextData = {
   profile: UserProfile | null;
+  accountType: 'PROFESSIONAL' | 'ENTERPRISE' | null;
   isLoading: boolean;
   error: string | null;
   refreshProfile: () => Promise<void>;
@@ -18,6 +19,7 @@ const LoggedUserDataContext = createContext<UserContextData>({} as UserContextDa
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [accountType, setAccountType] = useState<'PROFESSIONAL' | 'ENTERPRISE' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
 
       setProfile(data);
+      setAccountType(data.accountType);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Erro ao carregar perfil');
     } finally {
@@ -54,6 +57,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <LoggedUserDataContext.Provider 
       value={{ 
         profile, 
+        accountType,
         isLoading, 
         error, 
         refreshProfile: loadProfile 

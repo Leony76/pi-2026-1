@@ -5,6 +5,7 @@ export type AuthUser = {
   id: string;
   name: string;
   specialty: string;
+  accountType: 'PROFESSIONAL' | 'ENTERPRISE';
   crmCrp: string;
   email: string;
   createdAt: string;
@@ -26,6 +27,7 @@ export type CurrentUserResponse = {
   name: string;
   specialty: string;
   specialtyLabel: string;
+  accountType: 'PROFESSIONAL' | 'ENTERPRISE';
   crmCrp: string;
   email: string;
   phone: string | null;

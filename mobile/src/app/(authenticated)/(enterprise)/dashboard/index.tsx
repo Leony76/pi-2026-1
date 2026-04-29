@@ -3,47 +3,90 @@ import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
-import { RoomOccupation } from '@/types/roomOccupation.type'
 import { useRouter } from 'expo-router'
-import React from 'react'
-import { ScrollView, Text, View } from 'react-native'
-
-const ROOM_OCCUPATION_DATA: RoomOccupation[] = [
-  {
-    id: 1,
-    isAvailable: false,
-    occupant: 'Victor Gideon',
-    title: 'Sala 01',
-    occupation: {
-      startTime : '2026-04-13T14:00:00.000Z',
-      endTime   : '2026-04-13T15:00:00.000Z',
-    },
-  },
-  {
-    id: 2,
-    isAvailable: true,
-    occupant: null,
-    title: 'Sala 01',
-    occupation: {
-      startTime : null,
-      endTime   : null,
-    },
-  },
-  {
-    id: 3,
-    isAvailable: false,
-    occupant: 'Albert Wesker',
-    title: 'Sala 02',
-    occupation: {
-      startTime : '2026-04-13T16:00:00.000Z',
-      endTime   : '2026-04-13T17:00:00.000Z',
-    },
-  },
-];
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { useAuth } from '@/contexts/auth.context'
+import { ApiError } from '@/services/api'
+import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
+import { systemColors } from '@/constants/misc/systemColors.misc'
 
 const Home = (): React.JSX.Element => {
 
   const router = useRouter();
+  const auth = useAuth();
+  const [dashboard, setDashboard] = useState<EnterpriseDashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      if (!auth.token || !auth.refreshToken) {
+        setError('Sessão inválida. Entre novamente para ver o painel.');
+        setIsLoading(false);
+        return;
+      }
+
+      const authenticated = {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      };
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+        setDashboard(response);
+      } catch (requestError) {
+        setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar o painel.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, [auth]);
+
+  const occupationPreview = dashboard?.roomOccupation.slice(0, 3) ?? [];
+
+  if (isLoading) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout 
+          title='Painel da empresa' 
+          description='Visão geral - hoje' 
+          layoutType={'ENTERPRISE'}      
+          tab='DASHBOARD'
+        > 
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color={systemColors.primary} />
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout 
+          title='Painel da empresa' 
+          description='Visão geral - hoje' 
+          layoutType={'ENTERPRISE'}      
+          tab='DASHBOARD'
+        > 
+          <View className='flex-1 items-center justify-center px-6'>
+            <Text className='text-center text-red-500 font-nunito-bold'>
+              {error}
+            </Text>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
@@ -57,7 +100,7 @@ const Home = (): React.JSX.Element => {
           <View className='flex-row justify-between gap-3'>
             <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
               <Text className='font-nunito-bold text-medroom-primary text-4xl'>
-                {'3'}
+                {dashboard?.stats.totalRooms ?? 0}
               </Text>
 
               <Text className='font-nunito-bold text-medroom-secondary text-sm'>
@@ -67,7 +110,7 @@ const Home = (): React.JSX.Element => {
 
             <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
               <Text className='font-nunito-bold text-green-600 text-4xl'>
-                {'2'}
+                {dashboard?.stats.availableRooms ?? 0}
               </Text>
 
               <Text className='font-nunito-bold text-medroom-secondary text-sm'>
@@ -77,7 +120,7 @@ const Home = (): React.JSX.Element => {
 
             <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
               <Text className='font-nunito-bold text-red-700 text-4xl'>
-                {'1'}
+                {dashboard?.stats.occupiedRooms ?? 0}
               </Text>
 
               <Text className='font-nunito-bold text-medroom-secondary text-sm'>
@@ -98,7 +141,7 @@ const Home = (): React.JSX.Element => {
                 </Text>
           
                 <Text className={`text-3xl font-nunito-bold text-green-600`}>
-                  4
+                    {dashboard?.stats.entriesToday ?? 0}
                 </Text>
           
                 <Text className='text-medroom-secondary text-sm font-nunito-bold'>
@@ -112,7 +155,7 @@ const Home = (): React.JSX.Element => {
                 </Text>
           
                 <Text className={`text-3xl font-nunito-bold text-red-600`}>
-                  2
+                    {dashboard?.stats.exitsToday ?? 0}
                 </Text>
           
                 <Text className='text-medroom-secondary text-sm font-nunito-bold'>
@@ -135,8 +178,8 @@ const Home = (): React.JSX.Element => {
               />
             </View>
 
-            { ROOM_OCCUPATION_DATA.length > 0 ? (
-              ROOM_OCCUPATION_DATA.map(( item ) => (
+            { occupationPreview.length > 0 ? (
+              occupationPreview.map(( item ) => (
                 <Card.RoomOccupation
                   key={item.id}
                 { ...item }
