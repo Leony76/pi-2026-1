@@ -2,6 +2,37 @@ import prisma from "../../lib/prisma";
 import { WeekDay } from "@prisma/client";
 import { createHttpError } from "../../lib/http-error";
 
+const FLOOR_MAP: Record<string, string> = {
+	groundFloor: "GROUND_FLOOR",
+	firstFloor: "FIRST_FLOOR",
+	secondFloor: "SECOND_FLOOR",
+	thirdFloor: "THIRD_FLOOR",
+	fourthFloor: "FOURTH_FLOOR",
+	fifthFloor: "FIFTH_FLOOR",
+};
+
+const CHARACTERISTIC_MAP: Record<string, string> = {
+	airConditioner: "AIR_CONDITIONER",
+	soundproofed: "SOUNDPROOFED",
+	airConditionerPlusSoundproofed: "AIR_CONDITIONER_PLUS_SOUNDPROOFED",
+	default: "DEFAULT",
+};
+
+const ROOM_ITEM_MAP: Record<string, string> = {
+	"Sofa / Divã": "SOFA_DIVA",
+	Cadeira: "CADEIRA",
+	Computador: "COMPUTADOR",
+	Maca: "MACA",
+	"Armário": "ARMARIO",
+	Banheiro: "BANHEIRO",
+	"Ar-condi.": "AR_CONDI",
+	"TV / Monitor.": "TV_MONITOR",
+	"Equip. médico": "EQUIP_MEDICO",
+	Espelho: "ESPELHO",
+	Plantas: "PLANTAS",
+	"Ilumi. especial": "ILUMI_ESPECIAL",
+};
+
 const FLOOR_TRANSLATIONS: Record<string, string> = {
 	GROUND_FLOOR: "Térreo",
 	FIRST_FLOOR: "1º Andar",
@@ -60,6 +91,10 @@ function isSelectedHours(value: unknown): value is { startHour: string; endHour:
 		&& typeof (value as { endHour?: unknown }).endHour === "string";
 }
 
+function isValidRoomImageUrl(value: string): boolean {
+	return value.startsWith("data:image/") || /^https?:\/\//.test(value);
+}
+
 function mapRoomRentalToClient(rental: {
 	id: string;
 	room: {
@@ -86,6 +121,44 @@ function mapRoomRentalToClient(rental: {
 		selectedHours: isSelectedHours(rental.selectedHours) ? rental.selectedHours : null,
 		selectedWeekDays: rental.selectedWeekDay,
 		isActive: new Date() >= rental.startDate && new Date() <= rental.endDate,
+	};
+}
+
+function mapRoomToClient(room: {
+	id: string;
+	displayImage: string | null;
+	isAvailable: boolean;
+	title: string;
+	floor: string;
+	area: { toString(): string };
+	characteristic: string;
+	prices: {
+		pricePerHour: { toString(): string };
+		price3xWeek: { toString(): string };
+		pricePerMonth: { toString(): string };
+	} | null;
+}) {
+	return {
+		id: room.id,
+		displayImage: room.displayImage,
+		isAvailable: room.isAvailable,
+		title: room.title,
+		complementaryData: {
+			area: parseFloat(room.area.toString()),
+			additional: translateCharacteristic(room.characteristic),
+			floor: translateFloor(room.floor),
+		},
+		prices: room.prices
+			? {
+				perHour: parseFloat(room.prices.pricePerHour.toString()),
+				_3xWeek: parseFloat(room.prices.price3xWeek.toString()),
+				month: parseFloat(room.prices.pricePerMonth.toString()),
+			}
+			: {
+				perHour: 0,
+				_3xWeek: 0,
+				month: 0,
+			},
 	};
 }
 
@@ -148,6 +221,59 @@ export type RoomOccupancyResponse = {
 	occupiedDays: WeekDay[];
 };
 
+export type EnterpriseValuesRoomRevenue = {
+	id: string;
+	room: string;
+	totalRevenue: number;
+	revenue: {
+		byHour: number;
+		_3xWeek: number;
+		byMonth: number;
+	};
+};
+
+export type EnterpriseValuesRoomPrice = {
+	id: string;
+	room: string;
+	price: {
+		byHour: number;
+		_3xWeek: number;
+		byMonth: number;
+	};
+};
+
+export type EnterpriseValuesResponse = {
+	summary: {
+		revenueThisMonth: number;
+		expensesThisMonth: number;
+		netIncome: number;
+	};
+	roomRevenue: {
+		totalRevenue: number;
+		roomsRevenue: EnterpriseValuesRoomRevenue[];
+	};
+	expenses: {
+		maintenance: number;
+		eletricalEnergy: number;
+		cleaning: number;
+		totalValue: number;
+	};
+	roomPrices: EnterpriseValuesRoomPrice[];
+};
+
+function startOfMonth(date: Date): Date {
+	const monthStart = new Date(date);
+	monthStart.setDate(1);
+	monthStart.setHours(0, 0, 0, 0);
+	return monthStart;
+}
+
+function nextMonth(date: Date): Date {
+	const next = new Date(date);
+	next.setMonth(next.getMonth() + 1);
+	return next;
+}
+
 function startOfDay(date: Date): Date {
 	const day = new Date(date);
 	day.setHours(0, 0, 0, 0);
@@ -178,7 +304,7 @@ export async function getEnterpriseDashboard(userId: string): Promise<Enterprise
 	const dayStart = startOfDay(now);
 	const dayEnd = nextDay(dayStart);
 
-	const [rooms, activeRentals, entriesToday, exitsToday] = await Promise.all([
+	const [rooms, activeRentals, _historyRentals, entriesToday, exitsToday, _latestEntryExit] = await Promise.all([
 		prisma.room.findMany({
 			select: {
 				id: true,
@@ -349,9 +475,6 @@ export async function getEnterpriseDashboard(userId: string): Promise<Enterprise
 
 	const latestEntryExit = (await prisma.entryExit.findMany({
 		where: {
-			room: {
-				enterpriseOwnerId: userId,
-			},
 			enteredAt: {
 				gte: dayStart,
 				lt: dayEnd,
@@ -472,28 +595,99 @@ export async function getRoomsList() {
 		},
 	});
 
-	return rooms.map((room) => ({
-		id: room.id,
-		displayImage: room.displayImage,
-		isAvailable: room.isAvailable,
-		title: room.title,
-		complementaryData: {
-			area: parseFloat(room.area.toString()),
-			additional: translateCharacteristic(room.characteristic),
-			floor: translateFloor(room.floor),
+	return rooms.map((room) => mapRoomToClient(room));
+}
+
+export async function createRoom(data: {
+	enterpriseOwnerId: string;
+	roomName: string;
+	roomImage?: string | null;
+	floor: string;
+	area: number;
+	characteristics: string;
+	pricePerHour: number;
+	price_3xWeek: number;
+	pricePerMonth: number;
+	items: { name: string; quantity: number }[];
+}) {
+	const mappedFloor = FLOOR_MAP[data.floor];
+	const mappedCharacteristic = CHARACTERISTIC_MAP[data.characteristics];
+	const roomName = data.roomName.trim();
+
+	if (!roomName) {
+		throw createHttpError(400, "bad_request", "Nome da sala invalido.");
+	}
+
+	if (!mappedFloor) {
+		throw createHttpError(400, "bad_request", "Andar invalido.");
+	}
+
+	if (!mappedCharacteristic) {
+		throw createHttpError(400, "bad_request", "Característica invalida.");
+	}
+
+	if (data.area <= 0) {
+		throw createHttpError(400, "bad_request", "Área invalida.");
+	}
+
+	if (data.roomImage && !isValidRoomImageUrl(data.roomImage)) {
+		throw createHttpError(400, "bad_request", "Imagem da sala invalida.");
+	}
+
+	const existingRoom = await prisma.room.findFirst({
+		where: {
+			enterpriseOwnerId: data.enterpriseOwnerId,
+			title: roomName,
 		},
-		prices: room.prices
-			? {
-					perHour: parseFloat(room.prices.pricePerHour.toString()),
-					_3xWeek: parseFloat(room.prices.price3xWeek.toString()),
-					month: parseFloat(room.prices.pricePerMonth.toString()),
-			  }
-			: {
-					perHour: 0,
-					_3xWeek: 0,
-					month: 0,
-			  },
-	}));
+	});
+
+	if (existingRoom) {
+		throw createHttpError(409, "conflict", "Já existe uma sala com esse nome.");
+	}
+
+	const room = await prisma.room.create({
+		data: {
+			enterpriseOwnerId: data.enterpriseOwnerId,
+			title: roomName,
+			displayImage: data.roomImage ?? null,
+			floor: mappedFloor as "GROUND_FLOOR" | "FIRST_FLOOR" | "SECOND_FLOOR" | "THIRD_FLOOR" | "FOURTH_FLOOR" | "FIFTH_FLOOR",
+			area: data.area,
+			characteristic: mappedCharacteristic as "AIR_CONDITIONER" | "SOUNDPROOFED" | "AIR_CONDITIONER_PLUS_SOUNDPROOFED" | "DEFAULT",
+			prices: {
+				create: {
+					pricePerHour: data.pricePerHour,
+					price3xWeek: data.price_3xWeek,
+					pricePerMonth: data.pricePerMonth,
+				},
+			},
+			items: {
+				create: data.items
+					.filter((item) => Boolean(ROOM_ITEM_MAP[item.name]))
+					.map((item) => ({
+						name: ROOM_ITEM_MAP[item.name] as "SOFA_DIVA" | "CADEIRA" | "COMPUTADOR" | "MACA" | "ARMARIO" | "BANHEIRO" | "AR_CONDI" | "TV_MONITOR" | "EQUIP_MEDICO" | "ESPELHO" | "PLANTAS" | "ILUMI_ESPECIAL",
+						quantity: item.quantity,
+					})),
+			},
+		},
+		select: {
+			id: true,
+			displayImage: true,
+			isAvailable: true,
+			title: true,
+			floor: true,
+			area: true,
+			characteristic: true,
+			prices: {
+				select: {
+					pricePerHour: true,
+					price3xWeek: true,
+					pricePerMonth: true,
+				},
+			},
+		},
+	});
+
+	return mapRoomToClient(room);
 }
 
 export async function createRoomRental(data: {
@@ -566,4 +760,147 @@ export async function getUserRentals(professionalId: string) {
 	});
 
 	return rentals.map((rental) => mapRoomRentalToClient(rental));
+}
+
+export async function getEnterpriseValues(userId: string): Promise<EnterpriseValuesResponse> {
+	const user = await prisma.user.findUnique({
+		where: { id: userId },
+		select: {
+			accountType: true,
+		},
+	});
+
+	if (!user) {
+		throw createHttpError(404, "not_found", "Usuário não encontrado!");
+	}
+
+	if (user.accountType !== "ENTERPRISE") {
+		throw createHttpError(403, "forbidden", "Acesso restrito ao painel da empresa.");
+	}
+
+	const now = new Date();
+	const monthStart = startOfMonth(now);
+	const nextMonthStart = nextMonth(monthStart);
+
+	const [rooms, monthlyRentals, expensesSummary] = await Promise.all([
+		prisma.room.findMany({
+			select: {
+				id: true,
+				title: true,
+				prices: {
+					select: {
+						pricePerHour: true,
+						price3xWeek: true,
+						pricePerMonth: true,
+					},
+				},
+			},
+			orderBy: {
+				createdAt: "asc",
+			},
+		}),
+		prisma.roomRental.findMany({
+			where: {
+				startDate: {
+					gte: monthStart,
+					lt: nextMonthStart,
+				},
+			},
+			select: {
+				roomId: true,
+				allocationType: true,
+				totalPrice: true,
+				room: {
+					select: {
+						title: true,
+					},
+				},
+			},
+		}),
+		prisma.expense.aggregate({
+			where: {
+				date: {
+					gte: monthStart,
+					lt: nextMonthStart,
+				},
+			},
+			_sum: {
+				maintenance: true,
+				electricalEnergy: true,
+				cleaning: true,
+				totalValue: true,
+			},
+		}),
+	]);
+
+	const roomsRevenueById = new Map<string, EnterpriseValuesRoomRevenue>(
+		rooms.map((room) => [
+			room.id,
+			{
+				id: room.id,
+				room: room.title,
+				totalRevenue: 0,
+				revenue: {
+					byHour: 0,
+					_3xWeek: 0,
+					byMonth: 0,
+				},
+			},
+		])
+	);
+
+	for (const rental of monthlyRentals) {
+		const currentRoom = roomsRevenueById.get(rental.roomId);
+
+		if (!currentRoom) {
+			continue;
+		}
+
+		const rentalValue = parseFloat(rental.totalPrice.toString());
+		currentRoom.totalRevenue += rentalValue;
+
+		if (rental.allocationType === "PER_HOUR") {
+			currentRoom.revenue.byHour += rentalValue;
+			continue;
+		}
+
+		if (rental.allocationType === "THREE_X_WEEK") {
+			currentRoom.revenue._3xWeek += rentalValue;
+			continue;
+		}
+
+		currentRoom.revenue.byMonth += rentalValue;
+	}
+
+	const roomsRevenue = rooms.map((room) => roomsRevenueById.get(room.id)!);
+	const totalRevenue = roomsRevenue.reduce((accumulator, room) => accumulator + room.totalRevenue, 0);
+
+	const expenses = {
+		maintenance: parseFloat(expensesSummary._sum.maintenance?.toString() ?? "0"),
+		eletricalEnergy: parseFloat(expensesSummary._sum.electricalEnergy?.toString() ?? "0"),
+		cleaning: parseFloat(expensesSummary._sum.cleaning?.toString() ?? "0"),
+		totalValue: parseFloat(expensesSummary._sum.totalValue?.toString() ?? "0"),
+	};
+
+	return {
+		summary: {
+			revenueThisMonth: totalRevenue,
+			expensesThisMonth: expenses.totalValue,
+			netIncome: totalRevenue - expenses.totalValue,
+		},
+		roomRevenue: {
+			totalRevenue,
+			roomsRevenue,
+		},
+		expenses,
+		roomPrices: rooms.map((room) => ({
+			id: room.id,
+			room: room.title,
+			price: {
+				byHour: parseFloat(room.prices?.pricePerHour.toString() ?? "0"),
+				_3xWeek: parseFloat(room.prices?.price3xWeek.toString() ?? "0"),
+				byMonth: parseFloat(room.prices?.pricePerMonth.toString() ?? "0"),
+			},
+		})),
+	};
 }

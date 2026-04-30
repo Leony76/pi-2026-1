@@ -1,5 +1,5 @@
 export type RoomRevenue = {
-  readonly id : number;
+  readonly id : string;
   room : string;
   totalRevenue : number;
   revenue?: {

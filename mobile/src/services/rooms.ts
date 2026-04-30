@@ -1,9 +1,34 @@
 import { apiGet, apiPost } from "./api";
 import { apiGetWithAuth, apiPostWithAuth } from "./auth-api";
 import { RoomDisplayCard } from "@/types/room.type";
+import { Expanses } from "@/types/expenses.type";
+import { RoomPrice } from "@/types/roomPrice.type";
+import { OverallRoomRevenue } from "@/types/roomRevenue.type";
 import { Days } from "@/types/days.type";
 import { HourShift } from "@/types/hourShift.type";
 import { Specialty } from "@/constants/maps/selectOptions.map";
+
+type AuthHandlers = {
+	token: string;
+	refreshToken: string;
+	updateTokens: (token: string, refreshToken: string) => Promise<void>;
+	signOut: () => Promise<void>;
+};
+
+export type CreateRoomInput = {
+	roomName: string;
+	roomImage?: string | null;
+	floor: string;
+	area: number;
+	characteristics: string;
+	pricePerHour: number;
+	price_3xWeek: number;
+	pricePerMonth: number;
+	items: {
+		name: string;
+		quantity: number;
+	}[];
+};
 
 export type EnterpriseRoomOccupation = {
 	id: string;
@@ -72,6 +97,17 @@ export type RoomRental = {
 	isActive: boolean;
 };
 
+export type EnterpriseValuesResponse = {
+	summary: {
+		revenueThisMonth: number;
+		expensesThisMonth: number;
+		netIncome: number;
+	};
+	roomRevenue: OverallRoomRevenue;
+	expenses: Expanses;
+	roomPrices: RoomPrice[];
+};
+
 export async function fetchRooms(): Promise<RoomDisplayCard[]> {
 	return apiGet<RoomDisplayCard[]>("/rooms");
 }
@@ -83,6 +119,37 @@ export function fetchRoomOccupancy(roomId: string, token: string): Promise<RoomO
 export async function fetchEnterpriseDashboardWithAuth(auth: AuthHandlers): Promise<EnterpriseDashboardResponse> {
 	return apiGetWithAuth<EnterpriseDashboardResponse>(
 		"/rooms/dashboard",
+		auth.token,
+		auth.refreshToken,
+		auth.updateTokens,
+		auth.signOut
+	);
+}
+
+export async function fetchEnterpriseValuesWithAuth(auth: AuthHandlers): Promise<EnterpriseValuesResponse> {
+	return apiGetWithAuth<EnterpriseValuesResponse>(
+		"/rooms/values",
+		auth.token,
+		auth.refreshToken,
+		auth.updateTokens,
+		auth.signOut
+	);
+}
+
+export async function createRoomWithAuth(data: CreateRoomInput, auth: AuthHandlers): Promise<RoomDisplayCard> {
+	return apiPostWithAuth<RoomDisplayCard>(
+		"/rooms",
+		{
+			roomName: data.roomName,
+			roomImage: data.roomImage ?? null,
+			floor: data.floor,
+			area: data.area,
+			characteristics: data.characteristics,
+			pricePerHour: data.pricePerHour,
+			price_3xWeek: data.price_3xWeek,
+			pricePerMonth: data.pricePerMonth,
+			items: data.items,
+		},
 		auth.token,
 		auth.refreshToken,
 		auth.updateTokens,
@@ -118,13 +185,6 @@ export async function createRoomRental(
 		token
 	);
 }
-
-	type AuthHandlers = {
-		token: string;
-		refreshToken: string;
-		updateTokens: (token: string, refreshToken: string) => Promise<void>;
-		signOut: () => Promise<void>;
-	};
 
 	export async function createRoomRentalWithAuth(
 		data: {

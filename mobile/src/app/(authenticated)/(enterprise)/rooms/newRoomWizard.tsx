@@ -13,11 +13,14 @@ import { ROOM_ITEMS } from '@/constants/maps/roomItems.map'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { NewRoomFormData, NewRoomFormInput, newRoomSchema } from '@/schemas/newRoom.schema'
 import { ROOM_ITEMS_LIMIT_MAP } from '@/types/roomItems.type'
+import { createRoomWithAuth } from '@/services/rooms'
+import { useAuth } from '@/contexts/auth.context'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from 'expo-router'
+import * as ImagePicker from 'expo-image-picker'
 import React, { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { IconName } from 'root/assets/icons'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
@@ -46,7 +49,13 @@ const NewRoomWizard = (): React.JSX.Element => {
     }
   }); 
 
+  const auth = useAuth();
+
   const [wizardStep, setWizardStep] = useState<number>(1);
+  const [isSavingRoom, setIsSavingRoom] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [roomImage, setRoomImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const [persistDataOnInput, setPersistDataOnInput] = useState({
     roomName: '',
@@ -75,14 +84,66 @@ const NewRoomWizard = (): React.JSX.Element => {
   };
 
   const handleSaveNewRoom = async( data: NewRoomFormData ): Promise<void> => {
-    console.log(data);
+    try {
+      setIsSavingRoom(true);
+      setSubmitError(null);
 
-    router.push({
-      pathname: '/(authenticated)/(enterprise)/rooms',
-      params: {
-        message: 'Sala adicionada com sucesso!'
-      },
-    })
+      if (!auth.token || !auth.refreshToken) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
+
+      await createRoomWithAuth({
+        roomName: data.roomName,
+        roomImage,
+        floor: data.floor,
+        area: data.area,
+        characteristics: data.characteristics,
+        pricePerHour: data.pricePerHour,
+        price_3xWeek: data.price_3xWeek,
+        pricePerMonth: data.pricePerMonth,
+        items: data.items,
+      }, auth);
+
+      router.push({
+        pathname: '/(authenticated)/(enterprise)/rooms',
+        params: {
+          message: 'Sala adicionada com sucesso!'
+        },
+      })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Não foi possível salvar a sala.');
+    } finally {
+      setIsSavingRoom(false);
+    }
+  };
+
+  const handlePickRoomImage = async (): Promise<void> => {
+    try {
+      setImageError(null);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const selected = result.assets[0];
+
+      if (!selected?.base64) {
+        setImageError('Não foi possível processar a imagem. Tente outra foto.');
+        return;
+      }
+
+      const mimeType = selected.mimeType ?? 'image/jpeg';
+      setRoomImage(`data:${mimeType};base64,${selected.base64}`);
+    } catch {
+      setImageError('Não foi possível selecionar a imagem da sala.');
+    }
   };
 
   const handleAddCustomItem = () => {
@@ -135,6 +196,41 @@ const NewRoomWizard = (): React.JSX.Element => {
               </View>
               
               <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
+                <View className='gap-3'>
+                  <Text className='font-nunito-bold text-lg text-medroom-primary'>
+                    Foto da sala
+                  </Text>
+
+                  {roomImage ? (
+                    <Image
+                      source={{ uri: roomImage }}
+                      className='w-full h-48 rounded-lg'
+                    />
+                  ) : (
+                    <View className='bg-medroom-primaryLight justify-center items-center w-full rounded-lg h-40'>
+                      <Text className='text-medroom-primary font-nunito-bold'>
+                        Nenhuma foto selecionada
+                      </Text>
+                    </View>
+                  )}
+
+                  <Button.Default
+                    icon={{ name: 'image', size: { width: 20, height: 20 } }}
+                    label={roomImage ? 'Trocar foto' : 'Selecionar foto'}
+                    onTouch={handlePickRoomImage}
+                  />
+
+                  {roomImage && (
+                    <Button.Default
+                      icon={{ name: 'x_circle', size: { width: 20, height: 20 } }}
+                      label='Remover foto'
+                      onTouch={() => setRoomImage(null)}
+                    />
+                  )}
+
+                  {imageError && <Input.Error error={imageError} />}
+                </View>
+
                 <View>
                   <Controller
                     control={control}
@@ -546,11 +642,19 @@ const NewRoomWizard = (): React.JSX.Element => {
               </View>
 
               <View>
+                {submitError && (
+                  <View className='mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3'>
+                    <Text className='text-red-700 font-nunito-bold'>
+                      {submitError}
+                    </Text>
+                  </View>
+                )}
+
                 <Button.Default
                   filled
-                  disable={!isValid}
+                  disable={!isValid || isSavingRoom}
                   icon={{ name: 'room', size: { width: 22, height: 22 } }}
-                  label='Salvar sala'
+                  label={isSavingRoom ? 'Salvando...' : 'Salvar sala'}
                   onTouch={handleSubmit(handleSaveNewRoom)}
                 />
 

@@ -12,25 +12,14 @@ type Props = RoomDisplayCard & {
 };
 
 const DisplayRoom = (props:Props): React.JSX.Element => {
-  return (
-    <Link
-    disabled={!props.isAvailable || !props.pressable}
-    asChild
-    href={{
-      pathname: '/(authenticated)/(professional)/roomRentalWizard',
-      params: {
-        roomId            : props.id, 
-        isAvailable       : String(props.isAvailable),
-        title             : props.title,
-        complementaryData : JSON.stringify(props.complementaryData),
-        prices            : JSON.stringify(props.prices),
-      }
-    }} 
+  const isPressable = props.pressable ?? true;
+
+  const content = (
+    <TouchableOpacity 
+    activeOpacity={isPressable && props.isAvailable ? 0.67 : 1}
+    className='gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3'
+    disabled={!isPressable || !props.isAvailable}
     >
-      <TouchableOpacity 
-      activeOpacity={0.67}
-      className='gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3'
-      >
         { props.displayImage ? (
           <View className='relative'>
             <Image
@@ -84,6 +73,28 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
           </Text>
         )}
       </TouchableOpacity>
+  );
+
+  if (!isPressable) {
+    return content;
+  }
+
+  return (
+    <Link
+    disabled={!props.isAvailable}
+    asChild
+    href={{
+      pathname: '/(authenticated)/(professional)/roomRentalWizard',
+      params: {
+        roomId            : props.id, 
+        isAvailable       : String(props.isAvailable),
+        title             : props.title,
+        complementaryData : JSON.stringify(props.complementaryData),
+        prices            : JSON.stringify(props.prices),
+      }
+    }} 
+    >
+      {content}
     </Link>
   )
 }

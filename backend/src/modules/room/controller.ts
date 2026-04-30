@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { getEnterpriseDashboard, getRoomOccupancy, getRoomsList, createRoomRental, getUserRentals } from "./service";
+import { getEnterpriseDashboard, getEnterpriseValues, getRoomOccupancy, getRoomsList, createRoomRental, getUserRentals, createRoom } from "./service";
 import { sendSuccessResponse } from "../../lib/auth-response";
 import { createHttpError } from "../../lib/http-error";
+import prisma from "../../lib/prisma";
 
 type AuthPayload = {
 	sub: string;
@@ -41,6 +42,38 @@ export async function listRoomsController(request: Request, response: Response, 
 		const rooms = await getRoomsList();
 
 		sendSuccessResponse(response, 200, rooms);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function createRoomController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const user = await prisma.user.findUnique({
+			where: { id: payload.sub },
+			select: { accountType: true },
+		});
+
+		if (!user || user.accountType !== "ENTERPRISE") {
+			throw createHttpError(403, "forbidden", "Apenas contas enterprise podem criar salas.");
+		}
+
+		const room = await createRoom({
+			enterpriseOwnerId: payload.sub,
+			roomName: request.body.roomName,
+			roomImage: request.body.roomImage,
+			floor: request.body.floor,
+			area: request.body.area,
+			characteristics: request.body.characteristics,
+			pricePerHour: request.body.pricePerHour,
+			price_3xWeek: request.body.price_3xWeek,
+			pricePerMonth: request.body.pricePerMonth,
+			items: Array.isArray(request.body.items) ? request.body.items : [],
+		});
+
+		sendSuccessResponse(response, 201, room);
 	} catch (error) {
 		next(error);
 	}
@@ -96,6 +129,18 @@ export async function getUserRentalsController(request: Request, response: Respo
 		const rentals = await getUserRentals(payload.sub);
 
 		sendSuccessResponse(response, 200, rentals);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function enterpriseValuesController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const values = await getEnterpriseValues(payload.sub);
+
+		sendSuccessResponse(response, 200, values);
 	} catch (error) {
 		next(error);
 	}

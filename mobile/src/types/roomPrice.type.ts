@@ -1,5 +1,5 @@
 export type RoomPrice = {
-  readonly id : number;
+  readonly id : string;
   room : string;
   price: {
     byHour  : number;
