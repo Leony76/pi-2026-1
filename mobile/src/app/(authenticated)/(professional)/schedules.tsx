@@ -48,6 +48,8 @@ const schedules = (): React.JSX.Element => {
     loadRentals();
   }, [token, refreshToken, updateTokens, signOut]);
 
+  
+
   if (loading) {
     return (
       <LayoutWrapper>
@@ -82,8 +84,48 @@ const schedules = (): React.JSX.Element => {
     );
   }
 
-  const activeRentals = rentals.filter(r => r.isActive);
-  const inactiveRentals = rentals.filter(r => !r.isActive);
+  const now = new Date();
+  const getRentalEnd = (rental: RoomRental) => {
+    try {
+      if (rental.allocationType === 'PER_HOUR' && rental.selectedHours) {
+        const sd = new Date(rental.startDate);
+        const [hh, mm] = rental.selectedHours.endHour.split(':').map((s) => parseInt(s, 10));
+        const end = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), hh, mm, 0, 0);
+        return end;
+      }
+
+      return new Date(rental.endDate);
+    } catch (err) {
+      return new Date(rental.endDate);
+    }
+  };
+
+  const getRentalStart = (rental: RoomRental) => {
+    try {
+      if (rental.allocationType === 'PER_HOUR' && rental.selectedHours) {
+        const sd = new Date(rental.startDate);
+        const [hh, mm] = rental.selectedHours.startHour.split(':').map((s) => parseInt(s, 10));
+        const start = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), hh, mm, 0, 0);
+        return start;
+      }
+
+      return new Date(rental.startDate);
+    } catch (err) {
+      return new Date(rental.startDate);
+    }
+  };
+
+  // Only two states: ativo (until end) or encerrado (after end)
+  const activeRentals = rentals.filter(r => {
+    const end = getRentalEnd(r);
+    return end >= now;
+  });
+
+  const closedRentals = rentals.filter(r => {
+    const end = getRentalEnd(r);
+    return end < now;
+  });
+
 
   return (
     <LayoutWrapper>
@@ -157,9 +199,9 @@ const schedules = (): React.JSX.Element => {
             </Section>
           )}
 
-          {inactiveRentals.length > 0 && (
-            <Section title='Histórico'>
-              {inactiveRentals.map((rental) => (
+          {closedRentals.length > 0 && (
+            <Section title='Encerrado'>
+              {closedRentals.map((rental) => (
                 <View key={rental.id} className='mb-5'>
                   <View className='flex-row justify-between items-center mb-3'>
                     <View>
@@ -184,7 +226,7 @@ const schedules = (): React.JSX.Element => {
                       <AvailbilityTag
                         tagType='ACTIVITY'
                         isAvailable={false}
-                        closed
+                        closed={getRentalEnd(rental) < new Date()}
                       />
                     </View>
                   </View>
