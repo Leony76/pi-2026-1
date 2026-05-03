@@ -11,7 +11,6 @@ import { priceFormat } from '@/utils/priceFormat'
 import Section from '@/components/ui/Section'
 import Label___Value from '@/components/ui/Label___Value'
 import Entypo from '@expo/vector-icons/Entypo';
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { Button } from '@/components/button'
 import { useAuth } from '@/contexts/auth.context'
 import { Modal } from '@/components/modal'
@@ -239,7 +238,6 @@ const Profile = (): React.JSX.Element => {
 
               <Label___Value
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
-                separationRow
                 LabelComponent={() => (
                   <View className='flex-row gap-2 items-center ml-1'>
                     <Icon
@@ -254,31 +252,6 @@ const Profile = (): React.JSX.Element => {
                 )}          
               />
 
-              <Label___Value
-                LabelComponent={() => (
-                  <View className='flex-row gap-2 items-center ml-1'>
-                    <Icon
-                      name='bell'
-                      sizes={{ height: 20, width: 20 }}
-                      />
-
-                    <Text className='font-nunito-bold text-medroom-secondary'>
-                      Notificações
-                    </Text>
-                  </View>
-                )}          
-                value={{ Component: () => (
-                  <View className='flex-row gap-2'>
-                    <View className='bg-medroom-primary px-[8px] rounded-full justify-center items-center'>
-                      <Text className='text-white font-nunito-bold'>
-                        {'2'}
-                      </Text>
-                    </View>
-
-                    <Entypo name="chevron-right" size={24} color={systemColors.primary}/> 
-                  </View>
-                )}}
-              />
             </Section>
 
             <Section title='Atividade'>
@@ -343,41 +316,9 @@ const Profile = (): React.JSX.Element => {
               />
             </Section>
 
-            <Section title='Suporte'>
-              <Label___Value
-                value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
-                separationRow
-                LabelComponent={() => (
-                  <View className='flex-row gap-2 items-center ml-1'>
-                    <AntDesign 
-                      name="question-circle" 
-                      size={22} 
-                      color={systemColors.primary} 
-                    />
 
-                    <Text className='font-nunito-bold text-medroom-secondary'>
-                      Central de ajuda
-                    </Text>
-                  </View>
-                )}          
-              />
 
-              <Label___Value
-                value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
-                LabelComponent={() => (
-                  <View className='flex-row gap-2 items-center ml-1'>
-                    <Icon
-                      name='phone'
-                      sizes={{ height: 20, width: 20 }}
-                    />
 
-                    <Text className='font-nunito-bold text-medroom-secondary'>
-                      Falar com suporte
-                    </Text>
-                  </View>
-                )}          
-              />
-            </Section>
 
             <Button.Default
               label='Sair da conta'
