@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 const seedUsers = [
   {
-    name: "Dr. Lucas Almeida",
+    name: "Lucas Almeida",
     specialty: "Cardiologia",
     crmCrp: "CRM12345",
     email: "lucas.almeida@checkinmed.test",
@@ -15,7 +15,7 @@ const seedUsers = [
     password: "12345678",
   },
   {
-    name: "Dra. Marina Souza",
+    name: "Marina Souza",
     specialty: "Dermatologia",
     crmCrp: "CRM54321",
     email: "marina.souza@checkinmed.test",

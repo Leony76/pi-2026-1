@@ -331,6 +331,7 @@ export async function getEnterpriseDashboard(userId: string): Promise<Enterprise
 				professional: {
 					select: {
 						name: true,
+						specialty: true,
 					},
 				},
 				room: {
