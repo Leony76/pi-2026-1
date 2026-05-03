@@ -11,7 +11,7 @@ const seedUsers = [
     specialty: "Cardiologia",
     crmCrp: "CRM12345",
     email: "lucas.almeida@checkinmed.test",
-    accountType: "ENTERPRISE",
+    accountType: "PROFESSIONAL",
     password: "12345678",
   },
   {
@@ -20,6 +20,14 @@ const seedUsers = [
     crmCrp: "CRM54321",
     email: "marina.souza@checkinmed.test",
     accountType: "PROFESSIONAL",
+    password: "12345678",
+  },
+  {
+    name: "João Empresa",
+    specialty: null,
+    crmCrp: "EMP00001",
+    email: "joao.empresa@checkinmed.test",
+    accountType: "ENTERPRISE",
     password: "12345678",
   },
 ];
@@ -96,19 +104,19 @@ async function main() {
   console.log(`${seedUsers.length} usuários processados.`);
 
   
-  const firstUser = await prisma.user.findFirst({
-    where: { email: "lucas.almeida@checkinmed.test" },
+  const enterpriseUser = await prisma.user.findFirst({
+    where: { email: "joao.empresa@checkinmed.test" },
   });
 
-  if (!firstUser) {
-    console.error("Usuário não encontrado para criar salas");
+  if (!enterpriseUser) {
+    console.error("Usuário enterprise não encontrado para criar salas");
     return;
   }
 
   for (const room of seedRooms) {
     const existingRoom = await prisma.room.findFirst({
       where: {
-        AND: [{ enterpriseOwnerId: firstUser.id }, { title: room.title }],
+        AND: [{ enterpriseOwnerId: enterpriseUser.id }, { title: room.title }],
       },
     });
 
@@ -124,7 +132,7 @@ async function main() {
         area: room.area,
         characteristic: room.characteristic,
         isAvailable: room.isAvailable,
-        enterpriseOwnerId: firstUser.id,
+        enterpriseOwnerId: enterpriseUser.id,
       },
     });
 

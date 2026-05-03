@@ -11,6 +11,7 @@ type ProfileStats = {
 export type ProfileResponse = {
 	id: string;
 	name: string;
+	displayImage: string | null;
 	specialty: string;
 	specialtyLabel: string;
 	accountType: "PROFESSIONAL" | "ENTERPRISE";
@@ -27,6 +28,7 @@ async function buildProfileResponse(userId: string): Promise<ProfileResponse | n
 		where: { id: userId },
 		select: {
 			id: true,
+			displayImage: true,
 			name: true,
 			specialty: true,
 			accountType: true,
@@ -58,6 +60,7 @@ async function buildProfileResponse(userId: string): Promise<ProfileResponse | n
 	]);
 	return {
 		id: user.id,
+			displayImage: user.displayImage ?? null,
 		name: user.name,
 		specialty: user.specialty,
 		specialtyLabel: normalizeSpecialty(user.specialty),
@@ -79,6 +82,18 @@ export async function getProfileById(userId: string) {
 	return buildProfileResponse(userId);
 }
 
+export async function updateProfileImageById(
+	userId: string,
+	displayImage: string | null
+) {
+	await prisma.user.update({
+		where: { id: userId },
+		data: { displayImage },
+	});
+
+	return buildProfileResponse(userId);
+}
+
 export async function updateProfileById(
 	userId: string,
 	data: {
@@ -87,6 +102,7 @@ export async function updateProfileById(
 		crmCrp: string;
 		email: string;
 		phone: string;
+		profileImage?: string | null;
 	}
 ) {
 	const name = data.name.trim();
@@ -123,6 +139,7 @@ export async function updateProfileById(
 			crmCrp,
 			email,
 			phone,
+			displayImage: data.profileImage ?? undefined,
 		},
 	});
 

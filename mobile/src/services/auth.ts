@@ -17,11 +17,6 @@ export type AuthResponse = {
   refreshToken?: string;
 };
 
-export type RefreshTokenResponse = {
-  token: string;
-  refreshToken: string;
-};
-
 export type CurrentUserResponse = {
   id: string;
   name: string;
@@ -33,6 +28,7 @@ export type CurrentUserResponse = {
   phone: string | null;
   createdAt: string;
   updatedAt: string;
+  displayImage: string | null;
   stats: {
     sessions: number;
     patients: number;
@@ -46,6 +42,7 @@ export type UpdateCurrentUserPayload = {
   crmCrp: string;
   email: string;
   phone: string;
+  profileImage?: string | null;
 };
 
 export type RegisterPayload = {
@@ -103,10 +100,6 @@ export function resetPassword(
   });
 }
 
-export function refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
-  return apiPost<RefreshTokenResponse>("/auth/refresh", { refreshToken });
-}
-
 export function logoutUser(token: string): Promise<{ message: string }> {
   return apiPost<{ message: string }>("/auth/logout", {}, token);
 }
@@ -129,6 +122,20 @@ export function updateCurrentUserWithAuth(
   return apiPatchWithAuth<CurrentUserResponse>(
     "/users/me",
     data,
+    auth.token,
+    auth.refreshToken,
+    auth.updateTokens,
+    auth.signOut
+  );
+}
+
+export function updateCurrentUserImageWithAuth(
+  profileImage: string | null,
+  auth: AuthHandlers
+): Promise<CurrentUserResponse> {
+  return apiPatchWithAuth<CurrentUserResponse>(
+    "/users/me/image",
+    { profileImage },
     auth.token,
     auth.refreshToken,
     auth.updateTokens,

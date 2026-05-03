@@ -54,10 +54,11 @@ npm run start
 cd backend && npm run prisma:seed
 ```
 
-| E-mail | Senha |
-|---|---|
-| lucas.almeida@checkinmed.test | 12345678 |
-| marina.souza@checkinmed.test | 12345678 |
+| E-mail | Senha | Tipo |
+|---|---|---|
+| lucas.almeida@checkinmed.test | 12345678 | PROFESSIONAL |
+| marina.souza@checkinmed.test | 12345678 | PROFESSIONAL |
+| joao.empresa@checkinmed.test | 12345678 | ENTERPRISE |
 
 ---
 

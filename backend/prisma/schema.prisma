@@ -91,6 +91,7 @@ model User {
   crmCrp                          String    @unique
   email                           String    @unique
   phone                           String?
+  displayImage                    String?
   passwordHash                    String
   emailVerifiedAt                 DateTime?
   emailVerificationTokenHash      String?

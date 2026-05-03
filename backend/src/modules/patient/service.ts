@@ -58,12 +58,16 @@ export async function getActivePatients(professionalId: string, limit?: number) 
 		...(typeof limit === "number" && limit > 0 ? { take: limit } : {}),
 	});
 
-	return patients.map((patient) => ({
-		id: patient.id,
-		name: patient.name,
-		status: patient.status,
-		nextSession: (patient.nextSessionAt ?? patient.sessions[0]?.startsAt ?? patient.initialDate).toISOString(),
-	}));
+	return patients.map((patient) => {
+		const next = patient.nextSessionAt ?? patient.sessions[0]?.startsAt ?? null;
+
+		return {
+			id: patient.id,
+			name: patient.name,
+			status: patient.status,
+			nextSession: next ? next.toISOString() : null,
+		};
+	});
 }
 
 export async function getPatientHistory(professionalId: string, limit?: number) {
@@ -156,11 +160,14 @@ export async function getPatientById(professionalId: string, patientId: string) 
 		createdAt: patient.createdAt.toISOString(),
 		sessionHistory: {
 			totalMade: completedSessions.length,
-			session: {
-				lastOneDate: (lastSession?.startsAt ?? patient.createdAt).toISOString(),
-				valueByEach: lastSession ? toNumber(lastSession.price) : 0,
-				totalGenerated,
-			},
+			session:
+				completedSessions.length === 0
+					? null
+					: {
+							lastOneDate: (lastSession!.startsAt).toISOString(),
+							valueByEach: lastSession ? toNumber(lastSession.price) : 0,
+							totalGenerated,
+						},
 		},
 		sessions: upcomingSessions.map((session) => ({
 			date: session.startsAt.toISOString(),

@@ -1,5 +1,5 @@
 import { ApiError, apiGet, apiPatch, apiPost } from "./api";
-import { refreshAccessToken } from "./auth";
+import { refreshAccessToken } from "./auth-refresh";
 
 type RefreshTokenHandler = (newToken: string, newRefreshToken: string) => Promise<void>;
 type SignOutHandler = () => Promise<void>;

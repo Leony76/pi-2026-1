@@ -7,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { updateCurrentUserImageWithAuth } from '@/services/auth'
+import * as ImagePicker from 'expo-image-picker'
 import { priceFormat } from '@/utils/priceFormat'
 import Section from '@/components/ui/Section'
 import Label___Value from '@/components/ui/Label___Value'
@@ -19,8 +21,11 @@ import Toast from '@/components/ui/Toast'
 
 const Profile = (): React.JSX.Element => {
 
-  const { profile, accountType, isLoading, error } = useLoggedUserData();  
-  const { signOut } = useAuth();
+  const { profile, accountType, isLoading, error, refreshProfile } = useLoggedUserData();  
+  const { signOut, token, refreshToken, updateTokens } = useAuth();
+
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
 
@@ -84,7 +89,7 @@ const Profile = (): React.JSX.Element => {
   return (
     <LayoutWrapper>
       <Modal.ImageExpanded
-        image='https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg'
+        image={profile?.displayImage ?? 'https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg'}
         onRequestClose={() => setProfileExpand(false)}
         visible={profileImageExpand}
       />
@@ -113,7 +118,7 @@ const Profile = (): React.JSX.Element => {
       layoutType={accountType ?? 'PROFESSIONAL'}    
       >
         <ScrollView contentContainerClassName='gap-5 pb-6'>
-          <LinearGradient
+            <LinearGradient
           colors={[systemColors.primary, '#0B4C4E']} 
           className="justify-center items-center w-full gap-4 py-8"
           >
@@ -123,15 +128,65 @@ const Profile = (): React.JSX.Element => {
               onPress={() => setProfileExpand(true)}
               >
                 <Image
-                  source={{ uri: 'https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg' }}
+                  source={{ uri: profile?.displayImage ?? 'https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg' }}
                   className='w-40 h-40 rounded-full border-cyan-200'
                   style={{ borderWidth: 2 }}
                 />
               </TouchableOpacity>
 
+              {isUploadingImage && (
+                <View className='mt-2'>
+                  <ActivityIndicator size='small' color={systemColors.primary} />
+                </View>
+              )}
+
+              {imageError && (
+                <View className='mt-2 px-6'>
+                  <Text className='text-red-500 font-nunito'>{imageError}</Text>
+                </View>
+              )}
+
               <TouchableOpacity 
               activeOpacity={0.67}
               className='absolute bottom-2 right-2 bg-cyan-100 p-1 rounded-full'
+              onPress={async () => {
+                try {
+                  setImageError(null);
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: true,
+                    quality: 0.7,
+                    base64: true,
+                  });
+
+                  if (result.canceled) return;
+
+                  const selected = result.assets[0];
+
+                  if (!selected?.base64) {
+                    setImageError('Não foi possível processar a imagem.');
+                    return;
+                  }
+
+                  const mimeType = selected.mimeType ?? 'image/jpeg';
+                  const dataUrl = `data:${mimeType};base64,${selected.base64}`;
+
+                  if (!token || !refreshToken) {
+                    setImageError('Sessão inválida. Faça login novamente.');
+                    return;
+                  }
+
+                  setIsUploadingImage(true);
+
+                  await updateCurrentUserImageWithAuth(dataUrl, { token, refreshToken, updateTokens, signOut });
+
+                  await refreshProfile();
+                } catch (err: any) {
+                  setImageError(err?.message ?? 'Erro ao enviar imagem');
+                } finally {
+                  setIsUploadingImage(false);
+                }
+              }}
               >
                 <MaterialCommunityIcons 
                   name="pencil" 
