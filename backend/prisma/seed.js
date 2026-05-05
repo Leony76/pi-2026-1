@@ -24,7 +24,7 @@ const seedUsers = [
   },
   {
     name: "João Empresa",
-    specialty: null,
+    specialty: "Clinica Geral",
     crmCrp: "EMP00001",
     email: "joao.empresa@checkinmed.test",
     accountType: "ENTERPRISE",

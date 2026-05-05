@@ -114,7 +114,6 @@ export async function updateProfileById(
 	if (name.length < 3) {
 		throw createHttpError(400, "bad_request", "Nome invalido.");
 	}
-
 	if (!specialty) {
 		throw createHttpError(400, "bad_request", "Especialidade invalida.");
 	}
@@ -139,7 +138,7 @@ export async function updateProfileById(
 			crmCrp,
 			email,
 			phone,
-			displayImage: data.profileImage ?? undefined,
+			...(data.profileImage !== undefined ? { displayImage: data.profileImage } : {}),
 		},
 	});
 

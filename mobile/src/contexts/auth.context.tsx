@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
@@ -16,67 +23,47 @@ const REFRESH_TOKEN_KEY = "checkinmed.auth.refreshToken";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function getWebToken(): string | null {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return null;
-  }
-
-  return window.localStorage.getItem(AUTH_TOKEN_KEY);
-}
-
-function setWebToken(value: string): void {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
-  }
-
-  window.localStorage.setItem(AUTH_TOKEN_KEY, value);
-}
-
-function clearWebToken(): void {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
-  }
-
-  window.localStorage.removeItem(AUTH_TOKEN_KEY);
-}
-
-function getWebRefreshToken(): string | null {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return null;
-  }
-
-  return window.localStorage.getItem(REFRESH_TOKEN_KEY);
-}
-
-function setWebRefreshToken(value: string): void {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
-  }
-
-  window.localStorage.setItem(REFRESH_TOKEN_KEY, value);
-}
-
-function clearWebRefreshToken(): void {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
-  }
-
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-}
-
 async function isSecureStoreAvailable(): Promise<boolean> {
-  if (Platform.OS === "web") {
-    return false;
-  }
-
-  if (typeof SecureStore.isAvailableAsync !== "function") {
-    return false;
-  }
-
+  if (Platform.OS === "web") return false;
+  if (typeof SecureStore.isAvailableAsync !== "function") return false;
   try {
     return await SecureStore.isAvailableAsync();
   } catch {
     return false;
+  }
+}
+
+function getWebToken(): string | null {
+  return typeof window !== "undefined" && window.localStorage
+    ? window.localStorage.getItem(AUTH_TOKEN_KEY)
+    : null;
+}
+
+function getWebRefreshToken(): string | null {
+  return typeof window !== "undefined" && window.localStorage
+    ? window.localStorage.getItem(REFRESH_TOKEN_KEY)
+    : null;
+}
+
+async function persistTokens(token: string, refreshToken: string): Promise<void> {
+  const useSecureStore = await isSecureStoreAvailable();
+  if (useSecureStore) {
+    await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  } else {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+    window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+}
+
+async function clearTokens(): Promise<void> {
+  const useSecureStore = await isSecureStoreAvailable();
+  if (useSecureStore) {
+    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  } else {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 }
 
@@ -106,66 +93,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadTokens();
   }, []);
 
-  const value = useMemo<AuthContextValue>(() => {
-    return {
-      token,
-      refreshToken,
-      isLoadingSession,
-      async signIn(nextToken: string, nextRefreshToken: string) {
-        const useSecureStore = await isSecureStoreAvailable();
+  const signIn = useCallback(async (nextToken: string, nextRefreshToken: string) => {
+    await persistTokens(nextToken, nextRefreshToken);
+    setToken(nextToken);
+    setRefreshToken(nextRefreshToken);
+  }, []);
 
-        if (useSecureStore) {
-          await SecureStore.setItemAsync(AUTH_TOKEN_KEY, nextToken);
-          await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, nextRefreshToken);
-        } else {
-          setWebToken(nextToken);
-          setWebRefreshToken(nextRefreshToken);
-        }
+  const updateTokens = useCallback(async (nextToken: string, nextRefreshToken: string) => {
+    await persistTokens(nextToken, nextRefreshToken);
+    setToken(nextToken);
+    setRefreshToken(nextRefreshToken);
+  }, []);
 
-        setToken(nextToken);
-        setRefreshToken(nextRefreshToken);
-      },
-      async updateTokens(nextToken: string, nextRefreshToken: string) {
-        const useSecureStore = await isSecureStoreAvailable();
+  const signOut = useCallback(async () => {
+    await clearTokens();
+    setToken(null);
+    setRefreshToken(null);
+  }, []);
 
-        if (useSecureStore) {
-          await SecureStore.setItemAsync(AUTH_TOKEN_KEY, nextToken);
-          await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, nextRefreshToken);
-        } else {
-          setWebToken(nextToken);
-          setWebRefreshToken(nextRefreshToken);
-        }
-
-        setToken(nextToken);
-        setRefreshToken(nextRefreshToken);
-      },
-      
-      async signOut() {
-        const useSecureStore = await isSecureStoreAvailable();
-
-        if (useSecureStore) {
-          await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
-          await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-        } else {
-          clearWebToken();
-          clearWebRefreshToken();
-        }
-
-        setToken(null);
-        setRefreshToken(null);
-      },
-    };
-  }, [token, refreshToken, isLoadingSession]);
+  const value = useMemo<AuthContextValue>(
+    () => ({ token, refreshToken, isLoadingSession, signIn, updateTokens, signOut }),
+    [token, refreshToken, isLoadingSession, signIn, updateTokens, signOut]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
-
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }
