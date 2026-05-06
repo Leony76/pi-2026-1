@@ -1,5 +1,5 @@
 export type Allocation = 
-| 'PER_HOUR'
+| 'DAILY'
 | '3X_WEEK'
 | 'MONTH'
 ;

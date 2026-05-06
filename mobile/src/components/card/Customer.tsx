@@ -1,7 +1,6 @@
 import React from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { Text, View } from 'react-native'
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName';
-import { useRouter } from 'expo-router';
 import { CustomerHistory, Customer as CustomerType } from '@/types/customer.type';
 import { SPECIALTY_MAP } from '@/constants/maps/specialty.map';
 import { formatLimitDate } from '@/utils/formatLimitDate';
@@ -19,8 +18,6 @@ type Props = BaseProps & CustomerType & {
 };
 
 const Customer = (props:Props): React.JSX.Element => {
-
-  const router = useRouter();
 
   const nameArray = props.name.trim().split(' ') || [];
 

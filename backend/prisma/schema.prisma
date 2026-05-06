@@ -51,7 +51,7 @@ enum RoomItemName {
 }
 
 enum AllocationType {
-  PER_HOUR
+  DAILY
   THREE_X_WEEK @map("3X_WEEK")
   MONTH
 }
@@ -198,7 +198,6 @@ model RoomRental {
   startDate       DateTime
   endDate         DateTime
   totalPrice      Decimal        @db.Decimal(10, 2)
-  selectedHours   Json?
   selectedWeekDay WeekDay[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

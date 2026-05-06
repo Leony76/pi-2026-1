@@ -18,16 +18,16 @@ export const newRoomSchema = z.object({
     .min(1, 'Selecione uma característica'),
   pricePerHour: z.coerce
     .number()
-    .min(1, 'O preço deve ser maior ou igual a R$ 1,00')
-    .max(250, 'O preço deve ser até R$ 250,00'),
+    .min(1, 'O preço por dia deve ser maior ou igual a R$ 1,00')
+    .max(250, 'O preço por dia deve ser até R$ 250,00'),
   price_3xWeek: z.coerce
     .number()
-    .min(1,   'O preço por hora deve ser maior ou igual a R$ 1,00')
-    .max(750, 'O preço por hora deve ser até R$ 750,00'),
+    .min(1,   'O preço 3x semana deve ser maior ou igual a R$ 1,00')
+    .max(750, 'O preço 3x semana deve ser até R$ 750,00'),
   pricePerMonth: z.coerce
     .number()
-    .min(1,    'O preço por hora deve ser maior ou igual a R$ 1,00')
-    .max(1500, 'O preço por hora deve ser até R$ 1500,00'),
+    .min(1,    'O preço por mês deve ser maior ou igual a R$ 1,00')
+    .max(1500, 'O preço por mês deve ser até R$ 1500,00'),
   items: z.array(
     z.object({
       name: z

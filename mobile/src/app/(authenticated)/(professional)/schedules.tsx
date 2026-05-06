@@ -1,4 +1,3 @@
-import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag'
@@ -85,34 +84,18 @@ const schedules = (): React.JSX.Element => {
   }
 
   const now = new Date();
-  const getRentalEnd = (rental: RoomRental) => {
-    try {
-      if (rental.allocationType === 'PER_HOUR' && rental.selectedHours) {
-        const sd = new Date(rental.startDate);
-        const [hh, mm] = rental.selectedHours.endHour.split(':').map((s) => parseInt(s, 10));
-        const end = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), hh, mm, 0, 0);
-        return end;
-      }
+  const getRentalEnd = (rental: RoomRental) => new Date(rental.endDate);
 
-      return new Date(rental.endDate);
-    } catch (err) {
-      return new Date(rental.endDate);
+  const getAllocationLabel = (allocationType: RoomRental['allocationType']) => {
+    if (allocationType === 'DAILY') {
+      return 'Por dia';
     }
-  };
 
-  const getRentalStart = (rental: RoomRental) => {
-    try {
-      if (rental.allocationType === 'PER_HOUR' && rental.selectedHours) {
-        const sd = new Date(rental.startDate);
-        const [hh, mm] = rental.selectedHours.startHour.split(':').map((s) => parseInt(s, 10));
-        const start = new Date(sd.getFullYear(), sd.getMonth(), sd.getDate(), hh, mm, 0, 0);
-        return start;
-      }
-
-      return new Date(rental.startDate);
-    } catch (err) {
-      return new Date(rental.startDate);
+    if (allocationType === '3X_WEEK') {
+      return '3x Semana';
     }
+
+    return 'Mensal';
   };
 
   // Only two states: ativo (until end) or encerrado (after end)
@@ -167,25 +150,9 @@ const schedules = (): React.JSX.Element => {
                     </View>
                   </View>
 
-                  {rental.allocationType === 'PER_HOUR' && rental.selectedHours ? (
-                    <View className='flex-row gap-2 mb-3'>
-                      <Card.EntryAndExit
-                        hour={rental.selectedHours.startHour}
-                        type='ENTRY'
-                        dayMonthYear={formatSessionDate(rental.startDate)}
-                      />
-
-                      <Card.EntryAndExit
-                        hour={rental.selectedHours.endHour}
-                        type='EXIT'
-                        dayMonthYear={formatSessionDate(rental.startDate)}
-                      />         
-                    </View>
-                  ) : null}
-
                   <Label___Value
                     label='Tipo'
-                    value={{ _: rental.allocationType === 'PER_HOUR' ? 'Por hora' : rental.allocationType === '3X_WEEK' ? '3x Semana' : 'Mensal' }}
+                    value={{ _: getAllocationLabel(rental.allocationType) }}
                     separationRow
                   />
 
@@ -233,7 +200,7 @@ const schedules = (): React.JSX.Element => {
 
                   <Label___Value
                     label='Tipo'
-                    value={{ _: rental.allocationType === 'PER_HOUR' ? 'Por hora' : rental.allocationType === '3X_WEEK' ? '3x Semana' : 'Mensal' }}
+                    value={{ _: getAllocationLabel(rental.allocationType) }}
                     separationRow
                   />
 

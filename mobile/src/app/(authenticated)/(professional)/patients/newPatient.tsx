@@ -90,9 +90,7 @@ const NewPatient = (): React.JSX.Element => {
 
     for (const r of rentals) {
       try {
-        const days = r.allocationType === 'PER_HOUR'
-          ? [getDateKey(new Date(r.startDate))]
-          : getDatesBetween(new Date(r.startDate), new Date(r.endDate));
+        const days = getDatesBetween(new Date(r.startDate), new Date(r.endDate));
 
         for (const d of days) {
           if (d < todayKey) {
@@ -124,9 +122,13 @@ const NewPatient = (): React.JSX.Element => {
     }
 
     const occupiedHours = rentals
-      .filter((r) => r.allocationType === 'PER_HOUR' && getDateKey(new Date(r.startDate)) === selectedDateKey)
-      .map((r) => r.selectedHours)
-      .filter((hour): hour is HourShift => Boolean(hour));
+      .filter((r) => {
+        const rentalStart = getDateKey(new Date(r.startDate));
+        const rentalEnd = getDateKey(new Date(r.endDate));
+
+        return rentalStart <= selectedDateKey && selectedDateKey <= rentalEnd;
+      })
+      .map(() => ({ startHour: '00:00', endHour: '23:59' } as HourShift));
 
     const todayKey = getDateKey(new Date());
 

@@ -88,7 +88,7 @@ export type RoomRental = {
 	roomTitle: string;
 	roomFloor: string;
 	roomCharacteristic: string;
-	allocationType: "PER_HOUR" | "3X_WEEK" | "MONTH";
+	allocationType: "DAILY" | "3X_WEEK" | "MONTH";
 	startDate: string;
 	endDate: string;
 	totalPrice: number;
@@ -160,12 +160,11 @@ export async function createRoomWithAuth(data: CreateRoomInput, auth: AuthHandle
 export async function createRoomRental(
 	data: {
 		roomId: string;
-		allocationType: "PER_HOUR" | "3X_WEEK" | "MONTH";
+		allocationType: "DAILY" | "3X_WEEK" | "MONTH";
 		paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 		startDate: Date;
 		endDate: Date;
 		totalPrice: number;
-		selectedHours?: { startHour: string; endHour: string };
 		selectedWeekDays?: string[];
 	},
 	token: string
@@ -179,7 +178,6 @@ export async function createRoomRental(
 			startDate: data.startDate.toISOString(),
 			endDate: data.endDate.toISOString(),
 			totalPrice: data.totalPrice,
-			selectedHours: data.selectedHours,
 			selectedWeekDays: data.selectedWeekDays,
 		},
 		token
@@ -189,12 +187,11 @@ export async function createRoomRental(
 	export async function createRoomRentalWithAuth(
 		data: {
 			roomId: string;
-			allocationType: "PER_HOUR" | "3X_WEEK" | "MONTH";
+			allocationType: "DAILY" | "3X_WEEK" | "MONTH";
 			paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 			startDate: Date;
 			endDate: Date;
 			totalPrice: number;
-			selectedHours?: { startHour: string; endHour: string };
 			selectedWeekDays?: string[];
 		},
 		auth: AuthHandlers
@@ -208,7 +205,6 @@ export async function createRoomRental(
 				startDate: data.startDate.toISOString(),
 				endDate: data.endDate.toISOString(),
 				totalPrice: data.totalPrice,
-				selectedHours: data.selectedHours,
 				selectedWeekDays: data.selectedWeekDays,
 			},
 			auth.token,

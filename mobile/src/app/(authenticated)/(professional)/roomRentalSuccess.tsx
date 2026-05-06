@@ -1,35 +1,16 @@
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
-import { Days } from '@/types/days.type'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { Text, View, ActivityIndicator } from 'react-native'
 import Label___Value from '@/components/ui/Label___Value';
 import { Allocation } from '@/types/allocation.type';
-import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 import { useAuth } from '@/contexts/auth.context';
 import { createRoomRentalWithAuth } from '@/services/rooms';
-
-function parseHourToMinutes(hour: string): number {
-  const [hoursString = '0', minutesString = '0'] = hour.split(':');
-  const hours = Number(hoursString);
-  const minutes = Number(minutesString);
-
-  return (hours * 60) + minutes;
-}
-
-function buildDateFromHour(baseDate: Date, hour: string): Date {
-  const [hoursString = '0', minutesString = '0'] = hour.split(':');
-  const hours = Number(hoursString);
-  const minutes = Number(minutesString);
-  const date = new Date(baseDate);
-
-  date.setHours(hours, minutes, 0, 0);
-
-  return date;
-}
+import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
+import { Days } from '@/types/days.type';
 
 const roomRentalSuccess = (): React.JSX.Element => {
 
@@ -41,14 +22,14 @@ const roomRentalSuccess = (): React.JSX.Element => {
   const roomName = params.roomName as string ?? '[Nome não provido]';
   const allocationType = params.allocationType as Allocation;
   const paymentMethod = params.paymentMethod as 'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | undefined;
-  const startHour = params.startHour as string ?? '[Entrada não provida]';
-  const endHour = params.endHour as string ?? '[Saída não provida]';
   const pricePaid = params.pricePaid as unknown as number ?? 0;
+  const dateParam = params.date as string | undefined;
   const daysParam = params.days as string | undefined;
   const days: Days[] = React.useMemo(
     () => (daysParam ? JSON.parse(daysParam) : []),
     [daysParam]
   );
+  const selectedDate = React.useMemo(() => (dateParam ? new Date(dateParam) : null), [dateParam]);
 
   const [isSaving, setIsSaving] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -69,32 +50,12 @@ const roomRentalSuccess = (): React.JSX.Element => {
       hasSavedRental.current = true;
 
       try {
-        const startDate = new Date();
+        const startDate = selectedDate ? new Date(selectedDate) : new Date();
+        startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(startDate);
 
-        if (allocationType === 'PER_HOUR') {
-          const startDateFromSelection = buildDateFromHour(startDate, startHour);
-          const endDateFromSelection = buildDateFromHour(startDate, endHour);
-
-          if (parseHourToMinutes(endHour) <= parseHourToMinutes(startHour)) {
-            endDateFromSelection.setDate(endDateFromSelection.getDate() + 1);
-          }
-
-          await createRoomRentalWithAuth(
-            {
-              roomId,
-              allocationType,
-              paymentMethod,
-              startDate: startDateFromSelection,
-              endDate: endDateFromSelection,
-              totalPrice: pricePaid,
-              selectedHours: { startHour, endHour },
-            },
-            { token, refreshToken, updateTokens, signOut }
-          );
-
-          setIsSaving(false);
-          return;
+        if (allocationType === 'DAILY') {
+          endDate.setDate(endDate.getDate() + 1);
         } else if (allocationType === '3X_WEEK') {
           endDate.setDate(endDate.getDate() + 7);
         } else if (allocationType === 'MONTH') {
@@ -123,7 +84,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
     };
 
     saveRental();
-  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, startHour, endHour, pricePaid, days]);
+  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, pricePaid, days, selectedDate]);
 
   if (isSaving) {
     return (
@@ -189,20 +150,12 @@ const roomRentalSuccess = (): React.JSX.Element => {
               value={{ _: roomName }}
             />
 
-            { allocationType === 'PER_HOUR' ? (
-              <>
-                <Label___Value
-                  separationRow
-                  label='Entrada'
-                  value={{ _: startHour }}
-                />
-
-                <Label___Value
-                  separationRow
-                  label='Saída'
-                  value={{ _: endHour }}
-                />
-              </>
+            { allocationType === 'DAILY' ? (
+              <Label___Value
+                separationRow
+                label='Dia'
+                value={{ _: selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-' }}
+              />
             ) : allocationType === 'MONTH' ? (
               <Label___Value
                 separationRow

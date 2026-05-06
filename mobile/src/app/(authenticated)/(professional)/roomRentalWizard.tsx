@@ -166,10 +166,10 @@ const roomRentalWizard = (): React.JSX.Element => {
               <Section title='TIPOS DE ALOCAÇÃO' row>
                 <Button.Default
                   label='Por dia'
-                  filled={allocationType === 'PER_HOUR'}
+                  filled={allocationType === 'DAILY'}
                   customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
                   onTouch={() => {
-                    setAllocationType(allocationType === 'PER_HOUR' ? null : 'PER_HOUR')
+                    setAllocationType(allocationType === 'DAILY' ? null : 'DAILY')
                     handleSwitchAllocationDataClean()
                   }}
                 />
@@ -195,7 +195,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                 />
               </Section>
 
-              {allocationType === 'PER_HOUR' ? (
+              {allocationType === 'DAILY' ? (
                 <>
                   <Section title='Selecione o dia'>
                     <Input.DateTime
@@ -320,9 +320,9 @@ const roomRentalWizard = (): React.JSX.Element => {
                   <>
                     <Label___Value
                       separationRow
-                      label={allocationType === 'PER_HOUR' ? 'Dia' : 'Dias'}
+                      label={allocationType === 'DAILY' ? 'Dia' : 'Dias'}
                       value={{
-                        _: allocationType === 'PER_HOUR'
+                        _: allocationType === 'DAILY'
                           ? (selectedDate ? formatSessionDate(selectedDate.toISOString()) : '-')
                           : `${TRANSLATED_DAYS_MAP[daysSelected.at(0)!].split('-')[0]}, ${TRANSLATED_DAYS_MAP[daysSelected.at(1)!].split('-')[0]} e ${TRANSLATED_DAYS_MAP[daysSelected.at(2)!].split('-')[0]}`,
                       }}
@@ -331,7 +331,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                     <Label___Value
                       separationRow
                       label='Sessão'
-                      value={{ _: allocationType === 'PER_HOUR' ? '1 dia' : '1 semana' }}
+                      value={{ _: allocationType === 'DAILY' ? '1 dia' : '1 semana' }}
                     />
                   </>
                 )}
@@ -339,7 +339,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                 <Label___Value
                   separationRow
                   label={allocationType === 'MONTH' ? 'Duração' : 'Sessão'}
-                  value={{ _: allocationType === 'MONTH' ? '1 mês' : allocationType === 'PER_HOUR' ? '1 dia' : '1 semana' }}
+                  value={{ _: allocationType === 'MONTH' ? '1 mês' : allocationType === 'DAILY' ? '1 dia' : '1 semana' }}
                 />
 
                 <Label___Value

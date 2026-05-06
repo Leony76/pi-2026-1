@@ -17,7 +17,7 @@ const PricesByRoom = (): React.JSX.Element => {
   const router = useRouter();
   const auth = useAuth();
   const [searchValue, setSearchValue] = useState<string | null>(null);
-  const [pricesRender, setPricesRender] = useState<Allocation>('PER_HOUR');
+  const [pricesRender, setPricesRender] = useState<Allocation>('DAILY');
   const [values, setValues] = useState<EnterpriseValuesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ const PricesByRoom = (): React.JSX.Element => {
   }, [searchValue, values]);
 
   const allocationLabelMap: Record<Allocation, string> = {
-    PER_HOUR: 'Por hora',
+    DAILY: 'Por dia',
     '3X_WEEK': '3x semana',
     MONTH: 'Por mês',
   };
@@ -115,9 +115,9 @@ const PricesByRoom = (): React.JSX.Element => {
         <View className='flex-1 py-6 gap-5'>
           <View className='flex-row justify-between gap-3'>
             <Button.Default
-              label='Por hora'
-              filled={pricesRender === 'PER_HOUR'}
-              onTouch={() => setPricesRender('PER_HOUR')}
+              label='Por dia'
+              filled={pricesRender === 'DAILY'}
+              onTouch={() => setPricesRender('DAILY')}
               customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
             />
 
@@ -150,7 +150,7 @@ const PricesByRoom = (): React.JSX.Element => {
               ListEmptyComponent={<ContentNotFound text={`Nenhum resultado para "${searchValue ?? ''}"`} />}
               renderItem={({ item, index }) => {
                 const allocationTypePriceMap: Record<Allocation, number | undefined> = {
-                  PER_HOUR: item.price.byHour,
+                  DAILY: item.price.byHour,
                   '3X_WEEK': item.price._3xWeek,
                   MONTH: item.price.byMonth,
                 };

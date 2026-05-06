@@ -4,7 +4,6 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import SystemLayout from '@/components/layout/SystemLayout';
 import { RoomDisplayCard } from '@/types/room.type';
 import { Card } from '@/components/card';
-import { Allocation } from '@/types/allocation.type';
 import { getFirstName } from '@/utils/getFirstName';
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context';
 import { fetchRooms } from '@/services/rooms';
@@ -12,7 +11,6 @@ import { fetchRooms } from '@/services/rooms';
 const Home = (): React.JSX.Element => {
 
   const { profile } = useLoggedUserData(); 
-  const [allocationType, setAllocationType] = useState<Allocation | null>(null);
   const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

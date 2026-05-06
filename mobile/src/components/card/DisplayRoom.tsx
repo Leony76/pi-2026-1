@@ -56,7 +56,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
         { props.isAvailable ? (
           <View className='gap-1'>
             <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices.perHour) } <Text className='text-base text-medroom-secondary font-nunito'> / Por hora </Text>
+              { priceFormat(props.prices.perHour) } <Text className='text-base text-medroom-secondary font-nunito'> / Por dia </Text>
             </Text>
 
             <Text className='text-green-700 font-nunito-bold text-xl'>

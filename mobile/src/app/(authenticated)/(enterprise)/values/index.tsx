@@ -218,7 +218,7 @@ const Values = (): React.JSX.Element => {
           >
             <View className='gap-3'>
               <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
-                Por hora
+                Por dia
               </Text>
 
               <View className='gap-3'>
@@ -232,7 +232,7 @@ const Values = (): React.JSX.Element => {
                     /> 
                   ))
                 ) : (
-                  <ContentNotFound text='Nenhum preço por hora'/>
+                  <ContentNotFound text='Nenhum preço por dia'/>
                 )}
               </View>
 
@@ -251,7 +251,7 @@ const Values = (): React.JSX.Element => {
                     /> 
                   ))
                 ) : (
-                  <ContentNotFound text='Nenhum preço por hora'/>
+                  <ContentNotFound text='Nenhum preço por dia'/>
                 )}
               </View>
 
@@ -270,7 +270,7 @@ const Values = (): React.JSX.Element => {
                     /> 
                   ))
                 ) : (
-                  <ContentNotFound text='Nenhum preço por hora'/>
+                  <ContentNotFound text='Nenhum preço por dia'/>
                 )}
               </View>
             </View>

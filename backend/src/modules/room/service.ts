@@ -57,12 +57,16 @@ function translateCharacteristic(characteristic: string): string {
 	return CHARACTERISTIC_TRANSLATIONS[characteristic] || characteristic;
 }
 
-function toPrismaAllocationType(allocationType: "PER_HOUR" | "3X_WEEK" | "MONTH") {
+function toPrismaAllocationType(allocationType: "DAILY" | "3X_WEEK" | "MONTH") {
+	if (allocationType === "DAILY") {
+		return "DAILY";
+	}
+
 	if (allocationType === "3X_WEEK") {
 		return "THREE_X_WEEK";
 	}
 
-	return allocationType;
+	return "MONTH";
 }
 
 function toClientAllocationType(allocationType: string) {
@@ -70,7 +74,7 @@ function toClientAllocationType(allocationType: string) {
 		return "3X_WEEK";
 	}
 
-	return allocationType;
+	return allocationType as "DAILY" | "3X_WEEK" | "MONTH";
 }
 
 function toWeekDays(days?: string[]): WeekDay[] {
@@ -80,15 +84,6 @@ function toWeekDays(days?: string[]): WeekDay[] {
 
 	const validDays = Object.values(WeekDay);
 	return days.filter((day): day is WeekDay => validDays.includes(day as WeekDay));
-}
-
-function isSelectedHours(value: unknown): value is { startHour: string; endHour: string } {
-	return typeof value === "object"
-		&& value !== null
-		&& "startHour" in value
-		&& "endHour" in value
-		&& typeof (value as { startHour?: unknown }).startHour === "string"
-		&& typeof (value as { endHour?: unknown }).endHour === "string";
 }
 
 function isValidRoomImageUrl(value: string): boolean {
@@ -106,7 +101,6 @@ function mapRoomRentalToClient(rental: {
 	startDate: Date;
 	endDate: Date;
 	totalPrice: { toString(): string };
-	selectedHours?: unknown;
 	selectedWeekDay: WeekDay[];
 }) {
 	return {
@@ -118,7 +112,6 @@ function mapRoomRentalToClient(rental: {
 		startDate: rental.startDate,
 		endDate: rental.endDate,
 		totalPrice: parseFloat(rental.totalPrice.toString()),
-		selectedHours: isSelectedHours(rental.selectedHours) ? rental.selectedHours : null,
 		selectedWeekDays: rental.selectedWeekDay,
 		isActive: new Date() >= rental.startDate && new Date() <= rental.endDate,
 	};
@@ -550,18 +543,11 @@ export async function getRoomOccupancy(roomId: string): Promise<RoomOccupancyRes
 			},
 		},
 		select: {
-			selectedHours: true,
 			selectedWeekDay: true,
 		},
 	});
 
-	const occupiedHours = activeRentals.flatMap((rental) => {
-		if (!isSelectedHours(rental.selectedHours)) {
-			return [] as { startHour: string; endHour: string }[];
-		}
-
-		return [rental.selectedHours];
-	});
+	const occupiedHours: { startHour: string; endHour: string }[] = [];
 
 	const occupiedDays = Array.from(
 		new Set(activeRentals.flatMap((rental) => rental.selectedWeekDay))
@@ -694,16 +680,14 @@ export async function createRoom(data: {
 export async function createRoomRental(data: {
 	professionalId: string;
 	roomId: string;
-	allocationType: "PER_HOUR" | "3X_WEEK" | "MONTH";
+	allocationType: "DAILY" | "3X_WEEK" | "MONTH";
 	paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 	startDate: Date;
 	endDate: Date;
 	totalPrice: number;
-	selectedHours?: { startHour: string; endHour: string };
 	selectedWeekDays?: string[];
 }) {
 	const selectedWeekDays = toWeekDays(data.selectedWeekDays);
-	const selectedHoursData = data.selectedHours ? { selectedHours: data.selectedHours } : {};
 
 	const rental = await prisma.roomRental.create({
 		data: {
@@ -715,7 +699,6 @@ export async function createRoomRental(data: {
 			endDate: new Date(data.endDate),
 			totalPrice: data.totalPrice.toString(),
 			selectedWeekDay: selectedWeekDays,
-			...selectedHoursData,
 		},
 		include: {
 			room: {
@@ -860,7 +843,7 @@ export async function getEnterpriseValues(userId: string): Promise<EnterpriseVal
 		const rentalValue = parseFloat(rental.totalPrice.toString());
 		currentRoom.totalRevenue += rentalValue;
 
-		if (rental.allocationType === "PER_HOUR") {
+		if (rental.allocationType === "DAILY") {
 			currentRoom.revenue.byHour += rentalValue;
 			continue;
 		}

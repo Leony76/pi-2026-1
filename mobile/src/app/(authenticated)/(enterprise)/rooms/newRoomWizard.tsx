@@ -21,7 +21,7 @@ import * as ImagePicker from 'expo-image-picker'
 import React, { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
-import { IconName } from 'root/assets/icons'
+import type { IconName } from 'root/assets/icons'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
 
@@ -92,6 +92,13 @@ const NewRoomWizard = (): React.JSX.Element => {
         throw new Error('Sessão inválida. Faça login novamente.');
       }
 
+      const authenticated = {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      };
+
       await createRoomWithAuth({
         roomName: data.roomName,
         roomImage,
@@ -102,7 +109,7 @@ const NewRoomWizard = (): React.JSX.Element => {
         price_3xWeek: data.price_3xWeek,
         pricePerMonth: data.pricePerMonth,
         items: data.items,
-      }, auth);
+      }, authenticated);
 
       router.push({
         pathname: '/(authenticated)/(enterprise)/rooms',
@@ -215,7 +222,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                   )}
 
                   <Button.Default
-                    icon={{ name: 'image', size: { width: 20, height: 20 } }}
+                    icon={{ name: 'misc', size: { width: 20, height: 20 } }}
                     label={roomImage ? 'Trocar foto' : 'Selecionar foto'}
                     onTouch={handlePickRoomImage}
                   />
@@ -359,7 +366,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                       <Input.Style2
                         icon={{ name: 'money' }}
                         maxLength={256}
-                        label='Preço por hora (R$)'
+                        label='Preço por dia (R$)'
                         placeholder={{ text: 'R$ XX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
