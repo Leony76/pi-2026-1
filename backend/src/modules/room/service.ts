@@ -57,24 +57,24 @@ function translateCharacteristic(characteristic: string): string {
 	return CHARACTERISTIC_TRANSLATIONS[characteristic] || characteristic;
 }
 
-function toPrismaAllocationType(allocationType: "DAILY" | "3X_WEEK" | "MONTH") {
+function toPrismaAllocationType(allocationType: "DAILY" | "WEEK" | "MONTH") {
 	if (allocationType === "DAILY") {
 		return "DAILY";
 	}
 
-	if (allocationType === "3X_WEEK") {
-		return "THREE_X_WEEK";
+	if (allocationType === "WEEK") {
+		return "WEEK";
 	}
 
 	return "MONTH";
 }
 
 function toClientAllocationType(allocationType: string) {
-	if (allocationType === "THREE_X_WEEK") {
-		return "3X_WEEK";
+	if (allocationType === "WEEK") {
+		return "WEEK";
 	}
 
-	return allocationType as "DAILY" | "3X_WEEK" | "MONTH";
+	return allocationType as "DAILY" | "WEEK" | "MONTH" | string;
 }
 
 function toWeekDays(days?: string[]): WeekDay[] {
@@ -84,6 +84,34 @@ function toWeekDays(days?: string[]): WeekDay[] {
 
 	const validDays = Object.values(WeekDay);
 	return days.filter((day): day is WeekDay => validDays.includes(day as WeekDay));
+}
+
+function toDateKey(date: Date): string {
+	return date.toISOString().slice(0, 10);
+}
+
+function getDateRangeKeys(startDate: Date, endDate: Date): string[] {
+	const keys: string[] = [];
+	const currentDate = new Date(startDate);
+	currentDate.setUTCHours(0, 0, 0, 0);
+
+	const finalDate = new Date(endDate);
+	finalDate.setUTCHours(0, 0, 0, 0);
+
+	if (finalDate > currentDate) {
+		finalDate.setUTCDate(finalDate.getUTCDate() - 1);
+	}
+
+	while (currentDate <= finalDate) {
+		keys.push(toDateKey(currentDate));
+		currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+	}
+
+	return keys;
+}
+
+function overlapsDateRange(startA: Date, endA: Date, startB: Date, endB: Date): boolean {
+	return startA < endB && startB < endA;
 }
 
 function isValidRoomImageUrl(value: string): boolean {
@@ -103,6 +131,8 @@ function mapRoomRentalToClient(rental: {
 	totalPrice: { toString(): string };
 	selectedWeekDay: WeekDay[];
 }) {
+	const selectedWeekDays = getDateRangeKeys(rental.startDate, rental.endDate);
+
 	return {
 		id: rental.id,
 		roomTitle: rental.room.title,
@@ -112,7 +142,7 @@ function mapRoomRentalToClient(rental: {
 		startDate: rental.startDate,
 		endDate: rental.endDate,
 		totalPrice: parseFloat(rental.totalPrice.toString()),
-		selectedWeekDays: rental.selectedWeekDay,
+		selectedWeekDays,
 		isActive: new Date() >= rental.startDate && new Date() <= rental.endDate,
 	};
 }
@@ -127,7 +157,7 @@ function mapRoomToClient(room: {
 	characteristic: string;
 	prices: {
 		pricePerHour: { toString(): string };
-		price3xWeek: { toString(): string };
+		priceWeek: { toString(): string };
 		pricePerMonth: { toString(): string };
 	} | null;
 }) {
@@ -144,12 +174,12 @@ function mapRoomToClient(room: {
 		prices: room.prices
 			? {
 				perHour: parseFloat(room.prices.pricePerHour.toString()),
-				_3xWeek: parseFloat(room.prices.price3xWeek.toString()),
+				_week: parseFloat(room.prices.priceWeek.toString()),
 				month: parseFloat(room.prices.pricePerMonth.toString()),
 			}
 			: {
 				perHour: 0,
-				_3xWeek: 0,
+				_week: 0,
 				month: 0,
 			},
 	};
@@ -211,7 +241,7 @@ export type EnterpriseDashboardResponse = {
 
 export type RoomOccupancyResponse = {
 	occupiedHours: { startHour: string; endHour: string }[];
-	occupiedDays: WeekDay[];
+	occupiedDays: string[];
 };
 
 export type EnterpriseValuesRoomRevenue = {
@@ -220,7 +250,7 @@ export type EnterpriseValuesRoomRevenue = {
 	totalRevenue: number;
 	revenue: {
 		byHour: number;
-		_3xWeek: number;
+		_week: number;
 		byMonth: number;
 	};
 };
@@ -230,7 +260,7 @@ export type EnterpriseValuesRoomPrice = {
 	room: string;
 	price: {
 		byHour: number;
-		_3xWeek: number;
+		_week: number;
 		byMonth: number;
 	};
 };
@@ -544,13 +574,15 @@ export async function getRoomOccupancy(roomId: string): Promise<RoomOccupancyRes
 		},
 		select: {
 			selectedWeekDay: true,
+			startDate: true,
+			endDate: true,
 		},
 	});
 
 	const occupiedHours: { startHour: string; endHour: string }[] = [];
 
 	const occupiedDays = Array.from(
-		new Set(activeRentals.flatMap((rental) => rental.selectedWeekDay))
+		new Set(activeRentals.flatMap((rental) => getDateRangeKeys(rental.startDate, rental.endDate)))
 	);
 
 	return {
@@ -572,7 +604,7 @@ export async function getRoomsList() {
 			prices: {
 				select: {
 					pricePerHour: true,
-					price3xWeek: true,
+					priceWeek: true,
 					pricePerMonth: true,
 				},
 			},
@@ -593,7 +625,7 @@ export async function createRoom(data: {
 	area: number;
 	characteristics: string;
 	pricePerHour: number;
-	price_3xWeek: number;
+		priceWeek: number;
 	pricePerMonth: number;
 	items: { name: string; quantity: number }[];
 }) {
@@ -643,7 +675,7 @@ export async function createRoom(data: {
 			prices: {
 				create: {
 					pricePerHour: data.pricePerHour,
-					price3xWeek: data.price_3xWeek,
+					priceWeek: data.priceWeek,
 					pricePerMonth: data.pricePerMonth,
 				},
 			},
@@ -667,7 +699,7 @@ export async function createRoom(data: {
 			prices: {
 				select: {
 					pricePerHour: true,
-					price3xWeek: true,
+					priceWeek: true,
 					pricePerMonth: true,
 				},
 			},
@@ -680,7 +712,7 @@ export async function createRoom(data: {
 export async function createRoomRental(data: {
 	professionalId: string;
 	roomId: string;
-	allocationType: "DAILY" | "3X_WEEK" | "MONTH";
+	allocationType: "DAILY" | "WEEK" | "MONTH";
 	paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 	startDate: Date;
 	endDate: Date;
@@ -688,6 +720,27 @@ export async function createRoomRental(data: {
 	selectedWeekDays?: string[];
 }) {
 	const selectedWeekDays = toWeekDays(data.selectedWeekDays);
+	const startDate = new Date(data.startDate);
+	const endDate = new Date(data.endDate);
+
+	const overlappingRental = await prisma.roomRental.findFirst({
+		where: {
+			roomId: data.roomId,
+			startDate: {
+				lt: endDate,
+			},
+			endDate: {
+				gt: startDate,
+			},
+		},
+		select: {
+			id: true,
+		},
+	});
+
+	if (overlappingRental) {
+		throw createHttpError(409, "conflict", "A sala já está ocupada nesse período.");
+	}
 
 	const rental = await prisma.roomRental.create({
 		data: {
@@ -695,8 +748,8 @@ export async function createRoomRental(data: {
 			roomId: data.roomId,
 			allocationType: toPrismaAllocationType(data.allocationType),
 			paymentMethod: data.paymentMethod ?? null,
-			startDate: new Date(data.startDate),
-			endDate: new Date(data.endDate),
+			startDate,
+			endDate,
 			totalPrice: data.totalPrice.toString(),
 			selectedWeekDay: selectedWeekDays,
 		},
@@ -731,7 +784,7 @@ export async function getUserRentals(professionalId: string) {
 					prices: {
 						select: {
 							pricePerHour: true,
-							price3xWeek: true,
+							priceWeek: true,
 							pricePerMonth: true,
 						},
 					},
@@ -774,7 +827,7 @@ export async function getEnterpriseValues(userId: string): Promise<EnterpriseVal
 				prices: {
 					select: {
 						pricePerHour: true,
-						price3xWeek: true,
+						priceWeek: true,
 						pricePerMonth: true,
 					},
 				},
@@ -826,7 +879,7 @@ export async function getEnterpriseValues(userId: string): Promise<EnterpriseVal
 				totalRevenue: 0,
 				revenue: {
 					byHour: 0,
-					_3xWeek: 0,
+					_week: 0,
 					byMonth: 0,
 				},
 			},
@@ -848,8 +901,8 @@ export async function getEnterpriseValues(userId: string): Promise<EnterpriseVal
 			continue;
 		}
 
-		if (rental.allocationType === "THREE_X_WEEK") {
-			currentRoom.revenue._3xWeek += rentalValue;
+		if (rental.allocationType === "WEEK") {
+			currentRoom.revenue._week += rentalValue;
 			continue;
 		}
 
@@ -882,7 +935,7 @@ export async function getEnterpriseValues(userId: string): Promise<EnterpriseVal
 			room: room.title,
 			price: {
 				byHour: parseFloat(room.prices?.pricePerHour.toString() ?? "0"),
-				_3xWeek: parseFloat(room.prices?.price3xWeek.toString() ?? "0"),
+				_week: parseFloat(room.prices?.priceWeek.toString() ?? "0"),
 				byMonth: parseFloat(room.prices?.pricePerMonth.toString() ?? "0"),
 			},
 		})),

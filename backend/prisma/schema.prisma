@@ -52,7 +52,7 @@ enum RoomItemName {
 
 enum AllocationType {
   DAILY
-  THREE_X_WEEK @map("3X_WEEK")
+  WEEK
   MONTH
 }
 
@@ -167,7 +167,7 @@ model RoomPrice {
   id            String   @id @default(uuid())
   roomId        String   @unique
   pricePerHour  Decimal  @db.Decimal(10, 2)
-  price3xWeek   Decimal  @db.Decimal(10, 2)
+  priceWeek     Decimal  @db.Decimal(10, 2)
   pricePerMonth Decimal  @db.Decimal(10, 2)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -255,7 +255,7 @@ model RoomRevenue {
   month          Int
   year           Int
   revenuePerHour Decimal  @default(0) @db.Decimal(10, 2)
-  revenue3xWeek  Decimal  @default(0) @db.Decimal(10, 2)
+  revenueWeek    Decimal  @default(0) @db.Decimal(10, 2)
   revenueMonthly Decimal  @default(0) @db.Decimal(10, 2)
   totalRevenue   Decimal  @default(0) @db.Decimal(12, 2)
   createdAt      DateTime @default(now())

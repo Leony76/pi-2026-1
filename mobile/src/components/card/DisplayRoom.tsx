@@ -60,7 +60,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
             </Text>
 
             <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices._3xWeek) } <Text className='text-base text-medroom-secondary font-nunito'> / 3x semana </Text>
+              { priceFormat(props.prices._week) } <Text className='text-base text-medroom-secondary font-nunito'> / Por semana </Text>
             </Text>
 
             <Text className='text-green-700 font-nunito-bold text-xl'>

@@ -61,7 +61,7 @@ const PricesByRoom = (): React.JSX.Element => {
 
   const allocationLabelMap: Record<Allocation, string> = {
     DAILY: 'Por dia',
-    '3X_WEEK': '3x semana',
+    WEEK: 'Por semana',
     MONTH: 'Por mês',
   };
 
@@ -122,9 +122,9 @@ const PricesByRoom = (): React.JSX.Element => {
             />
 
             <Button.Default
-              label='3x Semana'
-              filled={pricesRender === '3X_WEEK'}
-              onTouch={() => setPricesRender('3X_WEEK')}
+              label='Por semana'
+              filled={pricesRender === 'WEEK'}
+              onTouch={() => setPricesRender('WEEK')}
               customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
             />
 
@@ -151,7 +151,7 @@ const PricesByRoom = (): React.JSX.Element => {
               renderItem={({ item, index }) => {
                 const allocationTypePriceMap: Record<Allocation, number | undefined> = {
                   DAILY: item.price.byHour,
-                  '3X_WEEK': item.price._3xWeek,
+                  WEEK: item.price._week,
                   MONTH: item.price.byMonth,
                 };
 

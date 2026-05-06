@@ -7,7 +7,7 @@
 */
 -- AlterEnum
 BEGIN;
-CREATE TYPE "AllocationType_new" AS ENUM ('DAILY', '3X_WEEK', 'MONTH');
+CREATE TYPE "AllocationType_new" AS ENUM ('DAILY', 'WEEK', 'MONTH');
 ALTER TABLE "RoomRental" ALTER COLUMN "allocationType" TYPE "AllocationType_new" USING ("allocationType"::text::"AllocationType_new");
 ALTER TYPE "AllocationType" RENAME TO "AllocationType_old";
 ALTER TYPE "AllocationType_new" RENAME TO "AllocationType";

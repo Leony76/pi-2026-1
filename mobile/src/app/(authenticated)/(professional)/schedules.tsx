@@ -91,14 +91,13 @@ const schedules = (): React.JSX.Element => {
       return 'Por dia';
     }
 
-    if (allocationType === '3X_WEEK') {
-      return '3x Semana';
+    if (allocationType === 'WEEK') {
+      return 'Por semana';
     }
 
     return 'Mensal';
   };
 
-  // Only two states: ativo (until end) or encerrado (after end)
   const activeRentals = rentals.filter(r => {
     const end = getRentalEnd(r);
     return end >= now;

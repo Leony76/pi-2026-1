@@ -205,7 +205,7 @@ const Edit = (): React.JSX.Element => {
                 render={({ field: { onChange, value } }) => (
                   <Input.Style2
                     icon={{ name: 'phone' }}
-                    maxLength={16}
+                    maxLength={15}
                     label='Telefone'
                     onChange={(phone) => {
                       const phoneMask = formatPhone(phone);

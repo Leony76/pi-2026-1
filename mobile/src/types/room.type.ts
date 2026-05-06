@@ -10,7 +10,7 @@ export type Room = {
   };
   prices : {
     perHour : number;
-    _3xWeek : number;
+    _week : number;
     month   : number;
   }
 };

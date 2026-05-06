@@ -68,7 +68,7 @@ export async function createRoomController(request: Request, response: Response,
 			area: request.body.area,
 			characteristics: request.body.characteristics,
 			pricePerHour: request.body.pricePerHour,
-			price_3xWeek: request.body.price_3xWeek,
+			priceWeek: request.body.priceWeek,
 			pricePerMonth: request.body.pricePerMonth,
 			items: Array.isArray(request.body.items) ? request.body.items : [],
 		});

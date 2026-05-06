@@ -3,7 +3,7 @@ export type RoomPrice = {
   room : string;
   price: {
     byHour  : number;
-    _3xWeek : number; 
+    _week : number; 
     byMonth : number; 
   };  
 };

@@ -237,7 +237,7 @@ const Values = (): React.JSX.Element => {
               </View>
 
               <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
-                3x semana
+                Por semana
               </Text>
 
               <View className='gap-3'>
@@ -246,7 +246,7 @@ const Values = (): React.JSX.Element => {
                     <Label___Value
                       separationRow={roomPricesData.length - 1 !== index}
                       key={`week-${item.id}`}
-                      value={{ _: priceFormat(item.price._3xWeek ?? 0), color: 'text-green-600'}}
+                      value={{ _: priceFormat(item.price._week ?? 0), color: 'text-green-600'}}
                       label={ item.room }
                     /> 
                   ))

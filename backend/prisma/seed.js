@@ -42,7 +42,7 @@ const seedRooms = [
     isAvailable: true,
     prices: {
       pricePerHour: "79.9",
-      price3xWeek: "599.9",
+      priceWeek: "599.9",
       pricePerMonth: "899.9",
     },
   },
@@ -55,7 +55,7 @@ const seedRooms = [
     isAvailable: true,
     prices: {
       pricePerHour: "64.9",
-      price3xWeek: "479.9",
+      priceWeek: "479.9",
       pricePerMonth: "779.9",
     },
   },
@@ -68,7 +68,7 @@ const seedRooms = [
     isAvailable: false,
     prices: {
       pricePerHour: "264.9",
-      price3xWeek: "1779.9",
+      priceWeek: "1779.9",
       pricePerMonth: "2879.9",
     },
   },
@@ -141,7 +141,7 @@ async function main() {
       data: {
         roomId: createdRoom.id,
         pricePerHour: room.prices.pricePerHour,
-        price3xWeek: room.prices.price3xWeek,
+        priceWeek: room.prices.priceWeek,
         pricePerMonth: room.prices.pricePerMonth,
       },
     });

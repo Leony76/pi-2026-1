@@ -1,18 +1,14 @@
 import { Button } from '@/components/button'
-import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag'
 import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
-import { DAYS } from '@/constants/misc/days.misc'
-import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { useAuth } from '@/contexts/auth.context'
 import { ApiError } from '@/services/api'
 import { fetchRoomOccupancy, RoomOccupancyResponse } from '@/services/rooms'
 import { Allocation } from '@/types/allocation.type'
-import { Days } from '@/types/days.type'
 import { RoomDisplayCard } from '@/types/room.type'
 import { formatSessionDate } from '@/utils/formatSessionDate'
 import { priceFormat } from '@/utils/priceFormat'
@@ -20,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ScrollView, Text, View } from 'react-native'
+import { Calendar } from 'react-native-calendars'
 
 const roomRentalWizard = (): React.JSX.Element => {
   const params = useLocalSearchParams()
@@ -29,7 +26,6 @@ const roomRentalWizard = (): React.JSX.Element => {
   const [allocationType, setAllocationType] = useState<Allocation | null>(null)
   const [wizardStep, setWizardStep] = useState<number>(1)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [daysSelected, setDaysSelected] = useState<Days[]>([])
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | null>(null)
   const [roomOccupancy, setRoomOccupancy] = useState<RoomOccupancyResponse>({
     occupiedHours: [],
@@ -42,7 +38,7 @@ const roomRentalWizard = (): React.JSX.Element => {
 
   const prices: RoomDisplayCard['prices'] = params.prices
     ? JSON.parse(params.prices as string)
-    : { perHour: 0, _3xWeek: 0, month: 0 }
+    : { perHour: 0, _week: 0, month: 0 }
 
   const complementaryData: RoomDisplayCard['complementaryData'] = params.complementaryData
     ? JSON.parse(params.complementaryData as string)
@@ -69,43 +65,84 @@ const roomRentalWizard = (): React.JSX.Element => {
 
   const todayKey = new Date().toISOString().slice(0, 10)
 
+  const getDateKey = (date: Date): string => date.toISOString().slice(0, 10)
+
+  const addDays = (date: Date, days: number): Date => {
+    const nextDate = new Date(date)
+    nextDate.setDate(nextDate.getDate() + days)
+    return nextDate
+  }
+
+  const getWeekRange = (referenceDate: Date): { startDate: Date; endDate: Date } => ({
+    startDate: referenceDate,
+    endDate: addDays(referenceDate, 6),
+  })
+
+  const selectedWeekRange = selectedDate ? getWeekRange(selectedDate) : null
+
+  const futureOccupiedDays = useMemo(() => {
+    const occupiedDates = Array.isArray(roomOccupancy.occupiedDays) ? roomOccupancy.occupiedDays : []
+
+    return occupiedDates.filter((date) => date >= todayKey)
+  }, [roomOccupancy.occupiedDays, todayKey])
+
   const dailyMarkedDates = useMemo(() => {
     const marked: Record<string, any> = {}
 
-    const occupiedDates = Array.isArray(roomOccupancy.occupiedDays) ? roomOccupancy.occupiedDays : []
-    for (const date of occupiedDates) {
-      if (date < todayKey) {
-        continue
-      }
-
+    for (const date of futureOccupiedDays) {
       marked[date] = {
         marked: true,
-        dotColor: systemColors.primary,
-        selectedColor: systemColors.primary,
+        dotColor: '#FF6B6B',
+        selectedColor: '#FF6B6B',
         disableTouchEvent: true,
       }
     }
 
     return marked
-  }, [roomOccupancy.occupiedDays, todayKey])
+  }, [futureOccupiedDays])
 
-  const handleDayPress = (day: Days): void => {
-    setDaysSelected((prev) => {
-      if (prev.includes(day)) {
-        return prev.filter((d) => d !== day)
+  const weekMarkedDates = useMemo(() => {
+    const marked: Record<string, any> = {}
+
+    for (const date of futureOccupiedDays) {
+      marked[date] = {
+        marked: true,
+        dotColor: '#FF6B6B',
+        disabled: true,
+        disableTouchEvent: true,
       }
+    }
 
-      if (prev.length >= 3) {
-        return [...prev.slice(1), day]
+    if (selectedWeekRange) {
+      let currentDate = new Date(selectedWeekRange.startDate)
+
+      while (currentDate <= selectedWeekRange.endDate) {
+        const key = getDateKey(currentDate)
+        marked[key] = {
+          ...(marked[key] ?? {}),
+          color: systemColors.primary,
+          textColor: '#ffffff',
+          startingDay: key === getDateKey(selectedWeekRange.startDate),
+          endingDay: key === getDateKey(selectedWeekRange.endDate),
+        }
+
+        currentDate = addDays(currentDate, 1)
       }
+    }
 
-      return [...prev, day]
-    })
-  }
+    return marked
+  }, [futureOccupiedDays, selectedWeekRange])
+
+  const selectedWeekLabel = selectedWeekRange
+    ? `${formatSessionDate(selectedWeekRange.startDate.toISOString())} - ${formatSessionDate(selectedWeekRange.endDate.toISOString())}`
+    : null
+
+  const selectedWeekDays = selectedWeekRange
+    ? Array.from({ length: 7 }, (_, index) => addDays(selectedWeekRange.startDate, index))
+    : []
 
   const handleSwitchAllocationDataClean = (): void => {
     setPaymentMethod(null)
-    setDaysSelected([])
   }
 
   useEffect(() => {
@@ -117,9 +154,8 @@ const roomRentalWizard = (): React.JSX.Element => {
           roomName: title.split('-')[0],
           allocationType,
           date: selectedDate ? selectedDate.toISOString() : undefined,
-          days: JSON.stringify(daysSelected),
-          pricePaid: allocationType === '3X_WEEK'
-            ? prices._3xWeek
+          pricePaid: allocationType === 'WEEK'
+            ? prices._week
             : allocationType === 'MONTH'
               ? prices.month
               : prices.perHour,
@@ -127,7 +163,7 @@ const roomRentalWizard = (): React.JSX.Element => {
         },
       })
     }
-  }, [wizardStep, router, roomId, title, allocationType, selectedDate, daysSelected, prices, paymentMethod])
+  }, [wizardStep, router, roomId, title, allocationType, selectedDate, prices, paymentMethod])
 
   return (
     <LayoutWrapper>
@@ -176,10 +212,10 @@ const roomRentalWizard = (): React.JSX.Element => {
 
                 <Button.Default
                   label='Por semana'
-                  filled={allocationType === '3X_WEEK'}
+                  filled={allocationType === 'WEEK'}
                   customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
                   onTouch={() => {
-                    setAllocationType(allocationType === '3X_WEEK' ? null : '3X_WEEK')
+                    setAllocationType(allocationType === 'WEEK' ? null : 'WEEK')
                     handleSwitchAllocationDataClean()
                   }}
                 />
@@ -198,32 +234,106 @@ const roomRentalWizard = (): React.JSX.Element => {
               {allocationType === 'DAILY' ? (
                 <>
                   <Section title='Selecione o dia'>
-                    <Input.DateTime
-                      label='Data'
-                      placeholder={{ text: 'Selecione o dia' }}
-                      icon={{ name: 'schedule' }}
-                      value={selectedDate ?? undefined}
-                      minDate={todayKey}
-                      markedDates={dailyMarkedDates}
-                      onChange={(date) => {
-                        if (!date) {
-                          setSelectedDate(null)
-                          return
-                        }
+                    <View className='gap-2 rounded-xl border-2 border-medroom-primaryLight bg-cyan-50/20 p-3'>
+                      <Text className='font-nunito-bold text-medroom-primary text-base'>
+                        Escolha um dia
+                      </Text>
+                      <Text className='font-nunito text-medroom-secondary'>
+                        Selecione o dia desejado no calendário.
+                      </Text>
+                    </View>
 
-                        setSelectedDate(date)
-                      }}
-                    />
+                    <View className='rounded-2xl border-2 border-medroom-primaryLight overflow-hidden'>
+                      <Calendar
+                        current={selectedDate ? selectedDate.toISOString().slice(0, 10) : todayKey}
+                        minDate={todayKey}
+                        onDayPress={(day) => {
+                          const date = new Date(day.timestamp)
+                          date.setMinutes(date.getMinutes() + date.getTimezoneOffset())
+                          setSelectedDate(date)
+                        }}
+                        markedDates={{
+                          ...dailyMarkedDates,
+                          ...(selectedDate ? { [getDateKey(selectedDate)]: { selected: true, selectedColor: systemColors.primary, selectedTextColor: '#ffffff' } } : {}),
+                        }}
+                        theme={{
+                          backgroundColor: '#ffffff',
+                          calendarBackground: '#ffffff',
+                          textSectionTitleColor: '#b6c1cd',
+                          selectedDayBackgroundColor: systemColors.primary,
+                          selectedDayTextColor: '#ffffff',
+                          todayTextColor: systemColors.primary,
+                          dayTextColor: 'gray',
+                          arrowColor: systemColors.primary,
+                          monthTextColor: systemColors.primary,
+                          indicatorColor: systemColors.primary,
+                          textDayFontFamily: 'nunito',
+                          textMonthFontFamily: 'nunito-bold',
+                          textDayHeaderFontFamily: 'nunito-bold',
+                        }}
+                      />
+                    </View>
+
+                    <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-3'>
+                      <Text className='font-nunito-bold text-medroom-primary text-base'>Legenda</Text>
+
+                      <View className='flex-row flex-wrap gap-2'>
+                        <View className='flex-row items-center gap-2 rounded-full border border-medroom-primaryLight bg-cyan-50 px-3 py-1.5'>
+                          <View className='h-3 w-3 rounded-full bg-medroom-primary' />
+                          <Text className='font-nunito text-sm text-medroom-secondary'>Dia selecionado</Text>
+                        </View>
+
+                        <View className='flex-row items-center gap-2 rounded-full border border-red-300 bg-red-100 px-3 py-1.5'>
+                          <View className='h-3 w-3 rounded-full bg-red-400' />
+                          <Text className='font-nunito text-sm text-red-900'>Dia ocupado</Text>
+                        </View>
+                      </View>
+
+                      {futureOccupiedDays.length > 0 && (
+                        <View className='gap-2'>
+                          <Text className='font-nunito-bold text-medroom-primary text-sm'>Dias ocupados</Text>
+
+                          <View className='flex-row flex-wrap gap-2'>
+                            {futureOccupiedDays.slice(0, 10).map((date) => {
+                              const parsedDate = new Date(`${date}T00:00:00`)
+
+                              return (
+                                <View
+                                  key={date}
+                                  className='rounded-full border border-red-300 bg-red-100 px-3 py-1'
+                                >
+                                  <Text className='text-xs font-nunito-bold text-red-900'>
+                                    {parsedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                                  </Text>
+                                </View>
+                              )
+                            })}
+
+                            {futureOccupiedDays.length > 10 && (
+                              <View className='rounded-full border border-medroom-primaryLight bg-cyan-50 px-3 py-1'>
+                                <Text className='text-xs font-nunito-bold text-medroom-secondary'>
+                                  +{futureOccupiedDays.length - 10} dias
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
+                    </View>
 
                     {selectedDate && (
-                      <>
-                        <View className='h-0.5 w-fill bg-gray-200' />
+                      <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-3'>
+                        <Label___Value
+                          label='Dia selecionado'
+                          boldLabel
+                          value={{ _: formatSessionDate(selectedDate.toISOString()), color: 'text-medroom-primary' }}
+                        />
                         <Label___Value
                           label='Valor diário'
                           boldLabel
                           value={{ _: priceFormat(prices.perHour), color: 'text-green-600' }}
                         />
-                      </>
+                      </View>
                     )}
                   </Section>
 
@@ -236,41 +346,132 @@ const roomRentalWizard = (): React.JSX.Element => {
                     />
                   )}
                 </>
-              ) : allocationType === '3X_WEEK' ? (
+              ) : allocationType === 'WEEK' ? (
                 <>
-                  <Section title='SELECIONE OS DIAS DA SEMANA'>
-                    <View className='flex-row gap-1'>
-                      {DAYS.map((day) => {
-                        const isSelected = daysSelected.includes(day)
-                        const isOccupied = roomOccupancy.occupiedDays.includes(day)
-
-                        return (
-                          <Button.Default
-                            key={day}
-                            label={TRANSLATED_DAYS_MAP[day].slice(0, 3)}
-                            filled={isSelected}
-                            onTouch={() => handleDayPress(day)}
-                            disable={isOccupied}
-                            textLineThrough={isOccupied}
-                            customStyle={{ container: 'flex-1', text: 'text-sm' }}
-                          />
-                        )
-                      })}
+                  <Section title='Selecione a semana'>
+                    <View className='gap-2 rounded-xl border-2 border-medroom-primaryLight bg-cyan-50/20 p-3'>
+                      <Text className='font-nunito-bold text-medroom-primary text-base'>
+                        Escolha uma data de referência
+                      </Text>
+                      <Text className='font-nunito text-medroom-secondary'>
+                        A reserva cobre os 7 dias da semana iniciada na data escolhida.
+                      </Text>
                     </View>
 
-                    {daysSelected.length === 3 && (
-                      <>
-                        <View className='h-0.5 w-fill bg-gray-200' />
+                    <View className='rounded-2xl border-2 border-medroom-primaryLight overflow-hidden'>
+                      <Calendar
+                        current={selectedDate ? selectedDate.toISOString().slice(0, 10) : todayKey}
+                        minDate={todayKey}
+                        onDayPress={(day) => {
+                          const date = new Date(day.timestamp)
+                          date.setMinutes(date.getMinutes() + date.getTimezoneOffset())
+                          setSelectedDate(date)
+                        }}
+                        markedDates={weekMarkedDates}
+                        markingType='period'
+                        theme={{
+                          backgroundColor: '#ffffff',
+                          calendarBackground: '#ffffff',
+                          textSectionTitleColor: '#b6c1cd',
+                          selectedDayBackgroundColor: systemColors.primary,
+                          selectedDayTextColor: '#ffffff',
+                          todayTextColor: systemColors.primary,
+                          dayTextColor: 'gray',
+                          arrowColor: systemColors.primary,
+                          monthTextColor: systemColors.primary,
+                          indicatorColor: systemColors.primary,
+                          textDayFontFamily: 'nunito',
+                          textMonthFontFamily: 'nunito-bold',
+                          textDayHeaderFontFamily: 'nunito-bold',
+                        }}
+                      />
+                    </View>
+
+                    <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-3'>
+                      <Text className='font-nunito-bold text-medroom-primary text-base'>Legenda</Text>
+
+                      <View className='flex-row flex-wrap gap-2'>
+                        <View className='flex-row items-center gap-2 rounded-full border border-medroom-primaryLight bg-cyan-50 px-3 py-1.5'>
+                          <View className='h-3 w-3 rounded-full bg-medroom-primary' />
+                          <Text className='font-nunito text-sm text-medroom-secondary'>Semana selecionada</Text>
+                        </View>
+
+                        <View className='flex-row items-center gap-2 rounded-full border border-red-300 bg-red-100 px-3 py-1.5'>
+                          <View className='h-3 w-3 rounded-full bg-red-400' />
+                          <Text className='font-nunito text-sm text-red-900'>Dia ocupado</Text>
+                        </View>
+                      </View>
+
+                      {futureOccupiedDays.length > 0 && (
+                        <View className='gap-2'>
+                          <Text className='font-nunito-bold text-medroom-primary text-sm'>Dias ocupados</Text>
+
+                          <View className='flex-row flex-wrap gap-2'>
+                            {futureOccupiedDays.slice(0, 10).map((date) => {
+                              const parsedDate = new Date(`${date}T00:00:00`)
+
+                              return (
+                                <View
+                                  key={date}
+                                  className='rounded-full border border-red-300 bg-red-100 px-3 py-1'
+                                >
+                                  <Text className='text-xs font-nunito-bold text-red-900'>
+                                    {parsedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                                  </Text>
+                                </View>
+                              )
+                            })}
+
+                            {futureOccupiedDays.length > 10 && (
+                              <View className='rounded-full border border-medroom-primaryLight bg-cyan-50 px-3 py-1'>
+                                <Text className='text-xs font-nunito-bold text-medroom-secondary'>
+                                  +{futureOccupiedDays.length - 10} dias
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+
+                    {selectedWeekLabel && (
+                      <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-3'>
+                        <Label___Value
+                          label='Semana reservada'
+                          boldLabel
+                          value={{ _: selectedWeekLabel, color: 'text-medroom-primary' }}
+                        />
+                        <View className='flex-row flex-wrap gap-2'>
+                          {selectedWeekDays.map((date) => {
+                            const dateKey = getDateKey(date)
+                            const weekdayLabel = date.toLocaleDateString('pt-BR', { weekday: 'short' })
+                            const dayNumber = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+
+                            return (
+                              <View
+                                key={dateKey}
+                                className='min-w-[82px] flex-1 rounded-xl border border-medroom-primaryLight bg-cyan-50 px-2 py-2'
+                              >
+                                <Text className='text-[11px] uppercase tracking-wide text-medroom-secondary'>
+                                  {weekdayLabel}
+                                </Text>
+                                <Text className='font-nunito-bold text-sm text-medroom-primary'>
+                                  {dayNumber}
+                                </Text>
+                              </View>
+                            )
+                          })}
+                        </View>
                         <Label___Value
                           label='Valor semanal'
                           boldLabel
-                          value={{ _: priceFormat(prices._3xWeek), color: 'text-green-600' }}
+                          value={{ _: priceFormat(prices._week), color: 'text-green-600' }}
                         />
-                      </>
+                      </View>
                     )}
                   </Section>
 
-                  {daysSelected.length === 3 && (
+                  {selectedDate && (
                     <Button.Default
                       label='Reservar sala'
                       onTouch={() => setWizardStep(2)}
@@ -281,21 +482,126 @@ const roomRentalWizard = (): React.JSX.Element => {
                 </>
               ) : allocationType === 'MONTH' ? (
                 <>
-                  <Section title='Resumo'>
-                    <Label___Value separationRow label='Período' value={{ _: '1 mês' }} />
-                    <Label___Value
-                      label='Valor mensal'
-                      boldLabel
-                      value={{ _: priceFormat(prices.month), color: 'text-green-600' }}
-                    />
+                  <Section title='Selecione o mês'>
+                    <View className='gap-2 rounded-xl border-2 border-medroom-primaryLight bg-cyan-50/20 p-3'>
+                      <Text className='font-nunito-bold text-medroom-primary text-base'>
+                        Reserva mensal completa
+                      </Text>
+                      <Text className='font-nunito text-medroom-secondary'>
+                        A reserva cobre 30 dias corridos a partir da data de início escolhida.
+                      </Text>
+                    </View>
+
+                    <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-4'>
+                      <Text className='font-nunito-bold text-medroom-primary text-base'>Mês de reserva</Text>
+                      
+                      <View className='gap-3'>
+                        {Array.from({ length: 6 }, (_, i) => {
+                          const date = new Date()
+                          date.setDate(1)
+                          date.setMonth(date.getMonth() + i)
+                          const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                          const isSelected = selectedDate && 
+                            selectedDate.getMonth() === date.getMonth() && 
+                            selectedDate.getFullYear() === date.getFullYear()
+                          
+                          return (
+                            <Button.Default
+                              key={i}
+                              label={monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+                              filled={isSelected}
+                              onTouch={() => {
+                                const newDate = new Date(date)
+                                newDate.setDate(1)
+                                setSelectedDate(newDate)
+                              }}
+                              customStyle={{ container: 'py-3', text: 'text-base capitalize' }}
+                            />
+                          )
+                        })}
+                      </View>
+                    </View>
+
+                    {selectedDate && (
+                      <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-4'>
+                        <View className='gap-2'>
+                          <Text className='font-nunito-bold text-medroom-primary text-sm'>Período selecionado</Text>
+                          <View className='gap-1'>
+                            <Label___Value
+                              label='Início'
+                              value={{ _: formatSessionDate(selectedDate.toISOString()), color: 'text-medroom-secondary' }}
+                            />
+                            <Label___Value
+                              label='Fim'
+                              value={{ _: formatSessionDate(addDays(selectedDate, 29).toISOString()), color: 'text-medroom-secondary' }}
+                            />
+                          </View>
+                        </View>
+
+                        <View className='h-0.5 w-full bg-gray-200' />
+
+                        <View className='gap-2'>
+                          <View className='flex-row items-center justify-between'>
+                            <Text className='font-nunito text-medroom-secondary'>Duração</Text>
+                            <Text className='font-nunito-bold text-medroom-primary'>30 dias</Text>
+                          </View>
+                        </View>
+
+                        <View className='h-0.5 w-full bg-gray-200' />
+
+                        <View className='gap-2'>
+                          <Label___Value
+                            label='Valor total'
+                            boldLabel
+                            value={{ _: priceFormat(prices.month), color: 'text-green-600' }}
+                          />
+                        </View>
+                      </View>
+                    )}
+
+                    {futureOccupiedDays.length > 0 && (
+                      <View className='gap-3 rounded-xl border-2 border-red-300 bg-red-50 p-3'>
+                        <View className='flex-row items-center gap-2'>
+                          <MaterialIcons name='warning' size={20} color='#dc2626' />
+                          <Text className='font-nunito-bold text-red-700 flex-1'>Dias com conflito</Text>
+                        </View>
+                        <Text className='font-nunito text-red-700 text-sm'>
+                          Existem dias ocupados no período. Verifique os seguintes dias:
+                        </Text>
+                        <View className='flex-row flex-wrap gap-2 mt-2'>
+                          {futureOccupiedDays.slice(0, 10).map((date) => {
+                            const parsedDate = new Date(`${date}T00:00:00`)
+                            return (
+                              <View
+                                key={date}
+                                className='rounded-full border border-red-300 bg-red-100 px-3 py-1'
+                              >
+                                <Text className='text-xs font-nunito-bold text-red-900'>
+                                  {parsedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                                </Text>
+                              </View>
+                            )
+                          })}
+                          {futureOccupiedDays.length > 10 && (
+                            <View className='rounded-full border border-red-300 bg-red-100 px-3 py-1'>
+                              <Text className='text-xs font-nunito-bold text-red-900'>
+                                +{futureOccupiedDays.length - 10} dias
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
                   </Section>
 
-                  <Button.Default
-                    label='Reservar sala'
-                    onTouch={() => setWizardStep(2)}
-                    filled
-                    icon={{ name: 'key_card' }}
-                  />
+                  {selectedDate && (
+                    <Button.Default
+                      label='Reservar sala'
+                      onTouch={() => setWizardStep(2)}
+                      filled
+                      icon={{ name: 'key_card' }}
+                    />
+                  )}
                 </>
               ) : (
                 <View className='flex-row gap-1 items-center self-center'>
@@ -320,11 +626,13 @@ const roomRentalWizard = (): React.JSX.Element => {
                   <>
                     <Label___Value
                       separationRow
-                      label={allocationType === 'DAILY' ? 'Dia' : 'Dias'}
+                      label={allocationType === 'DAILY' ? 'Dia' : 'Semana'}
                       value={{
                         _: allocationType === 'DAILY'
                           ? (selectedDate ? formatSessionDate(selectedDate.toISOString()) : '-')
-                          : `${TRANSLATED_DAYS_MAP[daysSelected.at(0)!].split('-')[0]}, ${TRANSLATED_DAYS_MAP[daysSelected.at(1)!].split('-')[0]} e ${TRANSLATED_DAYS_MAP[daysSelected.at(2)!].split('-')[0]}`,
+                          : (selectedDate
+                            ? `${formatSessionDate(selectedDate.toISOString())} - ${formatSessionDate(new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() + 6)).toISOString())}`
+                            : '-'),
                       }}
                     />
 
@@ -349,8 +657,8 @@ const roomRentalWizard = (): React.JSX.Element => {
                     color: 'text-green-600',
                     _: allocationType === 'MONTH'
                       ? priceFormat(prices.month)
-                      : allocationType === '3X_WEEK'
-                        ? priceFormat(prices._3xWeek)
+                      : allocationType === 'WEEK'
+                        ? priceFormat(prices._week)
                         : priceFormat(prices.perHour),
                   }}
                 />

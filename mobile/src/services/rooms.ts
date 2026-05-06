@@ -4,7 +4,6 @@ import { RoomDisplayCard } from "@/types/room.type";
 import { Expanses } from "@/types/expenses.type";
 import { RoomPrice } from "@/types/roomPrice.type";
 import { OverallRoomRevenue } from "@/types/roomRevenue.type";
-import { Days } from "@/types/days.type";
 import { HourShift } from "@/types/hourShift.type";
 import { Specialty } from "@/constants/maps/selectOptions.map";
 
@@ -22,7 +21,7 @@ export type CreateRoomInput = {
 	area: number;
 	characteristics: string;
 	pricePerHour: number;
-	price_3xWeek: number;
+	priceWeek: number;
 	pricePerMonth: number;
 	items: {
 		name: string;
@@ -80,7 +79,7 @@ export type EnterpriseDashboardResponse = {
 
 export type RoomOccupancyResponse = {
 	occupiedHours: HourShift[];
-	occupiedDays: Days[];
+	occupiedDays: string[];
 };
 
 export type RoomRental = {
@@ -88,7 +87,7 @@ export type RoomRental = {
 	roomTitle: string;
 	roomFloor: string;
 	roomCharacteristic: string;
-	allocationType: "DAILY" | "3X_WEEK" | "MONTH";
+	allocationType: "DAILY" | "WEEK" | "MONTH";
 	startDate: string;
 	endDate: string;
 	totalPrice: number;
@@ -146,7 +145,7 @@ export async function createRoomWithAuth(data: CreateRoomInput, auth: AuthHandle
 			area: data.area,
 			characteristics: data.characteristics,
 			pricePerHour: data.pricePerHour,
-			price_3xWeek: data.price_3xWeek,
+			priceWeek: data.priceWeek,
 			pricePerMonth: data.pricePerMonth,
 			items: data.items,
 		},
@@ -160,7 +159,7 @@ export async function createRoomWithAuth(data: CreateRoomInput, auth: AuthHandle
 export async function createRoomRental(
 	data: {
 		roomId: string;
-		allocationType: "DAILY" | "3X_WEEK" | "MONTH";
+		allocationType: "DAILY" | "WEEK" | "MONTH";
 		paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 		startDate: Date;
 		endDate: Date;
@@ -185,14 +184,14 @@ export async function createRoomRental(
 }
 
 	export async function createRoomRentalWithAuth(
-		data: {
-			roomId: string;
-			allocationType: "DAILY" | "3X_WEEK" | "MONTH";
+		    data: {
+			    roomId: string;
+			    allocationType: "DAILY" | "WEEK" | "MONTH";
 			paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 			startDate: Date;
 			endDate: Date;
 			totalPrice: number;
-			selectedWeekDays?: string[];
+				selectedWeekDays?: string[];
 		},
 		auth: AuthHandlers
 	): Promise<RoomRental> {

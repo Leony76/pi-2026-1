@@ -57,7 +57,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err) {
         if (!guard.cancelled) {
-          if (err instanceof ApiError && (err.statusCode === 401 || err.statusCode === 403)) {
+          if (err instanceof ApiError && (err.statusCode === 401 || err.statusCode === 403 || err.statusCode === 404)) {
             await signOut();
             return;
           }

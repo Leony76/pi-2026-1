@@ -9,8 +9,6 @@ import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 import { useAuth } from '@/contexts/auth.context';
 import { createRoomRentalWithAuth } from '@/services/rooms';
-import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
-import { Days } from '@/types/days.type';
 
 const roomRentalSuccess = (): React.JSX.Element => {
 
@@ -24,11 +22,6 @@ const roomRentalSuccess = (): React.JSX.Element => {
   const paymentMethod = params.paymentMethod as 'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | undefined;
   const pricePaid = params.pricePaid as unknown as number ?? 0;
   const dateParam = params.date as string | undefined;
-  const daysParam = params.days as string | undefined;
-  const days: Days[] = React.useMemo(
-    () => (daysParam ? JSON.parse(daysParam) : []),
-    [daysParam]
-  );
   const selectedDate = React.useMemo(() => (dateParam ? new Date(dateParam) : null), [dateParam]);
 
   const [isSaving, setIsSaving] = useState(true);
@@ -54,11 +47,11 @@ const roomRentalSuccess = (): React.JSX.Element => {
         startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(startDate);
 
-        if (allocationType === 'DAILY') {
-          endDate.setDate(endDate.getDate() + 1);
-        } else if (allocationType === '3X_WEEK') {
-          endDate.setDate(endDate.getDate() + 7);
-        } else if (allocationType === 'MONTH') {
+              if (allocationType === 'DAILY') {
+                endDate.setDate(endDate.getDate() + 1);
+              } else if (allocationType === 'WEEK') {
+                endDate.setDate(endDate.getDate() + 7);
+              } else if (allocationType === 'MONTH') {
           endDate.setMonth(endDate.getMonth() + 1);
         }
 
@@ -70,9 +63,6 @@ const roomRentalSuccess = (): React.JSX.Element => {
             startDate,
             endDate,
             totalPrice: pricePaid,
-            selectedWeekDays: allocationType === '3X_WEEK' 
-              ? days
-              : undefined,
           },
           { token, refreshToken, updateTokens, signOut }
         );
@@ -84,7 +74,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
     };
 
     saveRental();
-  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, pricePaid, days, selectedDate]);
+  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, pricePaid, selectedDate]);
 
   if (isSaving) {
     return (
@@ -162,17 +152,22 @@ const roomRentalSuccess = (): React.JSX.Element => {
                 label='Período'
                 value={{ _: '1 mês' }}
               />
-            ) : (    
+            ) : allocationType === 'WEEK' ? (
               <Label___Value
                 separationRow
-                label='Dias'
-                value={{ 
-                  _:TRANSLATED_DAYS_MAP[days.at(0)!].split('-')[0]  
-                  + ', ' 
-                  + TRANSLATED_DAYS_MAP[days.at(1)!].split('-')[0] 
-                  + ' e ' 
-                  + TRANSLATED_DAYS_MAP[days.at(2)!].split('-')[0] 
+                label='Semana'
+                value={{
+                  _:
+                    selectedDate
+                      ? `${selectedDate.toLocaleDateString('pt-BR')} - ${new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() + 6)).toLocaleDateString('pt-BR')}`
+                      : '-',
                 }}
+              />
+            ) : (
+              <Label___Value
+                separationRow
+                label='Período'
+                value={{ _: '1 mês' }}
               />
             )}
 

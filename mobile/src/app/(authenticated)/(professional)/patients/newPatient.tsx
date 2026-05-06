@@ -241,7 +241,7 @@ const NewPatient = (): React.JSX.Element => {
                 render={({ field: { onChange, value, onBlur } }) => (
                   <Input.Style2
                     icon={{ name: 'phone' }}
-                    maxLength={16}
+                    maxLength={15}
                     label='Telefone'
                     onChange={(text) => {
                       const phoneMask = formatPhone(text);
@@ -266,7 +266,7 @@ const NewPatient = (): React.JSX.Element => {
                 render={({ field: { onChange, value, onBlur } }) => (
                   <Input.Style2
                     icon={{ name: 'mail' }}
-                    maxLength={16}
+                    maxLength={15}
                     label='E-mail (opcional)'
                     onChange={onChange}
                     placeholder={{ text: 'exemplo@gmail.com'}}
@@ -389,7 +389,7 @@ const NewPatient = (): React.JSX.Element => {
                     icon={{ name: 'lupe' }}
                     ExteriorIcon={() => <Feather name="search" size={20} color={systemColors.primary} />}
                     maxLength={256}
-                    label='Observações'
+                    label='Observações (opcional)'
                     onChange={onChange}
                     placeholder={{ text: 'Ex: sessões semanais'}}
                     type='TEXT'

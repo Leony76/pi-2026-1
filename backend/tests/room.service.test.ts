@@ -9,6 +9,7 @@ vi.mock("../src/lib/prisma", () => ({
     },
     roomRental: {
       create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
     },
   },
@@ -34,7 +35,7 @@ const makeRoomListItem = (overrides = {}) => ({
   items: [], // 
   prices: {
     pricePerHour: "80.00",
-    price3xWeek: "220.00",
+    priceWeek: "220.00",
     pricePerMonth: "700.00",
   },
   ...overrides,
@@ -47,7 +48,7 @@ const makeRentalRecord = (overrides = {}) => ({
     floor: "GROUND_FLOOR",
     characteristic: "DEFAULT",
   },
-  allocationType: "THREE_X_WEEK",
+  allocationType: "WEEK",
   startDate: new Date("2026-04-25T08:00:00.000Z"),
   endDate: new Date("2026-05-02T08:00:00.000Z"),
   totalPrice: "220.00",
@@ -66,11 +67,11 @@ const makeRentalListItem = (overrides = {}) => ({
     characteristic: "AIR_CONDITIONER",
     prices: {
       pricePerHour: "80.00",
-      price3xWeek: "220.00",
+      priceWeek: "220.00",
       pricePerMonth: "700.00",
     },
   },
-  allocationType: "THREE_X_WEEK",
+  allocationType: "WEEK",
   startDate: new Date("2026-04-25T10:00:00.000Z"),
   endDate: new Date("2026-04-25T14:00:00.000Z"),
   totalPrice: "220.00",
@@ -113,7 +114,7 @@ describe("room service", () => {
           },
           prices: {
             perHour: 80,
-            _3xWeek: 220,
+            _week: 220,
             month: 700,
           },
         },
@@ -131,7 +132,7 @@ describe("room service", () => {
           isAvailable: true,
           prices: {
             pricePerHour: "50.00",
-            price3xWeek: "120.00",
+            priceWeek: "120.00",
             pricePerMonth: "300.00",
           },
         }),
@@ -145,7 +146,7 @@ describe("room service", () => {
           isAvailable: false,
           prices: {
             pricePerHour: "75.00",
-            price3xWeek: "180.00",
+            priceWeek: "180.00",
             pricePerMonth: "450.00",
           },
         }),
@@ -191,12 +192,13 @@ describe("room service", () => {
 
   describe("createRoomRental", () => {
     it("normalizes allocation type and selected weekdays before persisting", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(makeRentalRecord() as never);
 
       const rental = await createRoomRental({
         professionalId: "prof-1",
         roomId: "room-1",
-        allocationType: "3X_WEEK",
+        allocationType: "WEEK",
         paymentMethod: "PIX",
         startDate: new Date("2026-04-25T08:00:00.000Z"),
         endDate: new Date("2026-05-02T08:00:00.000Z"),
@@ -209,7 +211,7 @@ describe("room service", () => {
           data: expect.objectContaining({
             professionalId: "prof-1",
             roomId: "room-1",
-            allocationType: "THREE_X_WEEK",
+            allocationType: "WEEK",
             paymentMethod: "PIX",
             totalPrice: "220",
             selectedWeekDay: ["MONDAY", "WEDNESDAY", "FRIDAY"],
@@ -223,15 +225,16 @@ describe("room service", () => {
           roomTitle: "Sala 101",
           roomFloor: "Térreo",
           roomCharacteristic: "Padrão",
-          allocationType: "3X_WEEK",
+          allocationType: "WEEK",
           totalPrice: 220,
-          selectedWeekDays: ["MONDAY", "WEDNESDAY", "FRIDAY"],
+          selectedWeekDays: ["2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01"],
           isActive: true,
         })
       );
     });
 
     it("persists DAILY rentals without hour selections", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(
         makeRentalRecord({
           id: "rental-hour",
@@ -273,13 +276,14 @@ describe("room service", () => {
         expect.objectContaining({
           id: "rental-hour",
           allocationType: "DAILY",
-          selectedWeekDays: [],
+          selectedWeekDays: ["2026-04-25"],
           isActive: false,
         })
       );
     });
 
     it("persists MONTH rentals without weekday selections", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(
         makeRentalRecord({
           id: "rental-month",
@@ -320,10 +324,28 @@ describe("room service", () => {
         expect.objectContaining({
           id: "rental-month",
           allocationType: "MONTH",
-          selectedWeekDays: [],
+          selectedWeekDays: expect.arrayContaining(["2026-04-25", "2026-05-24"]),
           isActive: true,
         })
       );
+    });
+
+    it("rejects overlapping room rentals", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce({ id: "rental-conflict" } as never);
+
+      await expect(
+        createRoomRental({
+          professionalId: "prof-1",
+          roomId: "room-1",
+          allocationType: "WEEK",
+          paymentMethod: "PIX",
+          startDate: new Date("2026-04-25T08:00:00.000Z"),
+          endDate: new Date("2026-05-02T08:00:00.000Z"),
+          totalPrice: 220,
+        })
+      ).rejects.toThrow("A sala já está ocupada nesse período.");
+
+      expect(prisma.roomRental.create).not.toHaveBeenCalled();
     });
   });
 
@@ -355,9 +377,9 @@ describe("room service", () => {
           roomTitle: "Sala 101",
           roomFloor: "1º Andar",
           roomCharacteristic: "Climatizado",
-          allocationType: "3X_WEEK",
+          allocationType: "WEEK",
           totalPrice: 220,
-          selectedWeekDays: ["MONDAY", "WEDNESDAY", "FRIDAY"],
+            selectedWeekDays: ["2026-04-25"],
           isActive: true,
         }),
       ]);
@@ -375,7 +397,7 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "60.00",
-              price3xWeek: "150.00",
+              priceWeek: "150.00",
               pricePerMonth: "500.00",
             },
           },
@@ -409,7 +431,7 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "70.00",
-              price3xWeek: "170.00",
+              priceWeek: "170.00",
               pricePerMonth: "600.00",
             },
           },
@@ -443,7 +465,7 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "70.00",
-              price3xWeek: "180.00",
+              priceWeek: "180.00",
               pricePerMonth: "600.00",
             },
           },
@@ -462,7 +484,7 @@ describe("room service", () => {
           id: "past-rental",
           allocationType: "DAILY",
           totalPrice: 70,
-          selectedWeekDays: [],
+          selectedWeekDays: ["2026-04-24"],
           isActive: false,
         })
       );
@@ -480,7 +502,7 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "60.00",
-              price3xWeek: "140.00",
+              priceWeek: "140.00",
               pricePerMonth: "480.00",
             },
           },

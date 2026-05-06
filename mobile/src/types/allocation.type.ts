@@ -1,5 +1,5 @@
 export type Allocation = 
 | 'DAILY'
-| '3X_WEEK'
+| 'WEEK'
 | 'MONTH'
 ;

@@ -43,7 +43,7 @@ const NewRoomWizard = (): React.JSX.Element => {
       area            : '',
       characteristics : '',
       pricePerHour    : '',
-      price_3xWeek    : '',
+      priceWeek       : '',
       pricePerMonth   : '',
       items           : [],
     }
@@ -73,7 +73,7 @@ const NewRoomWizard = (): React.JSX.Element => {
     if (wizardStep === 1) {
       fieldsToValidate = ['roomName', 'floor', 'area', 'characteristics'];
     } else if (wizardStep === 2) {
-      fieldsToValidate = ['pricePerHour', 'price_3xWeek', 'pricePerMonth'];
+      fieldsToValidate = ['pricePerHour', 'priceWeek', 'pricePerMonth'];
     }
 
     const isValid = await trigger(fieldsToValidate);
@@ -106,7 +106,7 @@ const NewRoomWizard = (): React.JSX.Element => {
         area: data.area,
         characteristics: data.characteristics,
         pricePerHour: data.pricePerHour,
-        price_3xWeek: data.price_3xWeek,
+        priceWeek: data.priceWeek,
         pricePerMonth: data.pricePerMonth,
         items: data.items,
       }, authenticated);
@@ -178,7 +178,7 @@ const NewRoomWizard = (): React.JSX.Element => {
   };
 
   const step1ActiveErros = errors.roomName || errors.floor || errors.area || errors.characteristics;
-  const step2ActiveErros = errors.pricePerHour || errors.pricePerMonth || errors.price_3xWeek;
+  const step2ActiveErros = errors.pricePerHour || errors.pricePerMonth || errors.priceWeek;
 
   useEffect(() => {
     setValue('area'     , persistDataOnInput.area);
@@ -383,12 +383,12 @@ const NewRoomWizard = (): React.JSX.Element => {
                 <View>
                   <Controller
                     control={control}
-                    name='price_3xWeek'
+                    name='priceWeek'
                     render={({ field: { onChange, value, onBlur } }) => (
                       <Input.Style2
                         icon={{ name: 'money' }}
                         maxLength={256}
-                        label='Preço 3x semana (R$)'
+                        label='Preço por semana (R$)'
                         placeholder={{ text: 'R$ XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
@@ -399,7 +399,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                     )}
                   />
     
-                  {errors.price_3xWeek?.message && <Input.Error error={errors.price_3xWeek.message as string}/> }
+                  {errors.priceWeek?.message && <Input.Error error={errors.priceWeek.message as string}/> }
                 </View>
 
                 <View>
