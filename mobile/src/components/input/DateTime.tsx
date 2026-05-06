@@ -20,6 +20,8 @@ type DateProps = Omit<DefaultInputProps, 'onChange' | 'type' | 'value'> & {
   onChange: (date: Date | undefined) => void;
   value: Date | string | undefined;
   maxDate?: string;
+  minDate?: string;
+  markedDates?: Record<string, any>;
 };
 
 const DateTime = (props: DateProps): React.JSX.Element => {
@@ -77,9 +79,9 @@ const DateTime = (props: DateProps): React.JSX.Element => {
               <View className="bg-white rounded-2xl p-4 w-full overflow-hidden border-2 border-medroom-primary">
                 <Calendar
                   current={selectedDate}
-                  onDayPress={handleDayPress}
-                  maxDate={props.maxDate}
+                  onDayPress={handleDayPress}                  minDate={props.minDate}                  maxDate={props.maxDate}
                   markedDates={{
+                    ...(props.markedDates || {}),
                     [selectedDate ?? '']: { selected: true, disableTouchEvent: true }
                   }}
                   theme={{

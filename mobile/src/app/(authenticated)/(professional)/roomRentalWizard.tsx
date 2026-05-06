@@ -1,362 +1,293 @@
-import { Button } from '@/components/button';
+import { Button } from '@/components/button'
+import { Input } from '@/components/input'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
-import AvailbilityTag from '@/components/ui/AvailbilityTag';
-import Label___Value from '@/components/ui/Label___Value';
-import Section from '@/components/ui/Section';
-import { DAYS } from '@/constants/misc/days.misc';
-import { HOURS_MAP } from '@/constants/maps/roomsHours.map';
-import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
-import { systemColors } from '@/constants/misc/systemColors.misc';
-import { Allocation } from '@/types/allocation.type';
-import { _3xWeek, Days } from '@/types/days.type';
-import { HourShift } from '@/types/hourShift.type';
-import { RoomDisplayCard } from '@/types/room.type';
-import { isHourOccupied } from '@/utils/isHourOccuped';
-import { priceFormat } from '@/utils/priceFormat';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native';
-import { useAuth } from '@/contexts/auth.context';
-import { ApiError } from '@/services/api';
-import { fetchRoomOccupancy, RoomOccupancyResponse } from '@/services/rooms';
+import AvailbilityTag from '@/components/ui/AvailbilityTag'
+import Label___Value from '@/components/ui/Label___Value'
+import Section from '@/components/ui/Section'
+import { DAYS } from '@/constants/misc/days.misc'
+import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map'
+import { systemColors } from '@/constants/misc/systemColors.misc'
+import { useAuth } from '@/contexts/auth.context'
+import { ApiError } from '@/services/api'
+import { fetchRoomOccupancy, RoomOccupancyResponse } from '@/services/rooms'
+import { Allocation } from '@/types/allocation.type'
+import { Days } from '@/types/days.type'
+import { RoomDisplayCard } from '@/types/room.type'
+import { formatSessionDate } from '@/utils/formatSessionDate'
+import { priceFormat } from '@/utils/priceFormat'
+import { MaterialIcons } from '@expo/vector-icons'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import React, { useEffect, useMemo, useState } from 'react'
+import { ScrollView, Text, View } from 'react-native'
 
 const roomRentalWizard = (): React.JSX.Element => {
+  const params = useLocalSearchParams()
+  const router = useRouter()
+  const auth = useAuth()
 
-  const params = useLocalSearchParams();
-  const router = useRouter();
-  const auth = useAuth();
-  
-  const [allocationType, setAllocationType] = useState<Allocation | null>(null);
-  const [wizardStep, setWizardStep] = useState<number>(1);
-
-  const [shiftSelected, setShiftSelected] = useState<'MORNING' | 'AFTERNOON' | 'NIGHT' | 'UNSELECTED'>('UNSELECTED');
-  const [hourSelected, setHourSelected] = useState<HourShift | null>(null);
-  const [daysSelected, setDaysSelected] = useState<Days[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | null>(null);
+  const [allocationType, setAllocationType] = useState<Allocation | null>(null)
+  const [wizardStep, setWizardStep] = useState<number>(1)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [daysSelected, setDaysSelected] = useState<Days[]>([])
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | null>(null)
   const [roomOccupancy, setRoomOccupancy] = useState<RoomOccupancyResponse>({
     occupiedHours: [],
     occupiedDays: [],
-  });
+  })
 
-  const title = params.title as string ?? '[Não fornecido]';
-  const roomId = params.roomId as string ?? '[Não suposto a existir]';
-  const isAvailable = params.isAvailable === 'true';
+  const title = (params.title as string) ?? '[Não fornecido]'
+  const roomId = (params.roomId as string) ?? '[Não suposto a existir]'
+  const isAvailable = params.isAvailable === 'true'
 
-  const prices: RoomDisplayCard['prices'] = params.prices 
-    ? JSON.parse(params.prices as string) 
-    : { perHour: 0, _3xWeek: 0, month: 0 };
+  const prices: RoomDisplayCard['prices'] = params.prices
+    ? JSON.parse(params.prices as string)
+    : { perHour: 0, _3xWeek: 0, month: 0 }
 
-  const complementaryData: RoomDisplayCard['complementaryData'] = params.complementaryData 
-    ? JSON.parse(params.complementaryData as string) 
-    : { floor: '[Não fornecido]', area: '[Não fornecida]', additional: '[Não fornecido]' };
+  const complementaryData: RoomDisplayCard['complementaryData'] = params.complementaryData
+    ? JSON.parse(params.complementaryData as string)
+    : { floor: '[Não fornecido]', area: '[Não fornecida]', additional: '[Não fornecido]' }
 
   useEffect(() => {
     async function loadRoomOccupancy() {
       if (!auth.token || !roomId || roomId.startsWith('[')) {
-        return;
+        return
       }
 
       try {
-        const data = await fetchRoomOccupancy(roomId, auth.token);
-        setRoomOccupancy(data);
+        const data = await fetchRoomOccupancy(roomId, auth.token)
+        setRoomOccupancy(data)
       } catch (error) {
         if (error instanceof ApiError) {
-          setRoomOccupancy({ occupiedHours: [], occupiedDays: [] });
+          setRoomOccupancy({ occupiedHours: [], occupiedDays: [] })
         }
       }
     }
 
-    loadRoomOccupancy();
-  }, [auth.token, roomId]);
+    loadRoomOccupancy()
+  }, [auth.token, roomId])
+
+  const todayKey = new Date().toISOString().slice(0, 10)
+
+  const dailyMarkedDates = useMemo(() => {
+    const marked: Record<string, any> = {}
+
+    const occupiedDates = Array.isArray(roomOccupancy.occupiedDays) ? roomOccupancy.occupiedDays : []
+    for (const date of occupiedDates) {
+      if (date < todayKey) {
+        continue
+      }
+
+      marked[date] = {
+        marked: true,
+        dotColor: systemColors.primary,
+        selectedColor: systemColors.primary,
+        disableTouchEvent: true,
+      }
+    }
+
+    return marked
+  }, [roomOccupancy.occupiedDays, todayKey])
 
   const handleDayPress = (day: Days): void => {
     setDaysSelected((prev) => {
       if (prev.includes(day)) {
-        return prev.filter((d) => d !== day);
-      } 
-      
-      if (prev.length >= 3) {
-        return [...prev.slice(1), day];
-      } 
-      
-      return [...prev, day];
-    });
-  };
+        return prev.filter((d) => d !== day)
+      }
 
-  const handleSwitchAllocationDataClean = ():void => {
-    setShiftSelected('UNSELECTED');
-    setHourSelected(null);
-    setPaymentMethod(null);
-    setDaysSelected([]);
-  };
+      if (prev.length >= 3) {
+        return [...prev.slice(1), day]
+      }
+
+      return [...prev, day]
+    })
+  }
+
+  const handleSwitchAllocationDataClean = (): void => {
+    setPaymentMethod(null)
+    setDaysSelected([])
+  }
 
   useEffect(() => {
     if (wizardStep >= 3) {
       router.replace({
         pathname: '/(authenticated)/(professional)/roomRentalSuccess',
         params: {
-          roomId    : roomId,
-          roomName  : title.split('-')[0],
-          allocationType : allocationType,
-          startHour : hourSelected?.startHour, 
-          endHour   : hourSelected?.endHour, 
-          days      : JSON.stringify(daysSelected),
-          pricePaid : allocationType === '3X_WEEK'
+          roomId,
+          roomName: title.split('-')[0],
+          allocationType,
+          date: selectedDate ? selectedDate.toISOString() : undefined,
+          days: JSON.stringify(daysSelected),
+          pricePaid: allocationType === '3X_WEEK'
             ? prices._3xWeek
-          : allocationType === 'MONTH'
-            ? prices.month
-            : prices.perHour
-          ,
-          ...(paymentMethod ? { paymentMethod } : {})
-        }
-      });
+            : allocationType === 'MONTH'
+              ? prices.month
+              : prices.perHour,
+          ...(paymentMethod ? { paymentMethod } : {}),
+        },
+      })
     }
-  },[wizardStep]);
+  }, [wizardStep, router, roomId, title, allocationType, selectedDate, daysSelected, prices, paymentMethod])
 
   return (
     <LayoutWrapper>
       <SystemLayout
-      layoutType='PROFESSIONAL'
-      tab='HOME'
-      title={wizardStep === 2 ? 'Pagamento' : title}
-      description={`${wizardStep === 2 ? 'Escolha a forma de pagamento' : complementaryData.floor + ' - ' + complementaryData.area + 'm² - ' + complementaryData.additional}`}
-      goBack={() => {
-        if (wizardStep === 1) {
-          handleSwitchAllocationDataClean();
-          router.replace('/(authenticated)/(professional)/home');
-        } else { 
-          setPaymentMethod(null);
-          setWizardStep(1);
-        }
-      }}
+        layoutType='PROFESSIONAL'
+        tab='HOME'
+        title={wizardStep === 2 ? 'Pagamento' : title}
+        description={wizardStep === 2
+          ? 'Escolha a forma de pagamento'
+          : `${complementaryData.floor} - ${complementaryData.area}m² - ${complementaryData.additional}`}
+        goBack={() => {
+          if (wizardStep === 1) {
+            handleSwitchAllocationDataClean()
+            router.replace('/(authenticated)/(professional)/home')
+          } else {
+            setPaymentMethod(null)
+            setWizardStep(1)
+          }
+        }}
       >
         <ScrollView contentContainerClassName='gap-5 py-6'>
-          { wizardStep === 1 ? (
+          {wizardStep === 1 ? (
             <>
               <Section title='Informações'>
-                <Label___Value
-                  separationRow
-                  label='Andar'
-                  value={{ _: complementaryData.floor }}
-                />
-
-                <Label___Value
-                  separationRow
-                  label='Área'
-                  value={{ _: `${complementaryData.area}m²` }}
-                />
-
-                <Label___Value
-                  separationRow
-                  label={ complementaryData.additional }
-                  value={{ _: `Sim` }}
-                />
-
+                <Label___Value separationRow label='Andar' value={{ _: complementaryData.floor }} />
+                <Label___Value separationRow label='Área' value={{ _: `${complementaryData.area}m²` }} />
+                <Label___Value separationRow label={complementaryData.additional} value={{ _: 'Sim' }} />
                 <Label___Value
                   label='Status'
                   value={{ Component: () => (
-                    <AvailbilityTag
-                      tagType='AVAILIBITY'
-                      isAvailable={isAvailable}
-                    /> 
-                  )}}
+                    <AvailbilityTag tagType='AVAILIBITY' isAvailable={isAvailable} />
+                  ) }}
                 />
               </Section>
 
               <Section title='TIPOS DE ALOCAÇÃO' row>
                 <Button.Default
-                  label='Por hora'
+                  label='Por dia'
                   filled={allocationType === 'PER_HOUR'}
-                  customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
+                  customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
                   onTouch={() => {
-                    setAllocationType(allocationType === 'PER_HOUR' ? null : 'PER_HOUR');
-                    handleSwitchAllocationDataClean();
+                    setAllocationType(allocationType === 'PER_HOUR' ? null : 'PER_HOUR')
+                    handleSwitchAllocationDataClean()
                   }}
-                  />
+                />
 
                 <Button.Default
-                  label='3x Semana'
+                  label='Por semana'
                   filled={allocationType === '3X_WEEK'}
-                  customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
+                  customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
                   onTouch={() => {
                     setAllocationType(allocationType === '3X_WEEK' ? null : '3X_WEEK')
-                    handleSwitchAllocationDataClean();
+                    handleSwitchAllocationDataClean()
                   }}
-                  />
+                />
 
                 <Button.Default
-                  label='Mês'
+                  label='Por mês'
                   filled={allocationType === 'MONTH'}
-                  customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
+                  customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
                   onTouch={() => {
-                    setAllocationType(allocationType === 'MONTH' ? null : 'MONTH');
-                    handleSwitchAllocationDataClean();
+                    setAllocationType(allocationType === 'MONTH' ? null : 'MONTH')
+                    handleSwitchAllocationDataClean()
                   }}
                 />
               </Section>
 
-              { allocationType === 'PER_HOUR' ? (
+              {allocationType === 'PER_HOUR' ? (
                 <>
-                  <Section title='Selecione o turno'>
-                    <View className='flex-row gap-3'>
-                      <Button.Default
-                        label='Manhã'
-                        filled={shiftSelected === 'MORNING'}
-                        customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-                        onTouch={() => {
-                          setShiftSelected(shiftSelected === 'MORNING' ? 'UNSELECTED' : 'MORNING');
-                          setHourSelected(null);
-                        }}
-                      />
-
-                      <Button.Default
-                        label='Tarde'
-                        filled={shiftSelected === 'AFTERNOON'}
-                        customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-                        onTouch={() => {
-                          setShiftSelected(shiftSelected === 'AFTERNOON' ? 'UNSELECTED' : 'AFTERNOON');
-                          setHourSelected(null);
-                        }}
-                      />
-
-                      <Button.Default
-                        label='Noite'
-                        filled={shiftSelected === 'NIGHT'}
-                        customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}        
-                        onTouch={() => {
-                          setShiftSelected(shiftSelected === 'NIGHT' ? 'UNSELECTED' : 'NIGHT');
-                          setHourSelected(null);
-                        }}
-                      />
-                    </View>
-                    
-                    { shiftSelected !== 'UNSELECTED' &&
-                      <>
-                        <View className='h-0.5 w-fill bg-gray-200'/>
-
-                        <View className='flex-row flex-wrap gap-y-3 justify-between w-full'>
-                          {HOURS_MAP[shiftSelected].map((hour, index) => {
-                            
-                            const isOccupied = isHourOccupied(
-                              roomOccupancy.occupiedHours, 
-                              hour.startHour, 
-                              hour.endHour
-                            );
-
-                            return (
-                              <Button.ShiftHour
-                                { ...hour }
-                                selected={hour.startHour === hourSelected?.startHour}
-                                key={index}
-                                unvailable={isOccupied}
-                                onTouch={() => {
-                                  if (isOccupied) return;
-                                  if (hourSelected?.startHour === hour.startHour) {
-                                    setHourSelected(null);
-                                    return;
-                                  } 
-                                  setHourSelected({
-                                    startHour : hour.startHour,
-                                    endHour   : hour.endHour,
-                                  }
-                                )}}
-                              />
-                          )})}
-                        </View>
-                  
-                        { hourSelected &&
-                          <>
-                            <View className='h-0.5 w-fill bg-gray-200'/>
-                            
-                            <Label___Value
-                              label='Valor por hora'
-                              boldLabel
-                              value={{ 
-                                _     : priceFormat(prices.perHour),
-                                color : 'text-green-600',
-                              }}
-                            />                          
-                          </>
+                  <Section title='Selecione o dia'>
+                    <Input.DateTime
+                      label='Data'
+                      placeholder={{ text: 'Selecione o dia' }}
+                      icon={{ name: 'schedule' }}
+                      value={selectedDate ?? undefined}
+                      minDate={todayKey}
+                      markedDates={dailyMarkedDates}
+                      onChange={(date) => {
+                        if (!date) {
+                          setSelectedDate(null)
+                          return
                         }
+
+                        setSelectedDate(date)
+                      }}
+                    />
+
+                    {selectedDate && (
+                      <>
+                        <View className='h-0.5 w-fill bg-gray-200' />
+                        <Label___Value
+                          label='Valor diário'
+                          boldLabel
+                          value={{ _: priceFormat(prices.perHour), color: 'text-green-600' }}
+                        />
                       </>
-                    }
+                    )}
                   </Section>
-                  
-                  { (hourSelected && hourSelected.startHour !== '') &&          
+
+                  {selectedDate && (
                     <Button.Default
                       label='Reservar sala'
                       onTouch={() => setWizardStep(2)}
                       filled
                       icon={{ name: 'key_card' }}
                     />
-                  }
+                  )}
                 </>
               ) : allocationType === '3X_WEEK' ? (
                 <>
-                  <Section title='SELECIONE OS DIAS (3X)'>
+                  <Section title='SELECIONE OS DIAS DA SEMANA'>
                     <View className='flex-row gap-1'>
                       {DAYS.map((day) => {
-                        
-                        const isSelected = daysSelected.includes(day);
-                        const isOccupied = roomOccupancy.occupiedDays.includes(day);
+                        const isSelected = daysSelected.includes(day)
+                        const isOccupied = roomOccupancy.occupiedDays.includes(day)
 
                         return (
                           <Button.Default
                             key={day}
-                            label={TRANSLATED_DAYS_MAP[day].slice(0,3)}
+                            label={TRANSLATED_DAYS_MAP[day].slice(0, 3)}
                             filled={isSelected}
-                            onTouch={() => handleDayPress(day)}       
+                            onTouch={() => handleDayPress(day)}
                             disable={isOccupied}
                             textLineThrough={isOccupied}
                             customStyle={{ container: 'flex-1', text: 'text-sm' }}
                           />
-                      )})}
+                        )
+                      })}
                     </View>
-                    
-                    { daysSelected.length === 3 &&        
-                      <>
-                        <View className='h-0.5 w-fill bg-gray-200'/>
 
+                    {daysSelected.length === 3 && (
+                      <>
+                        <View className='h-0.5 w-fill bg-gray-200' />
                         <Label___Value
                           label='Valor semanal'
                           boldLabel
-                          value={{ 
-                            _     : priceFormat(prices._3xWeek),
-                            color : 'text-green-600',
-                          }}
-                        />  
+                          value={{ _: priceFormat(prices._3xWeek), color: 'text-green-600' }}
+                        />
                       </>
-                    }
+                    )}
                   </Section>
-                  
-                  { daysSelected.length === 3 &&
+
+                  {daysSelected.length === 3 && (
                     <Button.Default
                       label='Reservar sala'
                       onTouch={() => setWizardStep(2)}
                       filled
                       icon={{ name: 'key_card' }}
                     />
-                  }
+                  )}
                 </>
               ) : allocationType === 'MONTH' ? (
                 <>
                   <Section title='Resumo'>
-                    <Label___Value
-                      separationRow
-                      label='Período'
-                      value={{ _: '1 mês'}}
-                    />  
-
+                    <Label___Value separationRow label='Período' value={{ _: '1 mês' }} />
                     <Label___Value
                       label='Valor mensal'
                       boldLabel
-                      value={{ 
-                        _     : priceFormat(prices.month),
-                        color : 'text-green-600',
-                      }}
-                    />  
+                      value={{ _: priceFormat(prices.month), color: 'text-green-600' }}
+                    />
                   </Section>
 
                   <Button.Default
@@ -368,13 +299,12 @@ const roomRentalWizard = (): React.JSX.Element => {
                 </>
               ) : (
                 <View className='flex-row gap-1 items-center self-center'>
-                  <MaterialIcons 
-                    name="error-outline" 
-                    size={18} 
-                    color={systemColors.primary} 
+                  <MaterialIcons
+                    name='error-outline'
+                    size={18}
+                    color={systemColors.primary}
                     className='mt-1'
                   />
-                  
                   <Text className='text-medroom-primary mt-1 font-nunito-bold'>
                     Selecione um tipo de alocação
                   </Text>
@@ -384,75 +314,46 @@ const roomRentalWizard = (): React.JSX.Element => {
           ) : (
             <>
               <Section title='Resumo'>
-                <Label___Value
-                  separationRow
-                  label='Sala'
-                  value={{ _: title.split('-')[0]}}
-                />  
+                <Label___Value separationRow label='Sala' value={{ _: title.split('-')[0] }} />
 
-                { allocationType !== 'MONTH' &&
+                {allocationType !== 'MONTH' && (
                   <>
                     <Label___Value
                       separationRow
-                      label={ allocationType === 'PER_HOUR' 
-                        ? 'Horários' 
-                        : 'Dias'
-                      }
-                      value={{ _: 
-                        allocationType === 'PER_HOUR' 
-                        ?   hourSelected?.startHour 
-                          + ' às ' 
-                          + hourSelected?.endHour 
-                        :   TRANSLATED_DAYS_MAP[daysSelected.at(0)!].split('-')[0]  
-                          + ', ' 
-                          + TRANSLATED_DAYS_MAP[daysSelected.at(1)!].split('-')[0] 
-                          + ' e ' 
-                          + TRANSLATED_DAYS_MAP[daysSelected.at(2)!].split('-')[0]
+                      label={allocationType === 'PER_HOUR' ? 'Dia' : 'Dias'}
+                      value={{
+                        _: allocationType === 'PER_HOUR'
+                          ? (selectedDate ? formatSessionDate(selectedDate.toISOString()) : '-')
+                          : `${TRANSLATED_DAYS_MAP[daysSelected.at(0)!].split('-')[0]}, ${TRANSLATED_DAYS_MAP[daysSelected.at(1)!].split('-')[0]} e ${TRANSLATED_DAYS_MAP[daysSelected.at(2)!].split('-')[0]}`,
                       }}
-                    />  
+                    />
 
-                    { allocationType !== '3X_WEEK' &&
-                      <>          
-                        <Label___Value
-                          separationRow
-                          label='Entrada'
-                          value={{ _: hourSelected?.startHour }}
-                        />
-
-                        <Label___Value
-                          separationRow
-                          label='Saída'
-                          value={{ _: hourSelected?.endHour }}
-                        />     
-                      </>
-                    }
+                    <Label___Value
+                      separationRow
+                      label='Sessão'
+                      value={{ _: allocationType === 'PER_HOUR' ? '1 dia' : '1 semana' }}
+                    />
                   </>
-                }
+                )}
 
                 <Label___Value
                   separationRow
-                  label={ allocationType === 'MONTH' 
-                    ? 'Duração' 
-                    : 'Sessão' 
-                  }
-                  value={{ _: allocationType === 'MONTH' 
-                    ? '1 mês' 
-                    : '1 hora' 
-                  }}
-                /> 
+                  label={allocationType === 'MONTH' ? 'Duração' : 'Sessão'}
+                  value={{ _: allocationType === 'MONTH' ? '1 mês' : allocationType === 'PER_HOUR' ? '1 dia' : '1 semana' }}
+                />
 
                 <Label___Value
                   label='Total'
                   boldLabel
-                  value={{ 
+                  value={{
                     color: 'text-green-600',
-                    _: allocationType === 'MONTH' 
-                      ? priceFormat(prices.month) 
-                    : allocationType === '3X_WEEK' 
-                      ? priceFormat(prices._3xWeek) 
-                    :  priceFormat(prices.perHour), 
+                    _: allocationType === 'MONTH'
+                      ? priceFormat(prices.month)
+                      : allocationType === '3X_WEEK'
+                        ? priceFormat(prices._3xWeek)
+                        : priceFormat(prices.perHour),
                   }}
-                />     
+                />
               </Section>
 
               <Section title='Forma de pagamento'>
@@ -478,14 +379,14 @@ const roomRentalWizard = (): React.JSX.Element => {
                 />
               </Section>
 
-              { paymentMethod &&
+              {paymentMethod && (
                 <Button.Default
                   label='Confirmar pagamento'
                   onTouch={() => setWizardStep(3)}
                   icon={{ name: 'cash' }}
                   filled
                 />
-              }
+              )}
             </>
           )}
         </ScrollView>

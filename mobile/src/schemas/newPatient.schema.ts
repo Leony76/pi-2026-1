@@ -18,6 +18,9 @@ export const newPatientSchema = z.object({
   initialDate: z
     .string()
     .min(1, 'A data de início deve ser fornecida'),
+  initialHour: z
+    .string()
+    .min(1, 'O horário deve ser selecionado'),
   observations: z
     .string()
     .min(3, 'A observação deve ter 3 caracteres no mínimo')

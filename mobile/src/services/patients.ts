@@ -49,6 +49,7 @@ export async function createPatientWithAuth(
     phone: string;
     email?: string;
     initialDate: string;
+    initialHour: string;
     observations?: string;
   },
   auth: AuthHandlers
