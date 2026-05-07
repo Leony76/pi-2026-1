@@ -206,7 +206,7 @@ const NewPatient = (): React.JSX.Element => {
       layoutType='PROFESSIONAL'   
       goBack={() => router.back()} 
       >
-        <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-center'>
+        <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-start'>
           <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
             {submitError && (
               <Text className='text-red-500 text-center'>{submitError}</Text>
@@ -241,7 +241,7 @@ const NewPatient = (): React.JSX.Element => {
                 render={({ field: { onChange, value, onBlur } }) => (
                   <Input.Style2
                     icon={{ name: 'phone' }}
-                    maxLength={15}
+                    maxLength={16}
                     label='Telefone'
                     onChange={(text) => {
                       const phoneMask = formatPhone(text);
@@ -309,7 +309,7 @@ const NewPatient = (): React.JSX.Element => {
                           return;
                         }
 
-                        onChange(selectedDate.toISOString());
+                        onChange(dateStr);
                         setSelectedDateObj(selectedDate);
                         setSubmitError(null);
                         setSelectedHour(null);
@@ -346,16 +346,13 @@ const NewPatient = (): React.JSX.Element => {
                                         if (selectedHour?.startHour === hour.startHour) {
                                           setSelectedHour(null);
                                           setValue('initialHour', '');
-                                          setValue('initialDate', selectedDateObj.toISOString());
+                                          setValue('initialDate', selectedDateObj.toISOString().slice(0, 10));
                                           return;
                                         }
 
                                         setSelectedHour({ startHour: hour.startHour, endHour: hour.endHour });
                                         setValue('initialHour', hour.startHour);
-
-                                        const [hh, mm] = hour.startHour.split(':').map((s) => parseInt(s, 10));
-                                        const combined = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), hh, mm, 0, 0);
-                                        setValue('initialDate', combined.toISOString());
+                                        setValue('initialDate', selectedDateObj.toISOString().slice(0, 10));
                                       }}
                                     />
                                   );
