@@ -1,5 +1,11 @@
 export const formatPhone = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.length > 2 && digits[2] !== '9') {
+    digits = digits.slice(0, 10);
+  } else {
+    digits = digits.slice(0, 11);
+  }
 
   if (digits.length <= 2) {
     return digits.length > 0 ? `(${digits}` : "";

@@ -53,7 +53,7 @@ const History = (): React.JSX.Element => {
       title='Histórico'
       description='Histórico das consultas'
       tab='PATIENTS'
-      goBack={() => router.replace('/(authenticated)/(professional)/patients')}
+      goBack={() => router.push('/(authenticated)/(professional)/patients')}
       layoutType='PROFESSIONAL'    
       >
         {isLoading ? (
@@ -77,7 +77,7 @@ const History = (): React.JSX.Element => {
               data={filteredList}
               contentContainerClassName='gap-4 py-1'
               keyExtractor={(item, index) => `${item.id}-${index}`}
-              ListEmptyComponent={ <ContentNotFound text={`Nenhum resultado para "${ searchValue }"`}/> }
+              ListEmptyComponent={ <ContentNotFound text={searchValue ? `Nenhum resultado para "${ searchValue }"` : 'Ainda não há clientes no seu histórico.'}/> }
               renderItem={({ item, index }) => (
                 <Card.Patient
                   key={item.id}

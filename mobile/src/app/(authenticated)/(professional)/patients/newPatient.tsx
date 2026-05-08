@@ -204,7 +204,7 @@ const NewPatient = (): React.JSX.Element => {
       description='Preencha os dados'
       tab='PATIENTS'
       layoutType='PROFESSIONAL'   
-      goBack={() => router.back()} 
+      goBack={() => router.push('/(authenticated)/(professional)/patients')} 
       >
         <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-center'>
           <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>

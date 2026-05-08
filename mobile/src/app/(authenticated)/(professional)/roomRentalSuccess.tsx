@@ -1,9 +1,9 @@
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { Text, View, ActivityIndicator } from 'react-native'
-import Label___Value from '@/components/ui/Label___Value';
+import Icon from '@/components/ui/Icon'
+import { systemColors } from '@/constants/misc/systemColors.misc'
 import { Allocation } from '@/types/allocation.type';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
@@ -93,11 +93,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
         <View className='flex-1 justify-center items-center'>
           <View className='w-[80%] items-center gap-5'>
             <View className='bg-red-100 rounded-full p-3 w-32 h-32 justify-center items-center'>
-              <AntDesign 
-                name="close" 
-                size={36} 
-                color="red" 
-              />
+              <Icon name='x_circle' color={'#EF4444'} sizes={{ width: 36, height: 36 }} />
             </View>
             <Text className='font-nunito-bold text-2xl text-red-600'>Erro!</Text>
             <Text className='font-nunito text-medroom-secondary text-center'>{saveError}</Text>
@@ -117,77 +113,107 @@ const roomRentalSuccess = (): React.JSX.Element => {
     <LayoutWrapper>
       <View className='flex-1 justify-center items-center'>
         <View className='w-[80%] items-center gap-5'>
-          <View className='bg-green-100 rounded-full p-3 w-32 h-32 justify-center items-center'>
-            <AntDesign 
-              name="check" 
-              size={36} 
-              color="green" 
-            />
+
+          <View className='bg-medroom-primaryLight rounded-full p-3 w-32 h-32 justify-center items-center'>
+            <Icon name='check' color={systemColors.primary} sizes={{ width: 36, height: 36 }} />
           </View>
 
           <Text className='font-nunito-bold text-2xl text-medroom-primary'>
-            Reserva confirmada!
+            Tudo certo! 🎉
           </Text>
 
           <Text className='font-nunito text-medroom-secondary text-center'>
-            Sua { roomName } foi reservada! Você receberá os detalhes por e-mail. 
+            Sua reserva foi confirmada.
           </Text>
 
-          <View className='border-2 gap-3 border-medroom-primaryLight rounded-xl p-4 w-full'>
-            <Label___Value
-              separationRow
-              label='Sala'
-              value={{ _: roomName }}
-            />
+          <View className='w-full rounded-xl overflow-hidden mt-6 border border-medroom-primaryLight bg-white'>
+            <View className='bg-medroom-primaryLight px-4 py-4 flex-row items-center justify-between'>
+              <Text className='font-nunito-bold text-medroom-primary text-sm'>Reserva #RES-{new Date().getFullYear()}-0847</Text>
+              <View className='flex-row items-center gap-1 bg-medroom-primary px-3 py-1 rounded-full'>
+                <Icon name='check' color='#ffffff' sizes={{ width: 12, height: 12 }} />
+                <Text className='text-[10px] text-white font-nunito-bold uppercase'>Pago</Text>
+              </View>
+            </View>
 
-            { allocationType === 'DAILY' ? (
-              <Label___Value
-                separationRow
-                label='Dia'
-                value={{ _: selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-' }}
-              />
-            ) : allocationType === 'MONTH' ? (
-              <Label___Value
-                separationRow
-                label='Período'
-                value={{ _: '1 mês' }}
-              />
-            ) : allocationType === 'WEEK' ? (
-              <Label___Value
-                separationRow
-                label='Semana'
-                value={{
-                  _:
-                    selectedDate
-                      ? `${selectedDate.toLocaleDateString('pt-BR')} - ${new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() + 6)).toLocaleDateString('pt-BR')}`
-                      : '-',
-                }}
-              />
-            ) : (
-              <Label___Value
-                separationRow
-                label='Período'
-                value={{ _: '1 mês' }}
-              />
-            )}
+            <View className='p-5 gap-3'>
+              <View className='flex-row justify-between items-center'>
+                <Text className='text-medroom-secondary font-nunito'>Sala</Text>
+                <Text className='text-medroom-primary font-nunito-bold'>{roomName}</Text>
+              </View>
 
-            <Label___Value
-              boldLabel
-              label='Valor pago'
-              value={{ 
-                _     : priceFormat(pricePaid),
-                color : 'text-green-600' 
-              }}
-            />
+              {allocationType === 'MONTH' ? (
+                <>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Período</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>
+                      {selectedDate ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase()) : '-'}
+                    </Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Início</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Término</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? new Date(new Date(selectedDate).getFullYear(), new Date(selectedDate).getMonth() + 1, 0).toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                </>
+              ) : allocationType === 'WEEK' ? (
+                <>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Período</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>Na Semana</Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Início</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Término</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? new Date(new Date(selectedDate).setDate(selectedDate.getDate() + 6)).toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Dia</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                </>
+              )}
+
+              <View className='h-[1px] border-t border-dashed border-medroom-primaryLight my-2' />
+
+              <View className='flex-row justify-between items-center'>
+                <Text className='text-medroom-secondary font-nunito'>Forma de pagamento</Text>
+                <View className='bg-white px-2 py-1 rounded-full flex-row items-center gap-1 border border-medroom-primaryLight'>
+                  <Icon name={paymentMethod === 'PIX' ? 'pix' : paymentMethod === 'CREDIT_CARD' ? 'credit_card' : 'money'} color={systemColors.primary} sizes={{ width: 14, height: 14 }} />
+                  <Text className='text-medroom-primary font-nunito-bold text-xs uppercase'>
+                      {paymentMethod === 'PIX' ? 'Pix' : paymentMethod === 'CREDIT_CARD' ? 'Cartão' : 'Boleto'}
+                  </Text>
+                </View>
+              </View>
+
+              <View className='flex-row justify-between items-center mt-2'>
+                <Text className='text-medroom-secondary font-nunito-bold text-base'>Valor pago</Text>
+                <Text className='text-medroom-primary font-nunito-bold text-xl'>{priceFormat(pricePaid)}</Text>
+              </View>
+            </View>
           </View>
 
-          <Button.Default
-            label='Ver meus horários'
-            onTouch={() => router.replace('/(authenticated)/(professional)/schedules')}
-            filled
-            customStyle={{ container: 'w-full' }}
-            icon={{ name: 'schedule' }}
-          />
+          <View className='w-full gap-3 mt-4 pb-8'>
+            <Button.Default
+              label='Ver meus horários'
+              onTouch={() => router.replace('/(authenticated)/(professional)/schedules')}
+              customStyle={{ container: 'w-full bg-white border border-medroom-primary py-4 rounded-xl', text: 'text-medroom-primary text-base font-nunito-bold' }}
+              icon={{ name: 'schedule', color: systemColors.primary }}
+            />
+            <Button.Default
+              label='Voltar ao início'
+              onTouch={() => router.replace('/(authenticated)/(professional)/home')}
+              customStyle={{ container: 'w-full bg-white border border-medroom-primary py-4 rounded-xl', text: 'text-medroom-primary text-base font-nunito-bold' }}
+            />
+          </View>
         </View>
       </View>
     </LayoutWrapper>

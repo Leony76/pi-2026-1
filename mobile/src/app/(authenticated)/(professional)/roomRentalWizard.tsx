@@ -13,9 +13,10 @@ import { RoomDisplayCard } from '@/types/room.type'
 import { formatSessionDate } from '@/utils/formatSessionDate'
 import { priceFormat } from '@/utils/priceFormat'
 import { MaterialIcons } from '@expo/vector-icons'
+import Icon from '@/components/ui/Icon'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View, TouchableOpacity } from 'react-native'
 import { Calendar } from 'react-native-calendars'
 
 const roomRentalWizard = (): React.JSX.Element => {
@@ -140,6 +141,28 @@ const roomRentalWizard = (): React.JSX.Element => {
   const selectedWeekDays = selectedWeekRange
     ? Array.from({ length: 7 }, (_, index) => addDays(selectedWeekRange.startDate, index))
     : []
+
+  const [displayYear, setDisplayYear] = useState<number>(new Date().getFullYear())
+
+  const goPrevYear = () => setDisplayYear((y) => y - 1)
+  const goNextYear = () => setDisplayYear((y) => y + 1)
+
+  const selectedMonthInfo = useMemo(() => {
+    if (!selectedDate) return null
+
+    const year = selectedDate.getFullYear()
+    const month = selectedDate.getMonth()
+    const startKey = new Date(year, month, 1).toISOString().slice(0, 10)
+    const endKey = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+    const conflicts = futureOccupiedDays.filter((d) => d >= startKey && d <= endKey)
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    const status = conflicts.length === 0 ? 'Disponível' : conflicts.length >= daysInMonth ? 'Indisponível' : 'Conflito parcial'
+
+    return { status, conflicts, count: conflicts.length, daysInMonth }
+  }, [selectedDate, futureOccupiedDays])
+
+  const canProceedWithMonth = selectedMonthInfo ? selectedMonthInfo.status === 'Disponível' : false
 
   const handleSwitchAllocationDataClean = (): void => {
     setPaymentMethod(null)
@@ -483,125 +506,141 @@ const roomRentalWizard = (): React.JSX.Element => {
               ) : allocationType === 'MONTH' ? (
                 <>
                   <Section title='Selecione o mês'>
-                    <View className='gap-2 rounded-xl border-2 border-medroom-primaryLight bg-cyan-50/20 p-3'>
-                      <Text className='font-nunito-bold text-medroom-primary text-base'>
-                        Reserva mensal completa
-                      </Text>
-                      <Text className='font-nunito text-medroom-secondary'>
-                        A reserva cobre 30 dias corridos a partir da data de início escolhida.
-                      </Text>
+                    <View className='flex-row items-center justify-between'>
+                      <TouchableOpacity onPress={goPrevYear} className='px-2'>
+                        <MaterialIcons name='chevron-left' size={28} color={systemColors.primary} />
+                      </TouchableOpacity>
+
+                      <Text className='font-nunito-bold text-medroom-primary text-lg'>{displayYear}</Text>
+
+                      <TouchableOpacity onPress={goNextYear} className='px-2'>
+                        <MaterialIcons name='chevron-right' size={28} color={systemColors.primary} />
+                      </TouchableOpacity>
                     </View>
 
-                    <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-4'>
+                    <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-4 mt-3'>
                       <Text className='font-nunito-bold text-medroom-primary text-base'>Mês de reserva</Text>
-                      
-                      <View className='gap-3'>
-                        {Array.from({ length: 6 }, (_, i) => {
-                          const date = new Date()
-                          date.setDate(1)
-                          date.setMonth(date.getMonth() + i)
-                          const monthName = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-                          const isSelected = selectedDate && 
-                            selectedDate.getMonth() === date.getMonth() && 
-                            selectedDate.getFullYear() === date.getFullYear()
-                          
-                          return (
-                            <Button.Default
-                              key={i}
-                              label={monthName.charAt(0).toUpperCase() + monthName.slice(1)}
-                              filled={isSelected}
-                              onTouch={() => {
-                                const newDate = new Date(date)
-                                newDate.setDate(1)
-                                setSelectedDate(newDate)
-                              }}
-                              customStyle={{ container: 'py-3', text: 'text-base capitalize' }}
-                            />
-                          )
-                        })}
+
+                      <View className='flex-row flex-wrap mt-3 -mx-2'>
+                        {(() => {
+                          const now = new Date()
+                          const currentYear = now.getFullYear()
+                          const currentMonth = now.getMonth()
+
+                          const months = Array.from({ length: 12 }, (_, m) => {
+                            const year = displayYear
+                            const monthDate = new Date(year, m, 1)
+                            const monthEnd = new Date(year, m + 1, 0)
+                            const monthStartKey = monthDate.toISOString().slice(0, 10)
+                            const monthEndKey = monthEnd.toISOString().slice(0, 10)
+                            const daysInMonth = monthEnd.getDate()
+                            const occupiedInMonth = futureOccupiedDays.filter((d) => d >= monthStartKey && d <= monthEndKey)
+                            const occupiedCount = occupiedInMonth.length
+                            const status = occupiedCount === 0 ? 'Disponível' : occupiedCount >= daysInMonth ? 'Indisponível' : 'Conflito parcial'
+                            const dotColor = status === 'Disponível' ? '#10B981' : status === 'Indisponível' ? '#EF4444' : '#F59E0B'
+
+                            const monthLabel = monthDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                            const isSelected = selectedDate && selectedDate.getMonth() === monthDate.getMonth() && selectedDate.getFullYear() === monthDate.getFullYear()
+
+                            const monthDisabled = (displayYear < currentYear) || (displayYear === currentYear && m < currentMonth)
+
+                            return { m, year: displayYear, monthDate, monthEndKey, daysInMonth, occupiedInMonth, occupiedCount, status, dotColor, monthLabel, isSelected, monthDisabled }
+                          }).filter((it) => !it.monthDisabled)
+
+                          return months.map(({ m, monthDate, occupiedCount, status, dotColor, monthLabel, isSelected }) => {
+                            return (
+                              <TouchableOpacity
+                                key={`${displayYear}-${m}`}
+                                activeOpacity={0.85}
+                                onPress={() => {
+                                  const newDate = new Date(monthDate)
+                                  newDate.setDate(1)
+                                  setSelectedDate(newDate)
+                                }}
+                                className={`w-1/2 px-2 mb-3`}
+                              >
+                                <View className={`relative rounded-xl p-4 ${isSelected ? 'border-2 border-green-500 bg-white' : 'border border-medroom-primaryLight bg-white'}`}>
+                                  {isSelected && (
+                                    <MaterialIcons name='check-circle' size={20} color='#10B981' className='absolute right-3 top-3' />
+                                  )}
+                                  <Text className={`${isSelected ? 'text-medroom-primary' : 'text-gray-800'} font-nunito-bold text-base capitalize`}>{monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}</Text>
+                                  <View className='flex-row items-center gap-2 mt-3'>
+                                    <View style={{ width: 8, height: 8, borderRadius: 8, backgroundColor: dotColor }} />
+                                    <Text className={`${isSelected ? 'text-medroom-primary' : 'text-gray-700'} text-xs opacity-80`}>{status}{occupiedCount > 0 && status === 'Conflito parcial' ? ` · ${occupiedCount} conflito${occupiedCount>1 ? 's' : ''}` : ''}</Text>
+                                  </View>
+                                </View>
+                              </TouchableOpacity>
+                            )
+                          })
+                        })()}
                       </View>
+
+                      {/* Inline details for selected month (status + conflicts) */}
+                      {selectedDate && selectedMonthInfo && (() => {
+                        const monthLabelSel = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                        if (selectedMonthInfo.status === 'Disponível') {
+                          return (
+                            <View className='gap-3 rounded-xl border-2 border-green-300 bg-green-50 p-3 mt-3'>
+                              <View className='flex-row items-center gap-2'>
+                                <View style={{ width: 18, height: 18, borderRadius: 18, backgroundColor: '#10B981' }} />
+                                <Text className='font-nunito-bold text-green-700 flex-1'>{`${monthLabelSel.charAt(0).toUpperCase() + monthLabelSel.slice(1)} está totalmente disponível`}</Text>
+                              </View>
+                            </View>
+                          )
+                        }
+
+                        if (selectedMonthInfo.status === 'Conflito parcial') {
+                          return (
+                            <View className='gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-3 mt-3'>
+                              <View className='flex-row items-center gap-2'>
+                                <MaterialIcons name='warning' size={20} color='#b45309' />
+                                <Text className='font-nunito-bold text-amber-800 flex-1'>Conflito parcial em {monthLabelSel.charAt(0).toUpperCase() + monthLabelSel.slice(1)}</Text>
+                              </View>
+                              <Text className='font-nunito text-amber-800 text-sm'>Alguns dias já estão ocupados neste mês:</Text>
+                              <View className='flex-row flex-wrap gap-2 mt-2'>
+                                {selectedMonthInfo.conflicts.slice(0, 10).map((date) => {
+                                  const parsedDate = new Date(`${date}T00:00:00`)
+                                  return (
+                                    <View key={date} className='rounded-full border border-amber-300 bg-amber-100 px-3 py-1'>
+                                      <Text className='text-xs font-nunito-bold text-amber-900'>
+                                        {parsedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                                      </Text>
+                                    </View>
+                                  )
+                                })}
+                                {selectedMonthInfo.conflicts.length > 10 && (
+                                  <View className='rounded-full border border-amber-300 bg-amber-100 px-3 py-1'>
+                                    <Text className='text-xs font-nunito-bold text-amber-900'>+{selectedMonthInfo.conflicts.length - 10} dias</Text>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          )
+                        }
+
+                        // Indisponível
+                        return (
+                          <View className='gap-3 rounded-xl border-2 border-gray-300 bg-gray-100 p-3 mt-3'>
+                            <View className='flex-row items-center gap-2'>
+                              <MaterialIcons name='block' size={20} color='#6b7280' />
+                              <Text className='font-nunito-bold text-gray-700 flex-1'>{monthLabelSel.charAt(0).toUpperCase() + monthLabelSel.slice(1)} está indisponível</Text>
+                            </View>
+                          </View>
+                        )
+                      })()}
+
                     </View>
 
-                    {selectedDate && (
-                      <View className='gap-3 rounded-xl border-2 border-medroom-primaryLight bg-white p-4'>
-                        <View className='gap-2'>
-                          <Text className='font-nunito-bold text-medroom-primary text-sm'>Período selecionado</Text>
-                          <View className='gap-1'>
-                            <Label___Value
-                              label='Início'
-                              value={{ _: formatSessionDate(selectedDate.toISOString()), color: 'text-medroom-secondary' }}
-                            />
-                            <Label___Value
-                              label='Fim'
-                              value={{ _: formatSessionDate(addDays(selectedDate, 29).toISOString()), color: 'text-medroom-secondary' }}
-                            />
-                          </View>
-                        </View>
-
-                        <View className='h-0.5 w-full bg-gray-200' />
-
-                        <View className='gap-2'>
-                          <View className='flex-row items-center justify-between'>
-                            <Text className='font-nunito text-medroom-secondary'>Duração</Text>
-                            <Text className='font-nunito-bold text-medroom-primary'>30 dias</Text>
-                          </View>
-                        </View>
-
-                        <View className='h-0.5 w-full bg-gray-200' />
-
-                        <View className='gap-2'>
-                          <Label___Value
-                            label='Valor total'
-                            boldLabel
-                            value={{ _: priceFormat(prices.month), color: 'text-green-600' }}
-                          />
-                        </View>
-                      </View>
-                    )}
-
-                    {futureOccupiedDays.length > 0 && (
-                      <View className='gap-3 rounded-xl border-2 border-red-300 bg-red-50 p-3'>
-                        <View className='flex-row items-center gap-2'>
-                          <MaterialIcons name='warning' size={20} color='#dc2626' />
-                          <Text className='font-nunito-bold text-red-700 flex-1'>Dias com conflito</Text>
-                        </View>
-                        <Text className='font-nunito text-red-700 text-sm'>
-                          Existem dias ocupados no período. Verifique os seguintes dias:
-                        </Text>
-                        <View className='flex-row flex-wrap gap-2 mt-2'>
-                          {futureOccupiedDays.slice(0, 10).map((date) => {
-                            const parsedDate = new Date(`${date}T00:00:00`)
-                            return (
-                              <View
-                                key={date}
-                                className='rounded-full border border-red-300 bg-red-100 px-3 py-1'
-                              >
-                                <Text className='text-xs font-nunito-bold text-red-900'>
-                                  {parsedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
-                                </Text>
-                              </View>
-                            )
-                          })}
-                          {futureOccupiedDays.length > 10 && (
-                            <View className='rounded-full border border-red-300 bg-red-100 px-3 py-1'>
-                              <Text className='text-xs font-nunito-bold text-red-900'>
-                                +{futureOccupiedDays.length - 10} dias
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                    )}
+                    <View className='mt-3'>
+                      <Button.Default
+                        label='Reservar sala'
+                        onTouch={() => canProceedWithMonth && setWizardStep(2)}
+                        filled
+                        icon={{ name: 'key_card' }}
+                        disable={!canProceedWithMonth}
+                      />
+                    </View>
                   </Section>
-
-                  {selectedDate && (
-                    <Button.Default
-                      label='Reservar sala'
-                      onTouch={() => setWizardStep(2)}
-                      filled
-                      icon={{ name: 'key_card' }}
-                    />
-                  )}
                 </>
               ) : (
                 <View className='flex-row gap-1 items-center self-center'>
@@ -620,81 +659,82 @@ const roomRentalWizard = (): React.JSX.Element => {
           ) : (
             <>
               <Section title='Resumo'>
-                <Label___Value separationRow label='Sala' value={{ _: title.split('-')[0] }} />
+                <View className='rounded-xl bg-white p-4'>
+                  <Text className='text-sm text-medroom-secondary'>Sala</Text>
+                  <Text className='text-medroom-primary font-nunito-bold text-sm mt-1'>{title.split('-')[0]}</Text>
 
-                {allocationType !== 'MONTH' && (
-                  <>
-                    <Label___Value
-                      separationRow
-                      label={allocationType === 'DAILY' ? 'Dia' : 'Semana'}
-                      value={{
-                        _: allocationType === 'DAILY'
-                          ? (selectedDate ? formatSessionDate(selectedDate.toISOString()) : '-')
-                          : (selectedDate
-                            ? `${formatSessionDate(selectedDate.toISOString())} - ${formatSessionDate(new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() + 6)).toISOString())}`
-                            : '-'),
-                      }}
-                    />
+                  <View className='h-2' />
 
-                    <Label___Value
-                      separationRow
-                      label='Sessão'
-                      value={{ _: allocationType === 'DAILY' ? '1 dia' : '1 semana' }}
-                    />
-                  </>
-                )}
+                  <Text className='text-sm text-medroom-secondary'>Tipo</Text>
+                  <Text className='text-gray-800 font-nunito-bold mt-1'>{allocationType === 'MONTH' ? 'Mensal completo' : allocationType === 'WEEK' ? 'Por semana' : 'Diário'}</Text>
 
-                <Label___Value
-                  separationRow
-                  label={allocationType === 'MONTH' ? 'Duração' : 'Sessão'}
-                  value={{ _: allocationType === 'MONTH' ? '1 mês' : allocationType === 'DAILY' ? '1 dia' : '1 semana' }}
-                />
+                  <View className='h-2' />
 
-                <Label___Value
-                  label='Total'
-                  boldLabel
-                  value={{
-                    color: 'text-green-600',
-                    _: allocationType === 'MONTH'
-                      ? priceFormat(prices.month)
-                      : allocationType === 'WEEK'
-                        ? priceFormat(prices._week)
-                        : priceFormat(prices.perHour),
-                  }}
-                />
+                  {allocationType === 'MONTH' ? (
+                    <>
+                      <Text className='text-sm text-medroom-secondary'>Período</Text>
+                      <Text className='text-gray-800 font-nunito-bold mt-1'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '-'}</Text>
+                      <View className='h-2' />
+                      <Text className='text-sm text-medroom-secondary'>Início → Término</Text>
+                      <Text className='text-gray-800 font-nunito-bold mt-1'>{selectedDate ? `${formatSessionDate(selectedDate.toISOString())} → ${formatSessionDate(addDays(selectedDate, 29).toISOString())}` : '-'}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text className='text-sm text-medroom-secondary'>Período</Text>
+                      <Text className='text-gray-800 font-nunito-bold mt-1'>{allocationType === 'WEEK' && selectedWeekLabel ? selectedWeekLabel : allocationType === 'DAILY' && selectedDate ? formatSessionDate(selectedDate.toISOString()) : '-'}</Text>
+                    </>
+                  )}
+
+                  <View className='h-3' />
+                  <View className='border-t border-gray-200 pt-3'>
+                    <Text className='text-sm text-medroom-secondary'>Total</Text>
+                    <Text className='text-green-600 font-nunito-bold text-lg mt-1'>{allocationType === 'MONTH' ? priceFormat(prices.month) : allocationType === 'WEEK' ? priceFormat(prices._week) : priceFormat(prices.perHour)}</Text>
+                  </View>
+                </View>
               </Section>
 
               <Section title='Forma de pagamento'>
-                <Button.Default
-                  label='Cartão de crédito'
-                  icon={{ name: 'credit_card' }}
-                  filled={paymentMethod === 'CREDIT_CARD'}
-                  onTouch={() => setPaymentMethod(paymentMethod === 'CREDIT_CARD' ? null : 'CREDIT_CARD')}
-                />
+                <View className='flex-col gap-3'>
+                  {[
+                    { key: 'CREDIT_CARD', label: 'Cartão de crédito', subtitle: 'Aprovação imediata', icon: 'credit_card' },
+                    { key: 'PIX', label: 'Pix', subtitle: 'Aprovação em minutos', icon: 'pix' },
+                    { key: 'BANK_SLIP', label: 'Boleto bancário', subtitle: 'Vence em 3 dias úteis', icon: 'money' },
+                  ].map((opt) => {
+                    const isSelected = paymentMethod === (opt.key as any)
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        activeOpacity={0.9}
+                        onPress={() => setPaymentMethod(paymentMethod === (opt.key as any) ? null : (opt.key as any))}
+                        className={`rounded-xl p-3 flex-row items-center justify-between ${isSelected ? 'border-2 border-medroom-primaryLight bg-white' : 'border border-medroom-primaryLight bg-white'}`}
+                      >
+                        <View className='flex-row items-center gap-3'>
+                          <View className='h-10 w-10 rounded-md bg-medroom-primary/10 items-center justify-center flex'>
+                            <Icon name={opt.icon as any} color={isSelected ? systemColors.primary : '#9CA3AF'} sizes={{ width: 20, height: 20 }} />
+                          </View>
+                          <View>
+                            <Text className={`${isSelected ? 'text-medroom-primary' : 'text-gray-800'} font-nunito-bold`}>{opt.label}</Text>
+                            <Text className={`${isSelected ? 'text-medroom-secondary' : 'text-gray-600'} text-xs`}>{opt.subtitle}</Text>
+                          </View>
+                        </View>
 
-                <Button.Default
-                  label='Pix'
-                  icon={{ name: 'pix' }}
-                  filled={paymentMethod === 'PIX'}
-                  onTouch={() => setPaymentMethod(paymentMethod === 'PIX' ? null : 'PIX')}
-                />
-
-                <Button.Default
-                  label='Boleto bancário'
-                  icon={{ name: 'money' }}
-                  filled={paymentMethod === 'BANK_SLIP'}
-                  onTouch={() => setPaymentMethod(paymentMethod === 'BANK_SLIP' ? null : 'BANK_SLIP')}
-                />
+                        <View className='items-center justify-center'>
+                          <View className={`h-5 w-5 rounded-full ${isSelected ? 'bg-medroom-primary border-2 border-white' : 'bg-transparent border border-gray-300'}`} />
+                        </View>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
               </Section>
 
-              {paymentMethod && (
+              <View className='mt-3'>
                 <Button.Default
-                  label='Confirmar pagamento'
-                  onTouch={() => setWizardStep(3)}
-                  icon={{ name: 'cash' }}
+                  label={`Pagar ${allocationType === 'MONTH' ? priceFormat(prices.month) : allocationType === 'WEEK' ? priceFormat(prices._week) : priceFormat(prices.perHour)}`}
+                  onTouch={() => paymentMethod && setWizardStep(3)}
                   filled
+                  disable={!paymentMethod}
                 />
-              )}
+              </View>
             </>
           )}
         </ScrollView>

@@ -3,6 +3,7 @@ import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import Section from '@/components/ui/Section'
+import ContentNotFound from '@/components/ui/ContentNotFound'
 import Toast from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/auth.context'
 import { fetchActivePatientsWithAuth, fetchPatientHistoryWithAuth } from '@/services/patients'
@@ -93,21 +94,25 @@ const Patients = (): React.JSX.Element => {
           SideComponent={() => (
             <Button.Default
               label='Ver mais'
-              onTouch={() => router.replace('/(authenticated)/(professional)/patients/actives')}
+              onTouch={() => router.push('/(authenticated)/(professional)/patients/actives')}
               customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
             />
           )}
           >
             <View className="gap-4 py-1">
-              {activePatients.map((item, index) => (
-                <Card.Patient
-                  key={item.id}
-                  {...item}
-                  from='ACTIVES'
-                  gap={'gap-3'}
-                  separationRow={(activePatients.length - 1) !== index}
-                />
-              ))}
+              {activePatients.length > 0 ? (
+                activePatients.map((item, index) => (
+                  <Card.Patient
+                    key={item.id}
+                    {...item}
+                    from='ACTIVES'
+                    gap={'gap-3'}
+                    separationRow={(activePatients.length - 1) !== index}
+                  />
+                ))
+              ) : (
+                <ContentNotFound text='Você ainda não possui pacientes ativos.' />
+              )}
             </View>
           </Section>
 
@@ -116,21 +121,25 @@ const Patients = (): React.JSX.Element => {
           SideComponent={() => (
             <Button.Default
               label='Ver mais'
-              onTouch={() => router.replace('/(authenticated)/(professional)/patients/history')}
+              onTouch={() => router.push('/(authenticated)/(professional)/patients/history')}
               customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
             />
           )}
           >
             <View className="gap-4 py-1">
-              {historyPatients.map((item, index) => (
-                <Card.Patient
-                  key={item.id}
-                  {...item}
-                  from='HISTORY'
-                  gap={'gap-3'}
-                  separationRow={(historyPatients.length - 1) !== index}
-                />
-              ))}
+              {historyPatients.length > 0 ? (
+                historyPatients.map((item, index) => (
+                  <Card.Patient
+                    key={item.id}
+                    {...item}
+                    from='HISTORY'
+                    gap={'gap-3'}
+                    separationRow={(historyPatients.length - 1) !== index}
+                  />
+                ))
+              ) : (
+                <ContentNotFound text='Ainda não há clientes no seu histórico.' />
+              )}
             </View>
           </Section>
 

@@ -74,7 +74,7 @@ const NextSessions = (): React.JSX.Element => {
       title='Próximas sessões'
       description='Listagem das próximas sessões do paciente'
       tab='PATIENTS'
-      goBack={() => router.back()}
+      goBack={() => router.push(`/(authenticated)/(professional)/patients/${id}`)}
       layoutType='PROFESSIONAL'    
       >
         {isLoading ? (
