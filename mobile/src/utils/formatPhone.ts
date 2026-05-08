@@ -14,12 +14,8 @@ export const formatPhone = (value: string) => {
   const areaCode = digits.slice(0, 2);
   const number = digits.slice(2);
 
-  if (number.length <= 4) {
+  if (number.length <= 5) {
     return `(${areaCode}) ${number}`;
-  }
-
-  if (number.length <= 8) {
-    return `(${areaCode}) ${number.slice(0, 4)}-${number.slice(4)}`;
   }
 
   return `(${areaCode}) ${number.slice(0, 5)}-${number.slice(5)}`;
