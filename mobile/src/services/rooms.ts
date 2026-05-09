@@ -91,20 +91,23 @@ export type RoomRental = {
 	startDate: string;
 	endDate: string;
 	totalPrice: number;
-	selectedHours?: { startHour: string; endHour: string } | null;
 	selectedWeekDays: string[];
 	isActive: boolean;
+	selectedHours?: { 
+		startHour: string; 
+		endHour: string 
+	} | null;
 };
 
 export type EnterpriseValuesResponse = {
+	roomRevenue: OverallRoomRevenue;
+	expenses: Expanses;
+	roomPrices: RoomPrice[];
 	summary: {
 		revenueThisMonth: number;
 		expensesThisMonth: number;
 		netIncome: number;
 	};
-	roomRevenue: OverallRoomRevenue;
-	expenses: Expanses;
-	roomPrices: RoomPrice[];
 };
 
 export async function fetchRooms(): Promise<RoomDisplayCard[]> {

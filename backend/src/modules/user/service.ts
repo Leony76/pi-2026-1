@@ -126,7 +126,7 @@ export async function updateProfileById(
 		throw createHttpError(400, "bad_request", "E-mail invalido.");
 	}
 
-	if (!/^\([1-9]{2}\) 9?[0-9]{5}-[0-9]{4}$/.test(phone)) {
+	if (!/^\([1-9]{2}\) [0-9]{4,5}-[0-9]{4}$/.test(phone)) {
 		throw createHttpError(400, "bad_request", "Formato de telefone invalido.");
 	}
 

@@ -8,60 +8,53 @@ import { fetchRooms } from '@/services/rooms'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { FlatList, Text, View } from 'react-native'
+import ContentNotFound from '@/components/ui/ContentNotFound'
 
 const Rooms = (): React.JSX.Element => {
 
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
+  const [urlParamsMessage, setUrlParamsMessage] = useState<string | null>(null);
   const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(true);
   const [roomsError, setRoomsError] = useState<string | null>(null);
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ message?: string }>();
   
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadRooms() {
+    (async() => {
       try {
         setIsLoadingRooms(true);
         setRoomsError(null);
 
         const roomsData = await fetchRooms();
 
-        if (isMounted) {
-          setRooms(roomsData);
-        }
+        setRooms(roomsData);
       } catch {
-        if (isMounted) {
-          setRoomsError('Não foi possível carregar as salas.');
-        }
+        setRoomsError('Não foi possível carregar as salas.');   
       } finally {
-        if (isMounted) {
-          setIsLoadingRooms(false);
-        }
+        setIsLoadingRooms(false);
       }
-    }
+    })();
+  }, []);
 
-    loadRooms();
-
-    if (params.message) {
+  useEffect(() => {
+    if (typeof params.message === 'string' && params.message.trim()) {
+      setUrlParamsMessage(params.message);
       setToastVisible(true);
     }
-
-    return () => {
-      isMounted = false;
-    };
   }, [params.message]);
 
   const handleCloseToast = () => {
     setToastVisible(false);
-    router.setParams({ message: '' });
+    setUrlParamsMessage(null);
+
+    router.setParams({});
   };
 
   return (
     <LayoutWrapper>
-      { toastVisible &&
+      { (toastVisible && urlParamsMessage) &&
         <Toast
-          message={params.message as string}
+          message={urlParamsMessage}
           onClose={handleCloseToast}
           visible={toastVisible}
         />
@@ -94,7 +87,9 @@ const Rooms = (): React.JSX.Element => {
                   </Text>
                 </View>
               ) : (
-                <View className='py-8' />
+                <View className='fixed top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]'>
+                  <ContentNotFound text='Nenhuma sala cadastrada no momento!'/>
+                </View>
               )
             }
             renderItem={({ item }) => (

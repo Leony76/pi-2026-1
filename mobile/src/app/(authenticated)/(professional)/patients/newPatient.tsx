@@ -241,13 +241,13 @@ const NewPatient = (): React.JSX.Element => {
                 render={({ field: { onChange, value, onBlur } }) => (
                   <Input.Style2
                     icon={{ name: 'phone' }}
-                    maxLength={16}
+                    maxLength={14}
                     label='Telefone'
                     onChange={(text) => {
                       const phoneMask = formatPhone(text);
                       onChange(phoneMask);
                     }}
-                    placeholder={{ text: '(XX) XXXXX-XXXX'}}
+                    placeholder={{ text: '(XX) XXXX-XXXX'}}
                     type='TEXT'
                     onBlur={onBlur}
                     value={value}

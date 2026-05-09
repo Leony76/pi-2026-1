@@ -109,7 +109,7 @@ const PricesByRoom = (): React.JSX.Element => {
         title='Preços por sala'
         description='Listagem dos preços por sala'
         tab='VALUES'
-        goBack={() => router.back()}
+        goBack={() => router.push('/(authenticated)/(enterprise)/values')}
         layoutType='ENTERPRISE'
       >
         <View className='flex-1 py-6 gap-5'>
@@ -129,7 +129,7 @@ const PricesByRoom = (): React.JSX.Element => {
             />
 
             <Button.Default
-              label='Mês'
+              label='Por mês'
               filled={pricesRender === 'MONTH'}
               onTouch={() => setPricesRender('MONTH')}
               customStyle={{ container: 'flex-1 py-[7px]', text: 'text-sm' }}
@@ -147,7 +147,7 @@ const PricesByRoom = (): React.JSX.Element => {
               data={filteredList}
               contentContainerClassName='gap-4 py-1'
               keyExtractor={(item, index) => `${item.id}-${index}`}
-              ListEmptyComponent={<ContentNotFound text={`Nenhum resultado para "${searchValue ?? ''}"`} />}
+              ListEmptyComponent={<ContentNotFound text='Nenhuma sala encontrada!'/>}
               renderItem={({ item, index }) => {
                 const allocationTypePriceMap: Record<Allocation, number | undefined> = {
                   DAILY: item.price.byHour,

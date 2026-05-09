@@ -24,6 +24,8 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import type { IconName } from 'root/assets/icons'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import ImageExpanded from '@/components/modal/ImageExpanded'
 
 const NewRoomWizard = (): React.JSX.Element => {
 
@@ -55,6 +57,8 @@ const NewRoomWizard = (): React.JSX.Element => {
   const [isSavingRoom, setIsSavingRoom] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [roomImage, setRoomImage] = useState<string | null>(null);
+  const [roomImageMissingError, setRoomImageMissingError] = useState<string | null>(null);
+  const [rooImageExpanded, setRoomImageExpanded] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
   const [persistDataOnInput, setPersistDataOnInput] = useState({
@@ -111,7 +115,7 @@ const NewRoomWizard = (): React.JSX.Element => {
         items: data.items,
       }, authenticated);
 
-      router.push({
+      router.replace({
         pathname: '/(authenticated)/(enterprise)/rooms',
         params: {
           message: 'Sala adicionada com sucesso!'
@@ -186,10 +190,25 @@ const NewRoomWizard = (): React.JSX.Element => {
     setValue('roomName' , persistDataOnInput.roomName);
   },[wizardStep]);
 
+  useEffect(() => {
+    if (roomImage) setRoomImageMissingError(null);
+    if (!roomImage && Object.keys(errors).length > 0) 
+      setRoomImageMissingError('A foto da sala é obrigatória');
+  }, [roomImage]);
+
   switch (wizardStep) {
     case 1:
       return (
         <LayoutWrapper>
+          
+          { roomImage &&
+            <ImageExpanded
+              image={roomImage}
+              onRequestClose={() => setRoomImageExpanded(false)}
+              visible={rooImageExpanded}
+            />
+          }
+          
           <SystemLayout 
           title='Nova sala' 
           description={`Etapa ${wizardStep} de 3 - ${DESCRIPTION_INFOS_BY_WIZARD_STEP_MAP[wizardStep]}`} 
@@ -209,10 +228,16 @@ const NewRoomWizard = (): React.JSX.Element => {
                   </Text>
 
                   {roomImage ? (
-                    <Image
-                      source={{ uri: roomImage }}
-                      className='w-full h-48 rounded-lg'
-                    />
+                    <TouchableOpacity
+                    activeOpacity={0.67}
+                    onPress={() => setRoomImageExpanded(true)}
+                    className='cursor-zoom-in'
+                    >
+                      <Image
+                        source={{ uri: roomImage }}
+                        className='w-full h-48 rounded-lg'
+                      />
+                    </TouchableOpacity>
                   ) : (
                     <View className='bg-medroom-primaryLight justify-center items-center w-full rounded-lg h-40'>
                       <Text className='text-medroom-primary font-nunito-bold'>
@@ -221,8 +246,10 @@ const NewRoomWizard = (): React.JSX.Element => {
                     </View>
                   )}
 
+                  {roomImageMissingError && <Input.Error error={roomImageMissingError}/> }
+
                   <Button.Default
-                    icon={{ name: 'misc', size: { width: 20, height: 20 } }}
+                    CustomIcon={() => <FontAwesome name="photo" size={22} color={systemColors.primary} />}
                     label={roomImage ? 'Trocar foto' : 'Selecionar foto'}
                     onTouch={handlePickRoomImage}
                   />
@@ -332,10 +359,13 @@ const NewRoomWizard = (): React.JSX.Element => {
                 <Button.Default
                   customStyle={{ container: 'mt-3' }}
                   filled
-                  disable={!!step1ActiveErros}
+                  disable={!!step1ActiveErros && !roomImage}
                   icon={{ name: 'right_arrow', size: { width: 20, height: 20 } }}
                   label='Próximo'
-                  onTouch={handleNextStep}
+                  onTouch={() => {
+                    if (!roomImage) setRoomImageMissingError('A foto da sala é obrigatória');
+                    handleNextStep();
+                  }}
                 />
               </View>
             </ScrollView>
@@ -367,7 +397,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                         icon={{ name: 'money' }}
                         maxLength={256}
                         label='Preço por dia (R$)'
-                        placeholder={{ text: 'R$ XX,XX'}}
+                        placeholder={{ text: 'R$ XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
                         keyboardType='number-pad'
@@ -389,7 +419,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                         icon={{ name: 'money' }}
                         maxLength={256}
                         label='Preço por semana (R$)'
-                        placeholder={{ text: 'R$ XXX,XX'}}
+                        placeholder={{ text: 'R$ X.XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
                         keyboardType='number-pad'
@@ -411,7 +441,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                         icon={{ name: 'money' }}
                         maxLength={256}
                         label='Preço mensal (R$)'
-                        placeholder={{ text: 'R$ X.XXX,XX'}}
+                        placeholder={{ text: 'R$ XX.XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
                         keyboardType='number-pad'
@@ -490,8 +520,7 @@ const NewRoomWizard = (): React.JSX.Element => {
 
                   const decrease = (itemName: string) => {
                     onChange(
-                      value
-                        .map(item =>
+                      value.map(item =>
                           item.name === itemName
                             ? { ...item, quantity: item.quantity - 1 }
                             : item

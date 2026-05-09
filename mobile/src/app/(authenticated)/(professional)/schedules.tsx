@@ -11,6 +11,7 @@ import { ScrollView, Text, View, ActivityIndicator } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { fetchUserRentalsWithAuth, RoomRental } from '@/services/rooms'
 import { formatSessionDate } from '@/utils/formatSessionDate'
+import ContentNotFound from '@/components/ui/ContentNotFound'
 
 const schedules = (): React.JSX.Element => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
@@ -87,15 +88,11 @@ const schedules = (): React.JSX.Element => {
   const getRentalEnd = (rental: RoomRental) => new Date(rental.endDate);
 
   const getAllocationLabel = (allocationType: RoomRental['allocationType']) => {
-    if (allocationType === 'DAILY') {
-      return 'Por dia';
+    switch (allocationType) {
+      case 'DAILY' : return 'Por dia';
+      case 'MONTH' : return 'Mensal';
+      default      : return 'Por semana';
     }
-
-    if (allocationType === 'WEEK') {
-      return 'Por semana';
-    }
-
-    return 'Mensal';
   };
 
   const activeRentals = rentals.filter(r => {
@@ -214,8 +211,8 @@ const schedules = (): React.JSX.Element => {
           )}
 
           {rentals.length === 0 && (
-            <View className='flex-1 justify-center items-center'>
-              <Text className='text-medroom-secondary'>Nenhuma reserva encontrada</Text>
+            <View className='fixed top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]'>
+              <ContentNotFound text='Nenhuma reserva encontrada!'/>
             </View>
           )}
         </ScrollView>

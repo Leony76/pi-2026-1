@@ -8,7 +8,7 @@ export const newPatientSchema = z.object({
     .max(255, 'O nome deve ter até 255 caracteres'),
   phone: z
     .string()
-    .regex(/^\(\d{2}\) \d{5}-\d{4}$/, "Telefone deve ter 9 números"),
+    .regex(/^\(\d{2}\) \d{4}-\d{4}$/, "Telefone deve ter 9 números"),
   email: z
     .email('E-mail inválido')
     .trim()  

@@ -19,7 +19,7 @@ import { ApiError } from '@/services/api'
 const Edit = (): React.JSX.Element => {
 
   const router = useRouter();
-  const { profile, accountType, refreshProfile } = useLoggedUserData();
+  const { profile, refreshProfile } = useLoggedUserData();
   const auth = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -104,12 +104,12 @@ const Edit = (): React.JSX.Element => {
     <LayoutWrapper>
       <SystemLayout
       title='Dados pessoais'
-      description='Atualiza suas informações'
+      description='Atualize suas informações'
       tab='PATIENTS'
-      layoutType={accountType ?? 'PROFESSIONAL'}   
-      goBack={() => router.back()} 
+      layoutType={profile?.accountType ?? 'PROFESSIONAL'}   
+      goBack={() => router.push('/(authenticated)/(professional)/profile')} 
       >
-        <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-center'>
+        <ScrollView contentContainerClassName='py-6 gap-5 justify-center'>
           <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
             <View>
               <Controller
@@ -205,13 +205,13 @@ const Edit = (): React.JSX.Element => {
                 render={({ field: { onChange, value } }) => (
                   <Input.Style2
                     icon={{ name: 'phone' }}
-                    maxLength={15}
+                    maxLength={14}
                     label='Telefone'
                     onChange={(phone) => {
                       const phoneMask = formatPhone(phone);
                       onChange(phoneMask);
                     }}
-                    placeholder={{ text: '(XX) XXXXX-XXXX'}}
+                    placeholder={{ text: '(XX) XXXX-XXXX'}}
                     type='TEXT'
                     value={value ?? ''}
                     keyboardType='number-pad'

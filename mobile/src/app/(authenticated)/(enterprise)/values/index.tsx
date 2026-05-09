@@ -91,6 +91,12 @@ const Values = (): React.JSX.Element => {
   const roomRevenueData = values?.roomRevenue.roomsRevenue ?? [];
   const roomPricesData = values?.roomPrices ?? [];
 
+  const expenseItemsMap = [
+    { label: 'Manutenção das salas' , key: 'maintenance'     },
+    { label: 'Energia elétrica'     , key: 'eletricalEnergy' },
+    { label: 'Limpeza'              , key: 'cleaning'        },
+  ] as const;
+
   return (
     <LayoutWrapper>
 
@@ -142,59 +148,46 @@ const Values = (): React.JSX.Element => {
           )}
           >
             { roomRevenueData.length > 0 ? (
-              roomRevenueData.map(( item ) => (
+              <>
+                {roomRevenueData.map(( item ) => (
+                  <Label___Value
+                    separationRow
+                    key={item.id}
+                    label={item.room}
+                    value={{ _: priceFormat(item.totalRevenue), color: 'text-green-600' }}
+                    onTouch={() => setRoomRevenueDetails({
+                      room    : item.room,
+                      revenue : item.revenue,
+                    })}
+                  />
+                ))}
+
                 <Label___Value
-                  separationRow
-                  key={item.id}
-                  label={item.room}
-                  value={{ _: priceFormat(item.totalRevenue), color: 'text-green-600' }}
-                  onTouch={() => setRoomRevenueDetails({
-                    room    : item.room,
-                    revenue : item.revenue,
-                  })}
-                />
-              ))
+                  value={{ 
+                    _: priceFormat(values?.roomRevenue.totalRevenue ?? 0),
+                    color: 'text-green-600 text-lg'
+                  }}
+                  label='Receita total'
+                  boldLabel
+                />          
+              </>
             ) : (
               <ContentNotFound text='Nenhuma receita por sala'/>
             )}
 
-            <Label___Value
-              value={{ 
-                _: priceFormat(values?.roomRevenue.totalRevenue ?? 0),
-                color: 'text-green-600 text-lg'
-              }}
-              label='Receita total'
-              boldLabel
-            />          
           </Section>
 
           <Section title='Despesas'>
-            <Label___Value
-              separationRow
-              value={{ 
-                _: '-' + priceFormat(values?.expenses.maintenance ?? 0),
-                color: 'text-red-600'
-              }}
-              label='Manutenção das salas'
-            />  
-            
-            <Label___Value
-              separationRow
-              value={{ 
-                _: '-' + priceFormat(values?.expenses.eletricalEnergy ?? 0),
-                color: 'text-red-600'
-              }}
-              label='Energia elétrica'
-            />  
-
-            <Label___Value
-              separationRow
-              value={{ 
-                _: '-' + priceFormat(values?.expenses.cleaning ?? 0),
-                color: 'text-red-600'
-              }}
-              label='Limpeza'
-            />  
+            { expenseItemsMap.map((items) => (
+              <Label___Value
+                separationRow
+                value={{ 
+                  _: '-' + priceFormat(values?.expenses[items.key] ?? 0),
+                  color: 'text-red-600'
+                }}
+                label={items.label}
+              />  
+            ))}
 
             <Label___Value
               value={{ 

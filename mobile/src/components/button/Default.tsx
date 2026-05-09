@@ -10,6 +10,7 @@ type Props = {
   loading?     : boolean; 
   borderStyle? :  'DASHED';
   textLineThrough? : boolean;
+  CustomIcon?: React.ElementType;
   icon? : {
     name : IconName;
     color?: string;
@@ -27,6 +28,9 @@ type Props = {
 };
 
 const Default = (props:Props): React.JSX.Element => {
+
+  const CustomIcon = props.CustomIcon;
+  
   return (
     <TouchableOpacity
     disabled={props.disable}
@@ -53,15 +57,19 @@ const Default = (props:Props): React.JSX.Element => {
           size="small"
           color="#fff"
         />
-      ) : props.icon ? (
-        <Icon 
-          name={props.icon.name}
-          color={props.icon.color ? props.icon.color : props.filled ? '#FFFFFF' : systemColors.primary}
-          sizes={{ 
-            width: props.icon.size?.width || 24, 
-            height: props.icon.size?.height || 24, 
-          }}
-        />
+      ) : (props.icon || CustomIcon) ? (
+        CustomIcon 
+          ? <CustomIcon/>
+          : props.icon
+          ? <Icon 
+              name={props.icon.name}
+              color={props.icon.color ? props.icon.color : props.filled ? '#FFFFFF' : systemColors.primary}
+              sizes={{ 
+                width: props.icon.size?.width || 24, 
+                height: props.icon.size?.height || 24, 
+              }}
+            />
+          : null
       ) : null }
       
       <Text 

@@ -16,15 +16,16 @@ import Entypo from '@expo/vector-icons/Entypo';
 import { Button } from '@/components/button'
 import { useAuth } from '@/contexts/auth.context'
 import { Modal } from '@/components/modal'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import Toast from '@/components/ui/Toast'
 
 const Profile = (): React.JSX.Element => {
 
-  const { profile, accountType, isLoading, error, refreshProfile } = useLoggedUserData();  
+  const { profile, isLoading, error, refreshProfile } = useLoggedUserData();  
   const { signOut, token, refreshToken, updateTokens } = useAuth();
 
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [urlParamsMessage, setUrlParamsMessage] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
   const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
@@ -32,12 +33,24 @@ const Profile = (): React.JSX.Element => {
   const router = useRouter();
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const params = useLocalSearchParams();
+  const navigation = useNavigation();
 
   const [profileImageExpand, setProfileExpand] = useState<boolean>(false);
   
   useEffect(() => {
     if (params.message) {
+      setUrlParamsMessage(params.message as string);
       setToastVisible(true);
+
+      (navigation as any).setParams({
+        message: undefined,
+      });
+
+      if (typeof window !== 'undefined' && window.history) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('message');
+        window.history.replaceState({}, '', url.pathname);
+      }
     }
   }, [params.message]);
 
@@ -104,7 +117,7 @@ const Profile = (): React.JSX.Element => {
       }
 
       <Toast
-        message={params.message as string}
+        message={urlParamsMessage as string}
         onClose={handleCloseToast}
         visible={toastVisible}
       />
@@ -115,7 +128,7 @@ const Profile = (): React.JSX.Element => {
       tab='PROFILE'
       mainPxOff
       headerHidden
-      layoutType={accountType ?? 'PROFESSIONAL'}    
+      layoutType={profile?.accountType ?? 'PROFESSIONAL'}    
       >
         <ScrollView contentContainerClassName='gap-5 pb-6'>
             <LinearGradient
@@ -311,6 +324,7 @@ const Profile = (): React.JSX.Element => {
 
             <Section title='Atividade'>
               <Label___Value
+                onTouch={() => router.push('/(authenticated)/(professional)/schedules')}
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
                 separationRow
                 LabelComponent={() => (
@@ -328,6 +342,7 @@ const Profile = (): React.JSX.Element => {
               />
 
               <Label___Value
+                onTouch={() => router.push('/(authenticated)/(professional)/patients')}
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
                 separationRow
                 LabelComponent={() => (
@@ -345,6 +360,7 @@ const Profile = (): React.JSX.Element => {
               />
 
               <Label___Value
+                onTouch={() => router.push('/(authenticated)/(professional)/profile/paymentsHistory')}
                 LabelComponent={() => (
                   <View className='flex-row gap-2 items-center ml-1'>
                     <Icon

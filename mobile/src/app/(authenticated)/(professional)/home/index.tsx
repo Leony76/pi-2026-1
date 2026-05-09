@@ -7,6 +7,7 @@ import { Card } from '@/components/card';
 import { getFirstName } from '@/utils/getFirstName';
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context';
 import { fetchRooms } from '@/services/rooms';
+import ContentNotFound from '@/components/ui/ContentNotFound';
 
 const Home = (): React.JSX.Element => {
 
@@ -80,9 +81,14 @@ const Home = (): React.JSX.Element => {
           contentContainerClassName='py-6'
           renderItem={({ item }) => (
             <Card.DisplayRoom
-              key={item.id}
-              { ...item }
+            key={item.id}
+            { ...item }
             />
+          )}
+          ListEmptyComponent={() => (
+            <View className='fixed top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]'>
+              <ContentNotFound text='Nenhuma sala cadastrada no sistema no momento!'/>
+            </View>
           )}
         />
       </SystemLayout>

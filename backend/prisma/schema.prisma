@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -132,7 +126,7 @@ model Patient {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  professional User      @relation("ProfessionalPatients", fields: [professionalId], references: [id], onDelete: Cascade)
+  professional User            @relation("ProfessionalPatients", fields: [professionalId], references: [id], onDelete: Cascade)
   sessions     Session[]
 
   @@index([professionalId])
@@ -145,13 +139,13 @@ model Room {
   title             String
   displayImage      String?
   floor             Floor
-  area              Decimal            @db.Decimal(5, 2)
+  area              Decimal             @db.Decimal(5, 2)
   characteristic    RoomCharacteristic
-  isAvailable       Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  isAvailable       Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  enterpriseOwner User          @relation("EnterpriseRooms", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
+  enterpriseOwner User                  @relation("EnterpriseRooms", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
   prices          RoomPrice?
   items           RoomItem[]
   rentals         RoomRental[]
