@@ -14,7 +14,6 @@ type UserProfile = CurrentUserResponse;
 
 type UserContextData = {
   profile: UserProfile | null;
-  accountType: "PROFESSIONAL" | "ENTERPRISE" | null;
   isLoading: boolean;
   error: string | null;
   refreshProfile: () => Promise<void>;
@@ -26,7 +25,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { token, refreshToken, updateTokens, signOut } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [accountType, setAccountType] = useState<"PROFESSIONAL" | "ENTERPRISE" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,10 +49,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           signOut
         );
 
-        if (!guard.cancelled) {
-          setProfile(data);
-          setAccountType(data.accountType);
-        }
+        if (!guard.cancelled) setProfile(data);
       } catch (err) {
         if (!guard.cancelled) {
           if (err instanceof ApiError && (err.statusCode === 401 || err.statusCode === 403 || err.statusCode === 404)) {
@@ -76,6 +71,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       return;
     }
+
     const guard = { cancelled: false };
     loadProfile(guard);
 
@@ -91,7 +87,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <LoggedUserDataContext.Provider
-      value={{ profile, accountType, isLoading, error, refreshProfile }}
+      value={{ profile, isLoading, error, refreshProfile }}
     >
       {children}
     </LoggedUserDataContext.Provider>

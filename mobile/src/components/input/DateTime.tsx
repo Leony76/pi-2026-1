@@ -79,7 +79,9 @@ const DateTime = (props: DateProps): React.JSX.Element => {
               <View className="bg-white rounded-2xl p-4 w-full overflow-hidden border-2 border-medroom-primary">
                 <Calendar
                   current={selectedDate}
-                  onDayPress={handleDayPress}                  minDate={props.minDate}                  maxDate={props.maxDate}
+                  onDayPress={handleDayPress}                  
+                  minDate={props.minDate}                  
+                  maxDate={props.maxDate}
                   markedDates={{
                     ...(props.markedDates || {}),
                     [selectedDate ?? '']: { selected: true, disableTouchEvent: true }

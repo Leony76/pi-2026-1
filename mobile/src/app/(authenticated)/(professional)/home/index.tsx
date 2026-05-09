@@ -16,7 +16,7 @@ const Home = (): React.JSX.Element => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadRooms = async () => {
+    (async () => {
       try {
         setLoading(true);
         setError(null);
@@ -28,9 +28,7 @@ const Home = (): React.JSX.Element => {
       } finally {
         setLoading(false);
       }
-    };
-
-    loadRooms();
+    })();
   }, []);
 
   if (loading) {

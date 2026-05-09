@@ -3,7 +3,7 @@ import { useLoggedUserData } from '@/contexts/LoggedUserData.context';
 import { Redirect } from 'expo-router';
 
 export default function AuthenticatedIndex(): React.JSX.Element {
-  const { accountType, isLoading } = useLoggedUserData();
+  const { profile, isLoading } = useLoggedUserData();
 
   if (isLoading) {
     return <LoadingScreen message='Carregando seu perfil...' />;
@@ -11,7 +11,7 @@ export default function AuthenticatedIndex(): React.JSX.Element {
 
   return (
     <Redirect
-      href={accountType === 'ENTERPRISE'
+      href={profile?.accountType === 'ENTERPRISE'
         ? '/(authenticated)/(enterprise)/dashboard'
         : '/(authenticated)/(professional)/home'}
     />
