@@ -18,6 +18,9 @@ import { useAuth } from '@/contexts/auth.context'
 import { Modal } from '@/components/modal'
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import Toast from '@/components/ui/Toast'
+import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials'
+import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName'
+import { fetchLoggedProfessionalPaymentsHistory } from '@/services/rooms'
 
 const Profile = (): React.JSX.Element => {
 
@@ -25,10 +28,14 @@ const Profile = (): React.JSX.Element => {
   const { signOut, token, refreshToken, updateTokens } = useAuth();
 
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [historyCount, setHistoryCount] = useState<number | null>(null);
   const [urlParamsMessage, setUrlParamsMessage] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
   const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
+
+  const nameToDisplay = getDisplayNameOrInitials(profile?.name ?? 'Desconhecido');
+  const colors = getColorByName(profile?.name ?? 'Desconhecido');
 
   const router = useRouter();
   const [toastVisible, setToastVisible] = useState<boolean>(false);
@@ -37,6 +44,24 @@ const Profile = (): React.JSX.Element => {
 
   const [profileImageExpand, setProfileExpand] = useState<boolean>(false);
   
+  useEffect(() => {
+    (async() => {
+      try {
+        if (!profile || !token || !refreshToken) return;
+
+        const data = await fetchLoggedProfessionalPaymentsHistory(profile.id, { token, refreshToken, updateTokens, signOut });
+
+        if (!data || data.length === 0) return;
+        setHistoryCount(data.length);
+      } catch(error:unknown) {  
+        if (error instanceof Error) {
+          setUrlParamsMessage(error.message);
+          setToastVisible(true);
+        }
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (params.message) {
       setUrlParamsMessage(params.message as string);
@@ -101,11 +126,13 @@ const Profile = (): React.JSX.Element => {
 
   return (
     <LayoutWrapper>
-      <Modal.ImageExpanded
-        image={profile?.displayImage ?? 'https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg'}
-        onRequestClose={() => setProfileExpand(false)}
-        visible={profileImageExpand}
-      />
+      { profile?.displayImage &&
+        <Modal.ImageExpanded
+          image={profile.displayImage}
+          onRequestClose={() => setProfileExpand(false)}
+          visible={profileImageExpand}
+        />
+      }
 
       { signOutConfirm &&
         <Modal.ConfirmAction
@@ -136,16 +163,30 @@ const Profile = (): React.JSX.Element => {
           className="justify-center items-center w-full gap-4 py-8"
           >
             <View className='relative'>
-              <TouchableOpacity
-              activeOpacity={0.67}
-              onPress={() => setProfileExpand(true)}
-              >
-                <Image
-                  source={{ uri: profile?.displayImage ?? 'https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg' }}
-                  className='w-40 h-40 rounded-full border-cyan-200'
-                  style={{ borderWidth: 2 }}
-                />
-              </TouchableOpacity>
+              { profile?.displayImage ? (
+                <TouchableOpacity
+                activeOpacity={0.67}
+                onPress={() => setProfileExpand(true)}
+                >
+                  <Image
+                    source={{ uri: profile?.displayImage }}
+                    className='w-40 h-40 rounded-full border-cyan-200'
+                    style={{ borderWidth: 2 }}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <View 
+                className={`justify-center items-center w-40 h-40 rounded-full border border-cyan-200`}
+                style={{ backgroundColor: colors?.bg }}
+                >
+                  <Text 
+                  className={`text-[76px] font-semibold`} 
+                  style={{ color: colors?.text }}
+                  >
+                    { nameToDisplay.initials }
+                  </Text>
+                </View>
+              )}
 
               {isUploadingImage && (
                 <View className='mt-2'>
@@ -161,7 +202,7 @@ const Profile = (): React.JSX.Element => {
 
               <TouchableOpacity 
               activeOpacity={0.67}
-              className='absolute bottom-2 right-2 bg-cyan-100 p-1 rounded-full'
+              className='absolute bottom-2 right-2 bg-cyan-100 p-1 rounded-full border border-medroom-secondary'
               onPress={async () => {
                 try {
                   setImageError(null);
@@ -211,7 +252,7 @@ const Profile = (): React.JSX.Element => {
 
             <View className='items-center'>
               <Text className='text-white text-2xl font-nunito-bold text-center'>
-                Dr(a) { profile?.name ?? '[ Desconhecido ]' }
+                Dr(a) { nameToDisplay.displayName }
               </Text>
 
               <Text className='text-white text-lg font-nunito'>
@@ -228,7 +269,7 @@ const Profile = (): React.JSX.Element => {
                 />
 
                 <Text className='text-white font-nunito'>
-                  {profile?.specialtyLabel ?? 'Especialidade'}
+                  {profile?.specialtyLabel ?? '[ não identificada ]'}
                 </Text>
               </View>
 
@@ -295,7 +336,7 @@ const Profile = (): React.JSX.Element => {
                     <Icon
                       name='person'
                       sizes={{ height: 20, width: 20 }}
-                    />
+                      />
 
                     <Text className='font-nunito-bold text-medroom-secondary'>
                       Dados pessoais
@@ -306,6 +347,7 @@ const Profile = (): React.JSX.Element => {
 
               <Label___Value
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
+                onTouch={() => router.push('/(authenticated)/(professional)/profile/verifyCurrentPassword')}
                 LabelComponent={() => (
                   <View className='flex-row gap-2 items-center ml-1'>
                     <Icon
@@ -375,11 +417,13 @@ const Profile = (): React.JSX.Element => {
                 )}          
                 value={{ Component: () => (
                   <View className='flex-row gap-2'>
-                    <View className='bg-medroom-primary px-[8px] rounded-full justify-center items-center'>
-                      <Text className='text-white font-nunito-bold'>
-                        {'2'}
-                      </Text>
-                    </View>
+                    { historyCount &&         
+                      <View className='bg-medroom-primary px-[8px] rounded-full justify-center items-center'>
+                        <Text className='text-white font-nunito-bold'>
+                          { historyCount }
+                        </Text>
+                      </View>
+                    }
 
                     <Entypo name="chevron-right" size={24} color={systemColors.primary}/> 
                   </View>

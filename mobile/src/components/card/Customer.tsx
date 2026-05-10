@@ -5,6 +5,7 @@ import { CustomerHistory, Customer as CustomerType } from '@/types/customer.type
 import { SPECIALTY_MAP } from '@/constants/maps/specialty.map';
 import { formatLimitDate } from '@/utils/formatLimitDate';
 import { formatMonthNameAndYear } from '@/utils/formatMonthNameAndYear';
+import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
 
 type BaseProps = {
   gap? : `gap-${number}`;
@@ -19,18 +20,7 @@ type Props = BaseProps & CustomerType & {
 
 const Customer = (props:Props): React.JSX.Element => {
 
-  const nameArray = props.name.trim().split(' ') || [];
-
-  const displayName = nameArray.length > 1 
-    ? `${nameArray[0]} ${nameArray[1]}` 
-    : nameArray[0]
-  ;
-    
-  const initials = nameArray.length > 1 
-    ? `${nameArray[0]?.[0]}${nameArray[1]?.[0]}` 
-    :    nameArray[0]?.[0]
-  ;
-
+  const nameToDisplay = getDisplayNameOrInitials(props.name);
   const colors = getColorByName(props.name);
 
   return (
@@ -45,13 +35,13 @@ const Customer = (props:Props): React.JSX.Element => {
             className='font-nunito-bold text-base'
             style={{ color: colors?.text }}
             >
-              { initials?.toUpperCase() }
+              { nameToDisplay.initials.toUpperCase() }
             </Text>
           </View>
 
           <View>
             <Text className='text-medroom-primary text-lg font-nunito-bold'>
-              { displayName }
+              { nameToDisplay.displayName }
             </Text>
 
             <Text className='text-[13px] font-nunito text-gray-600'>

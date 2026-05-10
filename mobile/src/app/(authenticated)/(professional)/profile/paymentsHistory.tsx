@@ -4,24 +4,25 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchPatientHistoryWithAuth } from '@/services/patients'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
-import { History as HistoryType } from '@/types/history.type'
+import { fetchLoggedProfessionalPaymentsHistory, FetchProfessionalPaymentsHistory } from '@/services/rooms'
+import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 
 const PaymentHistory = (): React.JSX.Element => {
 
   const router = useRouter();
   const { token, refreshToken, updateTokens, signOut } = useAuth();
+  const { profile } = useLoggedUserData();
   const [searchValue, setSearchValue] = useState<string | null>(null);
-  const [historyPatients, setHistoryPatients] = useState<HistoryType[]>([]);
+  const [paymentsHistory, setPaymentsHistory] = useState<FetchProfessionalPaymentsHistory[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadHistory = async (): Promise<void> => {
-      if (!token || !refreshToken) {
+      if (!token || !refreshToken || !profile) {
         setError('Não autenticado');
         setIsLoading(false);
         return;
@@ -31,8 +32,8 @@ const PaymentHistory = (): React.JSX.Element => {
         setIsLoading(true);
         setError(null);
 
-        const data = await fetchPatientHistoryWithAuth({ token, refreshToken, updateTokens, signOut });
-        setHistoryPatients(data);
+        const data = await fetchLoggedProfessionalPaymentsHistory(profile.id, { token, refreshToken, updateTokens, signOut });
+        setPaymentsHistory(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar histórico de pacientes');
       } finally {
@@ -44,8 +45,8 @@ const PaymentHistory = (): React.JSX.Element => {
   }, [token, refreshToken, updateTokens, signOut]);
 
   const filteredList = useMemo(() => 
-    historyPatients.filter((patient) => patient.patientName.toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
-  [searchValue, historyPatients]);
+    paymentsHistory.filter((payment) => payment.paid.toString().toLowerCase().includes(searchValue?.toLowerCase() ?? '')), 
+  [searchValue, paymentsHistory]);
 
   return (
     <LayoutWrapper>
@@ -77,12 +78,11 @@ const PaymentHistory = (): React.JSX.Element => {
               data={filteredList}
               contentContainerClassName='gap-4 py-1'
               keyExtractor={(item, index) => `${item.id}-${index}`}
-              ListEmptyComponent={ <ContentNotFound text={searchValue ? `Nenhum resultado para "${ searchValue }"` : 'Ainda não há clientes no seu histórico.'}/> }
+              ListEmptyComponent={ <ContentNotFound text={searchValue ? `Nenhum resultado para "${ searchValue }"` : 'Nenhum transação realizado até o momento!'}/> }
               renderItem={({ item, index }) => (
-                <Card.Patient
+                <Card.PaymentHistory
                   key={item.id}
                   { ...item }
-                  from='HISTORY'
                   gap={'gap-3'}
                   separationRow={(filteredList.length - 1) !== index}
                 />

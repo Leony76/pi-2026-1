@@ -12,6 +12,9 @@ import { Patient } from '@/types/patient.type'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { fetchUserRentalsWithAuth } from '@/services/rooms'
+import { Entypo } from '@expo/vector-icons'
+import { systemColors } from '@/constants/misc/systemColors.misc'
 
 const Patients = (): React.JSX.Element => {
 
@@ -20,6 +23,7 @@ const Patients = (): React.JSX.Element => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
 
   const [toastVisible, setToastVisible] = useState<boolean>(false);
+  const [hasRentRoomToPatient, setHasRentRoomToPatient] = useState<boolean>(false);
   const [activePatients, setActivePatients] = useState<Patient[]>([]);
   const [historyPatients, setHistoryPatients] = useState<History[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -32,7 +36,7 @@ const Patients = (): React.JSX.Element => {
   }, [params.message]);
 
   useEffect(() => {
-    const loadPatients = async (): Promise<void> => {
+    (async (): Promise<void> => {
       if (!token || !refreshToken) {
         setError('Não autenticado');
         setIsLoading(false);
@@ -43,21 +47,21 @@ const Patients = (): React.JSX.Element => {
         setIsLoading(true);
         setError(null);
 
-        const [active, history] = await Promise.all([
+        const [active, history, userRentals] = await Promise.all([
           fetchActivePatientsWithAuth({ token, refreshToken, updateTokens, signOut }, 3),
           fetchPatientHistoryWithAuth({ token, refreshToken, updateTokens, signOut }, 2),
+          fetchUserRentalsWithAuth({ token, refreshToken, updateTokens, signOut }),
         ]);
 
         setActivePatients(active);
         setHistoryPatients(history);
+        setHasRentRoomToPatient(userRentals.length > 0 ? true : false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar pacientes');
       } finally {
         setIsLoading(false);
       }
-    };
-
-    loadPatients();
+    })();
   }, [token, refreshToken, updateTokens, signOut]);
 
   const handleCloseToast = () => {
@@ -142,9 +146,20 @@ const Patients = (): React.JSX.Element => {
               )}
             </View>
           </Section>
+            
+          { !hasRentRoomToPatient &&
+            <View className='justify-center items-center w-full flex-row gap-2'>
+              <Entypo name="info-with-circle" size={18} color={systemColors.primary} />
+
+              <Text className='text-medroom-primary font-nunito'>
+                Você precisa de uma sala alugada para poder cadastrar um paciente primeiro
+              </Text>
+            </View>
+          }
 
           <Button.Default
             label='Cadastrar paciente'
+            disable={!hasRentRoomToPatient}
             filled
             icon={{ name: 'new_person' }}
             onTouch={() => router.push('/(authenticated)/(professional)/patients/newPatient')}

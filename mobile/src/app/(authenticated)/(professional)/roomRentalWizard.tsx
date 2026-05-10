@@ -18,6 +18,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ScrollView, Text, View, TouchableOpacity } from 'react-native'
 import { Calendar } from 'react-native-calendars'
+import { formatLocalDate } from '@/utils/formatLocalDate'
+import { parseLocalDate } from '@/utils/parseLocalDate'
 
 const roomRentalWizard = (): React.JSX.Element => {
   const params = useLocalSearchParams()
@@ -64,9 +66,9 @@ const roomRentalWizard = (): React.JSX.Element => {
     loadRoomOccupancy()
   }, [auth.token, roomId])
 
-  const todayKey = new Date().toISOString().slice(0, 10)
+  const todayKey = formatLocalDate(new Date());
 
-  const getDateKey = (date: Date): string => date.toISOString().slice(0, 10)
+  const getDateKey = (date: Date): string => formatLocalDate(date);
 
   const addDays = (date: Date, days: number): Date => {
     const nextDate = new Date(date)
@@ -91,7 +93,11 @@ const roomRentalWizard = (): React.JSX.Element => {
     const marked: Record<string, any> = {}
 
     for (const date of futureOccupiedDays) {
-      marked[date] = {
+      const correctedDate = formatLocalDate(
+        addDays(parseLocalDate(date), 1)
+      );
+
+      marked[correctedDate] = {
         marked: true,
         dotColor: '#FF6B6B',
         selectedColor: '#FF6B6B',
@@ -106,7 +112,11 @@ const roomRentalWizard = (): React.JSX.Element => {
     const marked: Record<string, any> = {}
 
     for (const date of futureOccupiedDays) {
-      marked[date] = {
+      const correctedDate = formatLocalDate(
+        addDays(parseLocalDate(date), 1)
+      );
+
+      marked[correctedDate] = {
         marked: true,
         dotColor: '#FF6B6B',
         disabled: true,
@@ -135,7 +145,7 @@ const roomRentalWizard = (): React.JSX.Element => {
   }, [futureOccupiedDays, selectedWeekRange])
 
   const selectedWeekLabel = selectedWeekRange
-    ? `${formatSessionDate(selectedWeekRange.startDate.toISOString())} - ${formatSessionDate(selectedWeekRange.endDate.toISOString())}`
+    ? `${formatSessionDate(selectedWeekRange.startDate)} - ${formatSessionDate(selectedWeekRange.endDate)}`
     : null
 
   const selectedWeekDays = selectedWeekRange
@@ -152,8 +162,8 @@ const roomRentalWizard = (): React.JSX.Element => {
 
     const year = selectedDate.getFullYear()
     const month = selectedDate.getMonth()
-    const startKey = new Date(year, month, 1).toISOString().slice(0, 10)
-    const endKey = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+    const startKey = formatLocalDate(new Date(year, month, 1));
+    const endKey = formatLocalDate(new Date(year, month + 1, 0));
     const conflicts = futureOccupiedDays.filter((d) => d >= startKey && d <= endKey)
     const daysInMonth = new Date(year, month + 1, 0).getDate()
 
@@ -171,20 +181,20 @@ const roomRentalWizard = (): React.JSX.Element => {
   useEffect(() => {
     if (wizardStep >= 3) {
       router.replace({
-        pathname: '/(authenticated)/(professional)/roomRentalSuccess',
-        params: {
-          roomId,
-          roomName: title.split('-')[0],
-          allocationType,
-          date: selectedDate ? selectedDate.toISOString() : undefined,
-          pricePaid: allocationType === 'WEEK'
-            ? prices._week
-            : allocationType === 'MONTH'
-              ? prices.month
-              : prices.perHour,
-          ...(paymentMethod ? { paymentMethod } : {}),
-        },
-      })
+      pathname: '/(authenticated)/(professional)/roomRentalSuccess',
+      params: {
+        roomId,
+        roomName: title.split('-')[0],
+        allocationType,
+        date: selectedDate ? formatLocalDate(selectedDate) : undefined,
+        pricePaid: allocationType === 'WEEK'
+          ? prices._week
+          : allocationType === 'MONTH'
+            ? prices.month
+            : prices.perHour,
+        ...(paymentMethod ? { paymentMethod } : {}),
+      },
+    })
     }
   }, [wizardStep, router, roomId, title, allocationType, selectedDate, prices, paymentMethod])
 
@@ -268,12 +278,11 @@ const roomRentalWizard = (): React.JSX.Element => {
 
                     <View className='rounded-2xl border-2 border-medroom-primaryLight overflow-hidden'>
                       <Calendar
-                        current={selectedDate ? selectedDate.toISOString().slice(0, 10) : todayKey}
+                        current={selectedDate ? formatLocalDate(selectedDate) : todayKey}
                         minDate={todayKey}
                         onDayPress={(day) => {
-                          const date = new Date(day.timestamp)
-                          date.setMinutes(date.getMinutes() + date.getTimezoneOffset())
-                          setSelectedDate(date)
+                          const date = parseLocalDate(day.dateString);
+                          setSelectedDate(date);
                         }}
                         markedDates={{
                           ...dailyMarkedDates,
@@ -318,7 +327,7 @@ const roomRentalWizard = (): React.JSX.Element => {
 
                           <View className='flex-row flex-wrap gap-2'>
                             {futureOccupiedDays.slice(0, 10).map((date) => {
-                              const parsedDate = new Date(`${date}T00:00:00`)
+                              const parsedDate = addDays(parseLocalDate(date), 1);
 
                               return (
                                 <View
@@ -349,7 +358,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                         <Label___Value
                           label='Dia selecionado'
                           boldLabel
-                          value={{ _: formatSessionDate(selectedDate.toISOString()), color: 'text-medroom-primary' }}
+                          value={{ _: formatSessionDate(selectedDate), color: 'text-medroom-primary' }}
                         />
                         <Label___Value
                           label='Valor diário'
@@ -383,12 +392,11 @@ const roomRentalWizard = (): React.JSX.Element => {
 
                     <View className='rounded-2xl border-2 border-medroom-primaryLight overflow-hidden'>
                       <Calendar
-                        current={selectedDate ? selectedDate.toISOString().slice(0, 10) : todayKey}
+                        current={selectedDate ? formatLocalDate(selectedDate) : todayKey}
                         minDate={todayKey}
                         onDayPress={(day) => {
-                          const date = new Date(day.timestamp)
-                          date.setMinutes(date.getMinutes() + date.getTimezoneOffset())
-                          setSelectedDate(date)
+                          const date = parseLocalDate(day.dateString);
+                          setSelectedDate(date);
                         }}
                         markedDates={weekMarkedDates}
                         markingType='period'
@@ -431,7 +439,7 @@ const roomRentalWizard = (): React.JSX.Element => {
 
                           <View className='flex-row flex-wrap gap-2'>
                             {futureOccupiedDays.slice(0, 10).map((date) => {
-                              const parsedDate = new Date(`${date}T00:00:00`)
+                              const parsedDate = parseLocalDate(date);
 
                               return (
                                 <View
@@ -462,7 +470,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                         <Label___Value
                           label='Semana reservada'
                           boldLabel
-                          value={{ _: selectedWeekLabel, color: 'text-medroom-primary' }}
+                          value={{ _: (selectedWeekLabel), color: 'text-medroom-primary' }}
                         />
                         <View className='flex-row flex-wrap gap-2'>
                           {selectedWeekDays.map((date) => {
@@ -531,8 +539,8 @@ const roomRentalWizard = (): React.JSX.Element => {
                             const year = displayYear
                             const monthDate = new Date(year, m, 1)
                             const monthEnd = new Date(year, m + 1, 0)
-                            const monthStartKey = monthDate.toISOString().slice(0, 10)
-                            const monthEndKey = monthEnd.toISOString().slice(0, 10)
+                            const monthStartKey = formatLocalDate(monthDate);
+                            const monthEndKey = formatLocalDate(monthEnd);
                             const daysInMonth = monthEnd.getDate()
                             const occupiedInMonth = futureOccupiedDays.filter((d) => d >= monthStartKey && d <= monthEndKey)
                             const occupiedCount = occupiedInMonth.length
@@ -599,7 +607,8 @@ const roomRentalWizard = (): React.JSX.Element => {
                               <Text className='font-nunito text-amber-800 text-sm'>Alguns dias já estão ocupados neste mês:</Text>
                               <View className='flex-row flex-wrap gap-2 mt-2'>
                                 {selectedMonthInfo.conflicts.slice(0, 10).map((date) => {
-                                  const parsedDate = new Date(`${date}T00:00:00`)
+                                  const parsedDate = addDays(parseLocalDate(date), 1);
+
                                   return (
                                     <View key={date} className='rounded-full border border-amber-300 bg-amber-100 px-3 py-1'>
                                       <Text className='text-xs font-nunito-bold text-amber-900'>
@@ -666,22 +675,22 @@ const roomRentalWizard = (): React.JSX.Element => {
                   <View className='h-2' />
 
                   <Text className='text-sm text-medroom-secondary'>Tipo</Text>
-                  <Text className='text-gray-800 font-nunito-bold mt-1'>{allocationType === 'MONTH' ? 'Mensal completo' : allocationType === 'WEEK' ? 'Por semana' : 'Diário'}</Text>
+                  <Text className='text-medroom-primary font-nunito-bold mt-1'>{allocationType === 'MONTH' ? 'Mensal completo' : allocationType === 'WEEK' ? 'Por semana' : 'Diário'}</Text>
 
                   <View className='h-2' />
 
                   {allocationType === 'MONTH' ? (
                     <>
                       <Text className='text-sm text-medroom-secondary'>Período</Text>
-                      <Text className='text-gray-800 font-nunito-bold mt-1'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '-'}</Text>
+                      <Text className='text-medroom-primary font-nunito-bold mt-1'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '-'}</Text>
                       <View className='h-2' />
                       <Text className='text-sm text-medroom-secondary'>Início → Término</Text>
-                      <Text className='text-gray-800 font-nunito-bold mt-1'>{selectedDate ? `${formatSessionDate(selectedDate.toISOString())} → ${formatSessionDate(addDays(selectedDate, 29).toISOString())}` : '-'}</Text>
+                      <Text className='text-medroom-primary font-nunito-bold mt-1'>{selectedDate ? `${formatSessionDate(selectedDate)} → ${formatSessionDate(addDays(selectedDate, 29))}` : '-'}</Text>
                     </>
                   ) : (
                     <>
                       <Text className='text-sm text-medroom-secondary'>Período</Text>
-                      <Text className='text-gray-800 font-nunito-bold mt-1'>{allocationType === 'WEEK' && selectedWeekLabel ? selectedWeekLabel : allocationType === 'DAILY' && selectedDate ? formatSessionDate(selectedDate.toISOString()) : '-'}</Text>
+                      <Text className='text-medroom-primary font-nunito-bold mt-1'>{allocationType === 'WEEK' && selectedWeekLabel ? selectedWeekLabel : allocationType === 'DAILY' && selectedDate ? formatSessionDate(selectedDate) : '-'}</Text>
                     </>
                   )}
 

@@ -1,20 +1,23 @@
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { Text, View, ActivityIndicator } from 'react-native'
+import { Text, View, ActivityIndicator, ScrollView } from 'react-native'
 import Icon from '@/components/ui/Icon'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { Allocation } from '@/types/allocation.type';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 import { useAuth } from '@/contexts/auth.context';
-import { createRoomRentalWithAuth } from '@/services/rooms';
+import { createRoomRentalWithAuth, storePaymentAtPaymentsHistory } from '@/services/rooms';
+import { parseLocalDate } from '@/utils/parseLocalDate'
+import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 
 const roomRentalSuccess = (): React.JSX.Element => {
 
   const params = useLocalSearchParams();
   const router = useRouter();
   const { token, refreshToken, updateTokens, signOut } = useAuth();
+  const { profile } = useLoggedUserData();
 
   const roomId = params.roomId as string ?? '';
   const roomName = params.roomName as string ?? '[Nome não provido]';
@@ -22,7 +25,10 @@ const roomRentalSuccess = (): React.JSX.Element => {
   const paymentMethod = params.paymentMethod as 'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | undefined;
   const pricePaid = params.pricePaid as unknown as number ?? 0;
   const dateParam = params.date as string | undefined;
-  const selectedDate = React.useMemo(() => (dateParam ? new Date(dateParam) : null), [dateParam]);
+  const selectedDate = React.useMemo(
+    () => (dateParam ? parseLocalDate(dateParam) : null),
+    [dateParam]
+  );
 
   const [isSaving, setIsSaving] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -34,7 +40,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
         return;
       }
 
-      if (!token || !refreshToken || !roomId) {
+      if (!token || !refreshToken || !roomId || !pricePaid || !paymentMethod || !profile?.id) {
         setSaveError('Erro ao salvar reserva: dados insuficientes');
         setIsSaving(false);
         return;
@@ -66,6 +72,18 @@ const roomRentalSuccess = (): React.JSX.Element => {
           },
           { token, refreshToken, updateTokens, signOut }
         );
+
+
+        await storePaymentAtPaymentsHistory(
+          {
+            from           : 'ROOM_RENTAL',
+            paid           : pricePaid,
+            paymentMethod  : paymentMethod,
+            professionalId : profile.id,
+          },
+          { token, refreshToken, updateTokens, signOut }
+        )
+
         setIsSaving(false);
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : 'Erro ao salvar reserva');
@@ -111,7 +129,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
 
   return (
     <LayoutWrapper>
-      <View className='flex-1 justify-center items-center'>
+      <ScrollView contentContainerClassName='justify-center items-center py-6'>
         <View className='w-[80%] items-center gap-5'>
 
           <View className='bg-medroom-primaryLight rounded-full p-3 w-32 h-32 justify-center items-center'>
@@ -215,7 +233,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
             />
           </View>
         </View>
-      </View>
+      </ScrollView>
     </LayoutWrapper>
   )
 }

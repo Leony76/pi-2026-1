@@ -77,6 +77,22 @@ export type EnterpriseDashboardResponse = {
 	} | null;
 };
 
+export type StorePaymentHistory = {
+	from: 'ROOM_RENTAL',
+	paymentMethod: "PIX" | "BANK_SLIP" | "CREDIT_CARD",
+	professionalId: string;
+	paid: number;
+}
+
+export type FetchProfessionalPaymentsHistory = {
+	id: string;
+	from: 'ROOM_RENTAL',
+	paymentMethod: "PIX" | "BANK_SLIP" | "CREDIT_CARD",
+	professionalId: string;
+	paid: number;
+	createdAt: string;
+};
+
 export type RoomOccupancyResponse = {
 	occupiedHours: HourShift[];
 	occupiedDays: string[];
@@ -187,14 +203,14 @@ export async function createRoomRental(
 }
 
 	export async function createRoomRentalWithAuth(
-		    data: {
-			    roomId: string;
-			    allocationType: "DAILY" | "WEEK" | "MONTH";
+		data: {
+			roomId: string;
+			allocationType: "DAILY" | "WEEK" | "MONTH";
 			paymentMethod?: "PIX" | "BANK_SLIP" | "CREDIT_CARD";
 			startDate: Date;
 			endDate: Date;
 			totalPrice: number;
-				selectedWeekDays?: string[];
+			selectedWeekDays?: string[];
 		},
 		auth: AuthHandlers
 	): Promise<RoomRental> {
@@ -215,6 +231,37 @@ export async function createRoomRental(
 			auth.signOut
 		);
 	}
+
+export async function storePaymentAtPaymentsHistory(
+	data: StorePaymentHistory,
+	auth: AuthHandlers,
+) {
+	return apiPostWithAuth<StorePaymentHistory>(
+		'/users/payments/storage', {
+			professionalId: data.professionalId,
+			from: data.from,
+			paymentMethod: data.paymentMethod,
+			paid: data.paid,
+		}, 
+		auth.token,
+		auth.refreshToken,
+		auth.updateTokens,
+		auth.signOut	
+	)
+}	
+
+export async function fetchLoggedProfessionalPaymentsHistory(
+	professionalId   : string, 
+	auth : AuthHandlers
+): Promise<FetchProfessionalPaymentsHistory[]> {
+  return apiGetWithAuth<FetchProfessionalPaymentsHistory[]>(
+    `/users/payments/${professionalId}`,
+    auth.token,
+    auth.refreshToken,
+    auth.updateTokens,
+    auth.signOut
+  );
+}
 
 export async function fetchUserRentals(token: string): Promise<RoomRental[]> {
 	return apiGet<RoomRental[]>("/rooms/rentals/me", token);

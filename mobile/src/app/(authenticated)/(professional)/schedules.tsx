@@ -116,10 +116,16 @@ const schedules = (): React.JSX.Element => {
       >
         <ScrollView contentContainerClassName='py-5 gap-5'>
           {activeRentals.length > 0 && (
-            <Section title='Ativo agora'>
+            <>
+            <Text className='text-medroom-secondary text-lg font-nunito-bold'>
+              ATIVOS AGORA
+            </Text>
               {activeRentals.map((rental) => (
-                <View key={rental.id}>
-                  <View className='flex-row justify-between items-center mb-3'>
+                <View 
+                key={rental.id}
+                className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3`}
+                >
+                  <View className='flex-row justify-between items-center'>
                     <View>
                       <Text className='font-nunito-bold text-medroom-primary text-xl'>
                         {rental.roomTitle}
@@ -159,7 +165,7 @@ const schedules = (): React.JSX.Element => {
                   />
                 </View>
               ))}
-            </Section>
+            </>
           )}
 
           {closedRentals.length > 0 && (

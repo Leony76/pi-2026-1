@@ -1,6 +1,7 @@
 import prisma from "../../lib/prisma";
 import { createHttpError } from "../../lib/http-error";
 import { normalizeSpecialty } from "../shared/specialty";
+import bcrypt from 'bcrypt';
 
 type ProfileStats = {
 	sessions: number;
@@ -22,6 +23,13 @@ export type ProfileResponse = {
 	updatedAt: string;
 	stats: ProfileStats;
 };
+
+export type StorePaymentHistory = {
+	from: 'ROOM_RENTAL',
+	paymentMethod: "PIX" | "BANK_SLIP" | "CREDIT_CARD",
+	professionalId: string;
+	paid: number;
+}
 
 async function buildProfileResponse(userId: string): Promise<ProfileResponse | null> {
 	const user = await prisma.user.findUnique({
@@ -60,7 +68,7 @@ async function buildProfileResponse(userId: string): Promise<ProfileResponse | n
 	]);
 	return {
 		id: user.id,
-			displayImage: user.displayImage ?? null,
+		displayImage: user.displayImage ?? null,
 		name: user.name,
 		specialty: user.specialty,
 		specialtyLabel: normalizeSpecialty(user.specialty),
@@ -92,6 +100,73 @@ export async function updateProfileImageById(
 	});
 
 	return buildProfileResponse(userId);
+}
+
+export async function storePaymentHistory(
+	data: StorePaymentHistory,
+) {
+	return await prisma.paymentHistory.create({
+		data: {
+			from: data.from,
+			paid: data.paid,
+			paymentMethod: data.paymentMethod,
+			professionalId: data.professionalId,
+		}
+	});
+}
+
+export async function getProfessionalPaymentsHistory(
+	id: string,
+) {
+	return await prisma.paymentHistory.findMany({
+		where: { professionalId: id },
+		omit: {
+			updatedAt: true,
+		}
+	});
+}
+
+export async function verifyCurrentPasswordMatchById(
+	professionalId  : string,
+	currentPassword : string,
+): Promise<boolean> {
+	const user = await prisma.user.findUnique({
+		where: { id: professionalId },
+	});
+
+	if (!user) {
+		throw createHttpError(401, "unauthorized", "Usuário não existe!");
+	}
+
+	const passwordIsValid = await bcrypt.compare(currentPassword, user.passwordHash);
+	
+	if (!passwordIsValid) {
+		return false;
+	} 
+
+	return true;
+}
+
+export async function changeProfessionalPasswordById(
+	professionalId : string,
+	newPassword    : string,
+) {
+	const user = await prisma.user.findUnique({
+		where: { id: professionalId },
+	});
+
+	if (!user) {
+		throw createHttpError(401, "unauthorized", "Usuário não existe!");
+	}
+
+	const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+	return await prisma.user.update({
+		where: { id: professionalId },
+		data: {
+			passwordHash: hashedPassword,
+		},
+	});
 }
 
 export async function updateProfileById(
@@ -126,7 +201,7 @@ export async function updateProfileById(
 		throw createHttpError(400, "bad_request", "E-mail invalido.");
 	}
 
-	if (!/^\([1-9]{2}\) [0-9]{4,5}-[0-9]{4}$/.test(phone)) {
+	if (!/^\([1-9]{2}\) [0-9]{4,5}-[0-9]{4}$/.test(phone) && phone) {
 		throw createHttpError(400, "bad_request", "Formato de telefone invalido.");
 	}
 

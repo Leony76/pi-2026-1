@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from "./api";
-import { apiPatchWithAuth } from "./auth-api";
+import { apiPatchWithAuth, apiPostWithAuth } from "./auth-api";
 
 export type AuthUser = {
   id: string;
@@ -141,4 +141,38 @@ export function updateCurrentUserImageWithAuth(
     auth.updateTokens,
     auth.signOut
   );
+}
+
+export function verifyCurrentPasswordToChangeWithAuth(
+  currentPassword: string,
+  professionalId: string,
+  auth: AuthHandlers
+): Promise<boolean> {
+  const response = apiPostWithAuth<boolean>(
+    `/users/${professionalId}/verifyCurrentPasswordMatch`,
+    { currentPassword },
+    auth.token,
+    auth.refreshToken,
+    auth.updateTokens,
+    auth.signOut
+  );
+
+  return response;
+}
+
+export function changeProfessionalPasswordWithAuth(
+  newPassword: string,
+  professionalId: string,
+  auth: AuthHandlers
+): Promise<{ message: string }> {
+  const response = apiPostWithAuth<{ message: string }>(
+    `/users/${professionalId}/changePassword`,
+    { newPassword },
+    auth.token,
+    auth.refreshToken,
+    auth.updateTokens,
+    auth.signOut
+  );
+
+  return response;
 }

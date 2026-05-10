@@ -1,6 +1,7 @@
 import prisma from "../../lib/prisma";
 import { WeekDay } from "@prisma/client";
 import { createHttpError } from "../../lib/http-error";
+import { formatLocalDate } from "../../utils/formatLocalDate";
 
 const FLOOR_MAP: Record<string, string> = {
 	groundFloor: "GROUND_FLOOR",
@@ -86,10 +87,6 @@ function toWeekDays(days?: string[]): WeekDay[] {
 	return days.filter((day): day is WeekDay => validDays.includes(day as WeekDay));
 }
 
-function toDateKey(date: Date): string {
-	return date.toISOString().slice(0, 10);
-}
-
 function getDateRangeKeys(startDate: Date, endDate: Date): string[] {
 	const keys: string[] = [];
 	const currentDate = new Date(startDate);
@@ -103,7 +100,7 @@ function getDateRangeKeys(startDate: Date, endDate: Date): string[] {
 	}
 
 	while (currentDate <= finalDate) {
-		keys.push(toDateKey(currentDate));
+		keys.push(formatLocalDate(currentDate));
 		currentDate.setUTCDate(currentDate.getUTCDate() + 1);
 	}
 

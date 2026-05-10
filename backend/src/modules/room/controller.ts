@@ -93,11 +93,14 @@ export async function enterpriseDashboardController(request: Request, response: 
 
 export async function roomOccupancyController(request: Request, response: Response, next: NextFunction): Promise<void> {
 	try {
+		
 		const token = getTokenFromHeader(request.headers.authorization);
 		jwt.verify(token, getJwtSecret()) as AuthPayload;
 		const roomId = request.params.roomId;
 
-		const occupancy = await getRoomOccupancy(roomId);
+		if (!roomId) return;
+
+		const occupancy = await getRoomOccupancy(roomId as string);
 
 		sendSuccessResponse(response, 200, occupancy);
 	} catch (error) {

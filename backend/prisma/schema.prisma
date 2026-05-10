@@ -72,6 +72,10 @@ enum EntryExitBillingType {
   MONTHLY
 }
 
+enum PaymentFrom {
+  ROOM_RENTAL
+} 
+
 enum AccountType {
   PROFESSIONAL
   ENTERPRISE
@@ -100,12 +104,13 @@ model User {
   createdAt                       DateTime  @default(now())
   updatedAt                       DateTime  @updatedAt
 
-  patients   Patient[]    @relation("ProfessionalPatients")
-  ownedRooms Room[]       @relation("EnterpriseRooms")
-  rentals    RoomRental[] @relation("ProfessionalRentals")
-  sessions   Session[]    @relation("ProfessionalSessions")
-  entryExits EntryExit[]  @relation("ProfessionalEntryExits")
-  expenses   Expense[]    @relation("EnterpriseExpenses")
+  patients        Patient[]    @relation("ProfessionalPatients")
+  ownedRooms      Room[]       @relation("EnterpriseRooms")
+  rentals         RoomRental[] @relation("ProfessionalRentals")
+  sessions        Session[]    @relation("ProfessionalSessions")
+  entryExits      EntryExit[]  @relation("ProfessionalEntryExits")
+  expenses        Expense[]    @relation("EnterpriseExpenses")
+  paymentsHistory PaymentHistory[]
 
   @@index([refreshTokenHash, refreshTokenExpiresAt],                     map: "User_refresh_token_lookup_idx")
   @@index([emailVerificationTokenHash, emailVerificationTokenExpiresAt], map: "User_email_verification_lookup_idx")
@@ -167,6 +172,18 @@ model RoomPrice {
   updatedAt     DateTime @updatedAt
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model PaymentHistory {
+  id              String       @id @default(uuid())
+  from            PaymentFrom  
+  paymentMethod   PaymentMethod?
+  professionalId  String       
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  paid            Decimal      @db.Decimal(10, 2)
+
+  professional  User  @relation(fields: [professionalId], references: [id])
 }
 
 model RoomItem {

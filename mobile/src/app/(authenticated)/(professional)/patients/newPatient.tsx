@@ -17,6 +17,7 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import Feather from '@expo/vector-icons/Feather';
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { HourShift } from '@/types/hourShift.type'
+import { formatLocalDate } from '@/utils/formatLocalDate'
 
 const NewPatient = (): React.JSX.Element => {
 
@@ -24,6 +25,7 @@ const NewPatient = (): React.JSX.Element => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [invalidDateError, setInvalidDateError] = useState<string | null>(null);
   const [rentals, setRentals] = useState<RoomRental[]>([]);
   const [selectedDateObj, setSelectedDateObj] = useState<Date | null>(null);
   const [selectedHour, setSelectedHour] = useState<HourShift | null>(null);
@@ -74,14 +76,46 @@ const NewPatient = (): React.JSX.Element => {
     const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
     while (current <= last) {
-      dates.push(current.toISOString().slice(0, 10));
+      dates.push(formatLocalDate(current));
       current.setDate(current.getDate() + 1);
     }
 
     return dates;
   };
 
-  const getDateKey = (date: Date): string => date.toISOString().slice(0, 10);
+  const generateMarkedDates = () => {
+    const dates: Record<string, any> = {};
+
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dateStr = date.toISOString().split('T')[0];
+
+      if (!dateStr) continue;
+
+      if (allowedDates.has(dateStr)) {
+        dates[dateStr] = {
+          marked: true,
+          selected: true,
+          disableTouchEvent: false,
+        };
+      } else {
+        dates[dateStr] = {
+          disabled: true,
+          disableTouchEvent: true,
+        };
+      }
+    }
+
+    return dates;
+  };
+
+  const getDateKey = (date: Date): string => formatLocalDate(date);
 
   const computeMarkedDates = () => {
     const marked: Record<string, any> = {};
@@ -105,14 +139,14 @@ const NewPatient = (): React.JSX.Element => {
           allDates.add(d);
         }
       } catch (err) {
-        // ignore
+
       }
     }
 
     return { marked, allowedDates: allDates };
   };
 
-  const { marked: markedDates, allowedDates } = computeMarkedDates();
+  const { allowedDates } = computeMarkedDates();
 
   const selectedDateKey = selectedDateObj ? getDateKey(selectedDateObj) : '';
 
@@ -150,7 +184,7 @@ const NewPatient = (): React.JSX.Element => {
 
   const getMinDate = (): string => {
     const today = new Date();
-    return today.toISOString().slice(0, 10);
+    return formatLocalDate(today);
   };
 
   const handleSaveNewPatient = async( data: NewPatientFormData ): Promise<void> => {
@@ -206,12 +240,8 @@ const NewPatient = (): React.JSX.Element => {
       layoutType='PROFESSIONAL'   
       goBack={() => router.push('/(authenticated)/(professional)/patients')} 
       >
-        <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-start'>
+        <ScrollView contentContainerClassName='py-6 gap-5 justify-start'>
           <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
-            {submitError && (
-              <Text className='text-red-500 text-center'>{submitError}</Text>
-            )}
-
             <View>
               <Controller
                 control={control}
@@ -288,28 +318,27 @@ const NewPatient = (): React.JSX.Element => {
                 render={({ field: { onChange, value } }) => (
                   <>
                     <Input.DateTime
-                      label="Data de Início"
-                      placeholder={{ text: 'Selecione a data' }}
+                      label="Data do atendimento"
+                      placeholder={{ text: 'Selecione a data do atendimento' }}
                       icon={{ name: 'schedule' }}
                       value={value} 
-                      minDate={getMinDate()}
-                      markedDates={markedDates}
+                      minDate={getMinDate()}                     
+                      markedDates={generateMarkedDates()}
                       onChange={(selectedDate) => {
-                        // only allow dates with rentals
                         if (!selectedDate) {
                           onChange('');
                           setSelectedDateObj(null);
                           return;
                         }
 
-                        const dateStr = selectedDate.toISOString().slice(0, 10);
+                        const dateStr = formatLocalDate(selectedDate)
                         if (!allowedDates.has(dateStr)) {
-                          // date has no rentals, reject
-                          setSubmitError('Selecione um dia que você tenha aluguel de sala');
+                          setInvalidDateError('Selecione um dia que você tenha aluguel de sala');
                           return;
                         }
 
                         onChange(dateStr);
+                        setInvalidDateError(null);
                         setSelectedDateObj(selectedDate);
                         setSubmitError(null);
                         setSelectedHour(null);
@@ -317,8 +346,11 @@ const NewPatient = (): React.JSX.Element => {
                       }}
                     />
 
-                    {/* Horário: aparece após escolher a data */}
-                    {selectedDateObj && (
+                    {invalidDateError && (
+                      <Input.Error error={invalidDateError}/>
+                    )}
+
+                    {(selectedDateObj && !invalidDateError) && (
                       <View className='mt-3'>
                         <Text className='font-nunito-bold text-medroom-primary mb-2'>Horário</Text>
 
@@ -346,13 +378,13 @@ const NewPatient = (): React.JSX.Element => {
                                         if (selectedHour?.startHour === hour.startHour) {
                                           setSelectedHour(null);
                                           setValue('initialHour', '');
-                                          setValue('initialDate', selectedDateObj.toISOString().slice(0, 10));
+                                          setValue('initialDate', formatLocalDate(selectedDateObj));
                                           return;
                                         }
 
                                         setSelectedHour({ startHour: hour.startHour, endHour: hour.endHour });
                                         setValue('initialHour', hour.startHour);
-                                        setValue('initialDate', selectedDateObj.toISOString().slice(0, 10));
+                                        setValue('initialDate', formatLocalDate(selectedDateObj));
                                       }}
                                     />
                                   );
@@ -398,6 +430,10 @@ const NewPatient = (): React.JSX.Element => {
 
               {errors.observations?.message && <Input.Error error={errors.observations.message as string}/> }
             </View>
+            
+            {submitError &&
+              <Input.Error error={submitError}/>
+            } 
 
             <Button.Default
               customStyle={{ container: 'mt-3' }}
