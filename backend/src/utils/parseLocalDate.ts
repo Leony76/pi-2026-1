@@ -3,5 +3,5 @@ export function parseLocalDate(dateStr: string): Date {
 
   if (!year || !month) return new Date(dateStr);
 
-  return new Date(year, month - 1, day);
+  return new Date(Date.UTC(year, month - 1, day));
 }

@@ -739,6 +739,23 @@ export async function createRoomRental(data: {
 		throw createHttpError(409, "conflict", "A sala já está ocupada nesse período.");
 	}
 
+	const room = await prisma.room.findUnique({
+		where: {
+			id: data.roomId,
+		},
+		select: {
+			isAvailable: true,
+		},
+	});
+
+	if (!room) {
+		throw createHttpError(404, "not_found", "Sala não encontrada.");
+	}
+
+	if (!room.isAvailable) {
+		throw createHttpError(400, "bad_request", "A sala não está disponível.");
+	}
+
 	const rental = await prisma.roomRental.create({
 		data: {
 			professionalId: data.professionalId,

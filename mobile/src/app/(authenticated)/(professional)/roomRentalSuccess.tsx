@@ -117,7 +117,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
             <Text className='font-nunito text-medroom-secondary text-center'>{saveError}</Text>
             <Button.Default
               label='Voltar'
-              onTouch={() => router.back()}
+              onTouch={() => router.replace('/(authenticated)/(professional)/home')}
               filled
               customStyle={{ container: 'w-full' }}
             />

@@ -6,6 +6,7 @@ vi.mock("../src/lib/prisma", () => ({
   default: {
     room: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     roomRental: {
       create: vi.fn(),
@@ -193,6 +194,7 @@ describe("room service", () => {
   describe("createRoomRental", () => {
     it("normalizes allocation type and selected weekdays before persisting", async () => {
       vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(makeRentalRecord() as never);
 
       const rental = await createRoomRental({
@@ -235,6 +237,7 @@ describe("room service", () => {
 
     it("persists DAILY rentals without hour selections", async () => {
       vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(
         makeRentalRecord({
           id: "rental-hour",
@@ -284,6 +287,7 @@ describe("room service", () => {
 
     it("persists MONTH rentals without weekday selections", async () => {
       vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(
         makeRentalRecord({
           id: "rental-month",
@@ -344,6 +348,29 @@ describe("room service", () => {
           totalPrice: 220,
         })
       ).rejects.toThrow("A sala já está ocupada nesse período.");
+
+      expect(prisma.roomRental.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects when room is not available", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: false } as never);
+
+      await expect(
+        createRoomRental({
+          professionalId: "prof-1",
+          roomId: "room-1",
+          allocationType: "WEEK",
+          paymentMethod: "PIX",
+          startDate: new Date("2026-04-25T08:00:00.000Z"),
+          endDate: new Date("2026-05-02T08:00:00.000Z"),
+          totalPrice: 220,
+        })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: "bad_request",
+        message: "A sala não está disponível.",
+      });
 
       expect(prisma.roomRental.create).not.toHaveBeenCalled();
     });

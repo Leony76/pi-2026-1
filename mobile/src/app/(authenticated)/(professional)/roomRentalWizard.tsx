@@ -198,6 +198,36 @@ const roomRentalWizard = (): React.JSX.Element => {
     }
   }, [wizardStep, router, roomId, title, allocationType, selectedDate, prices, paymentMethod])
 
+  if (!isAvailable) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          layoutType='PROFESSIONAL'
+          tab='HOME'
+          title={title}
+          description={`${complementaryData.floor} - ${complementaryData.area}m² - ${complementaryData.additional}`}
+          goBack={() => router.replace('/(authenticated)/(professional)/home')}
+        >
+          <View className='flex-1 justify-center items-center py-12'>
+            <View className='w-[90%] items-center gap-5'>
+              <View className='bg-gray-100 rounded-full p-3 w-28 h-28 justify-center items-center'>
+                <MaterialIcons name='block' size={32} color='#6b7280' />
+              </View>
+              <Text className='font-nunito-bold text-2xl text-gray-800'>Sala indisponivel</Text>
+              <Text className='font-nunito text-medroom-secondary text-center'>Esta sala esta marcada como indisponivel e nao pode ser reservada no momento.</Text>
+              <Button.Default
+                label='Voltar'
+                onTouch={() => router.replace('/(authenticated)/(professional)/home')}
+                filled
+                customStyle={{ container: 'w-full mt-3' }}
+              />
+            </View>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    )
+  }
+
   return (
     <LayoutWrapper>
       <SystemLayout
