@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 import { fetchLoggedProfessionalPaymentsHistory, FetchProfessionalPaymentsHistory } from '@/services/rooms'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
+import { decrementHoursFromStringDate } from '@/utils/decrementHoursFromStringDate'
 
 const PaymentHistory = (): React.JSX.Element => {
 
@@ -83,6 +84,7 @@ const PaymentHistory = (): React.JSX.Element => {
                 <Card.PaymentHistory
                   key={item.id}
                   { ...item }
+                  createdAt={decrementHoursFromStringDate(item.createdAt, 3).toISOString()}
                   gap={'gap-3'}
                   separationRow={(filteredList.length - 1) !== index}
                 />

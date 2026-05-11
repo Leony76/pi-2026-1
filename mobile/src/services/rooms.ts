@@ -1,11 +1,12 @@
 import { apiGet, apiPost } from "./api";
-import { apiGetWithAuth, apiPostWithAuth } from "./auth-api";
+import { apiGetWithAuth, apiPatchWithAuth, apiPostWithAuth } from "./auth-api";
 import { RoomDisplayCard } from "@/types/room.type";
 import { Expanses } from "@/types/expenses.type";
 import { RoomPrice } from "@/types/roomPrice.type";
 import { OverallRoomRevenue } from "@/types/roomRevenue.type";
 import { HourShift } from "@/types/hourShift.type";
 import { Specialty } from "@/constants/maps/selectOptions.map";
+import { RoomInfos } from "@/types/RoomInfos.type";
 
 type AuthHandlers = {
 	token: string;
@@ -23,10 +24,15 @@ export type CreateRoomInput = {
 	pricePerHour: number;
 	priceWeek: number;
 	pricePerMonth: number;
+	customItems: string[];
 	items: {
 		name: string;
 		quantity: number;
 	}[];
+};
+
+export type UpdateRoom = CreateRoomInput & {
+	id: string;
 };
 
 export type EnterpriseRoomOccupation = {
@@ -167,7 +173,49 @@ export async function createRoomWithAuth(data: CreateRoomInput, auth: AuthHandle
 			priceWeek: data.priceWeek,
 			pricePerMonth: data.pricePerMonth,
 			items: data.items,
+			customItems: data.customItems,
 		},
+		auth.token,
+		auth.refreshToken,
+		auth.updateTokens,
+		auth.signOut
+	);
+}
+
+export async function updateRoomWithAuth(
+	data: UpdateRoom, 
+	auth: AuthHandlers
+): Promise<UpdateRoom> {
+	return apiPatchWithAuth<UpdateRoom>(
+		`/rooms/${data.id}/update`,
+		{
+			roomName: data.roomName,
+			roomImage: data.roomImage ?? null,
+			floor: data.floor,
+			area: data.area,
+			characteristics: data.characteristics,
+			pricePerHour: data.pricePerHour,
+			priceWeek: data.priceWeek,
+			pricePerMonth: data.pricePerMonth,
+			items: data.items,
+			customItems: data.customItems,
+		},
+		auth.token,
+		auth.refreshToken,
+		auth.updateTokens,
+		auth.signOut
+	);
+}
+
+
+export async function toggleRoomAvailabilityWithAuth(
+	roomId: string, 
+	status: boolean,
+	auth: AuthHandlers,
+): Promise<boolean> {
+	return apiPatchWithAuth<boolean>(
+		`/rooms/${roomId}/switchAvailability`,
+		{ status },
 		auth.token,
 		auth.refreshToken,
 		auth.updateTokens,
@@ -262,6 +310,20 @@ export async function fetchLoggedProfessionalPaymentsHistory(
     auth.signOut
   );
 }
+
+export async function fetchRoomDetailsWithAuth(
+	roomId: string,
+	auth: AuthHandlers,
+): Promise<RoomInfos> {
+	return apiGetWithAuth<RoomInfos>(
+		`/rooms/${roomId}/details`,
+		auth.token,
+		auth.refreshToken,
+		auth.updateTokens,
+		auth.signOut
+	);
+}
+
 
 export async function fetchUserRentals(token: string): Promise<RoomRental[]> {
 	return apiGet<RoomRental[]>("/rooms/rentals/me", token);

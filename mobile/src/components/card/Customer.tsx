@@ -45,7 +45,7 @@ const Customer = (props:Props): React.JSX.Element => {
             </Text>
 
             <Text className='text-[13px] font-nunito text-gray-600'>
-              { SPECIALTY_MAP[props.specialty] } - { props.occupiedRoom } { props.from === 'HISTORY' ? `- ${ formatMonthNameAndYear(props.unoccupiedRoomAt) }` : '' }
+              { props.specialty } - { props.occupiedRoom } { props.from === 'HISTORY' ? `- ${ formatMonthNameAndYear(props.unoccupiedRoomAt) }` : '' }
             </Text>
           </View>
         </View>

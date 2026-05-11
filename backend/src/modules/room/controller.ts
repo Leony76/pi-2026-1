@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { getEnterpriseDashboard, getEnterpriseValues, getRoomOccupancy, getRoomsList, createRoomRental, getUserRentals, createRoom } from "./service";
+import { getEnterpriseDashboard, getEnterpriseValues, getRoomOccupancy, getRoomsList, createRoomRental, getUserRentals, createRoom, getRoomDetailsById, RoomInfos, updateRoomById, UpdateRoom, toggleRoomAvailabilityById } from "./service";
 import { sendSuccessResponse } from "../../lib/auth-response";
 import { createHttpError } from "../../lib/http-error";
 import prisma from "../../lib/prisma";
@@ -71,6 +71,7 @@ export async function createRoomController(request: Request, response: Response,
 			priceWeek: request.body.priceWeek,
 			pricePerMonth: request.body.pricePerMonth,
 			items: Array.isArray(request.body.items) ? request.body.items : [],
+			customItems: Array.isArray(request.body.customItems) ? request.body.customItems : [],
 		});
 
 		sendSuccessResponse(response, 201, room);
@@ -132,6 +133,69 @@ export async function getUserRentalsController(request: Request, response: Respo
 		const rentals = await getUserRentals(payload.sub);
 
 		sendSuccessResponse(response, 200, rentals);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function getRoomDetailsController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const roomId = request.params.roomId;
+
+		if (!payload.sub) createHttpError(403, 'forbidden', 'Não autenticado');
+		if (!roomId) createHttpError(403, 'forbidden', 'Sala não encotrada');
+
+		const details = await getRoomDetailsById(roomId as string);
+
+		sendSuccessResponse(response, 200, details);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function toggleRoomAvailabilityController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const roomId = request.params.roomId;
+		const status: boolean = request.body;
+
+		if (!payload.sub) {
+			throw createHttpError(403, 'forbidden', 'Não autenticado');
+		}
+
+		if (!roomId) {
+			throw createHttpError(403, 'forbidden', 'Sala não encontrada');
+		}
+
+		await toggleRoomAvailabilityById(roomId as string, status);
+
+		sendSuccessResponse(response, 200, true);
+	} catch (error) {
+		next(error);
+	}
+}
+
+export async function updateRoomController(request: Request, response: Response, next: NextFunction): Promise<void> {
+	try {
+		const token = getTokenFromHeader(request.headers.authorization);
+		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+		const roomId = request.params.roomId;
+		const data: UpdateRoom = request.body;
+
+		if (!payload.sub) {
+			throw createHttpError(403, 'forbidden', 'Não autenticado');
+		}
+
+		if (!roomId) {
+			throw createHttpError(403, 'forbidden', 'Sala não encontrada');
+		}
+
+		await updateRoomById(roomId as string, data);
+
+		sendSuccessResponse(response, 200, { success: true });
 	} catch (error) {
 		next(error);
 	}

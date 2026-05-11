@@ -153,6 +153,7 @@ model Room {
   enterpriseOwner User                  @relation("EnterpriseRooms", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
   prices          RoomPrice?
   items           RoomItem[]
+  customItems     RoomCustomItem[]
   rentals         RoomRental[]
   sessions        Session[]
   entryExits      EntryExit[]
@@ -184,6 +185,17 @@ model PaymentHistory {
   paid            Decimal      @db.Decimal(10, 2)
 
   professional  User  @relation(fields: [professionalId], references: [id])
+}
+
+model RoomCustomItem {
+  id        String       @id @default(uuid())
+  roomId    String
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([roomId, name])
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 model RoomItem {

@@ -113,6 +113,7 @@ const NewRoomWizard = (): React.JSX.Element => {
         priceWeek: data.priceWeek,
         pricePerMonth: data.pricePerMonth,
         items: data.items,
+        customItems: customItems,
       }, authenticated);
 
       router.replace({
@@ -214,7 +215,7 @@ const NewRoomWizard = (): React.JSX.Element => {
           description={`Etapa ${wizardStep} de 3 - ${DESCRIPTION_INFOS_BY_WIZARD_STEP_MAP[wizardStep]}`} 
           layoutType={'ENTERPRISE'}      
           tab='ROOMS'
-          goBack={wizardStep > 1 ? () => setWizardStep(prev => prev - 1) : () => router.back()}
+          goBack={wizardStep > 1 ? () => setWizardStep(prev => prev - 1) : () => router.push('/(authenticated)/(enterprise)/rooms')}
           > 
             <ScrollView contentContainerClassName='gap-5 py-6'>
               <View className='py-3'>

@@ -51,7 +51,7 @@ const NewPassword = (): React.JSX.Element => {
         signOut,
       });
 
-      router.push({
+      router.replace({
         pathname: '/(authenticated)/(professional)/profile',
         params: {
           message: 'Sucesso ao alterar a senha',
@@ -154,17 +154,12 @@ const NewPassword = (): React.JSX.Element => {
             <Button.Default
               customStyle={{ container: 'mt-3' }}
               filled
+              loading={isSaving}
               icon={{ name: 'check' }}
               disable={Object.keys(errors).length > 0 || isSaving}
-              label='Alterar senha'
+              label={isSaving ? 'Alterando...' : 'Alterar senha'}
               onTouch={handleSubmit(handleChangePassword)}
             />
-
-            {isSaving && (
-              <View className='items-center'>
-                <ActivityIndicator size='small' color='#3b82f6' />
-              </View>
-            )}
           </View>
         </ScrollView>
       </SystemLayout>

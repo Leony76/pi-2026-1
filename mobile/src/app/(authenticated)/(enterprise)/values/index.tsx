@@ -210,7 +210,7 @@ const Values = (): React.JSX.Element => {
           )}
           >
             <View className='gap-3'>
-              <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
+              <Text className='font-nunito-bold text-medroom-primary text-xl'>
                 Por dia
               </Text>
 
@@ -229,7 +229,7 @@ const Values = (): React.JSX.Element => {
                 )}
               </View>
 
-              <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
+              <Text className='font-nunito-bold text-medroom-primary text-xl'>
                 Por semana
               </Text>
 
@@ -248,7 +248,7 @@ const Values = (): React.JSX.Element => {
                 )}
               </View>
 
-              <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
+              <Text className='font-nunito-bold text-medroom-primary text-xl'>
                 Por mês
               </Text>
 

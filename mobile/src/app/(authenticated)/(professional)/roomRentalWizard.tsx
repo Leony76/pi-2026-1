@@ -178,6 +178,12 @@ const roomRentalWizard = (): React.JSX.Element => {
     setPaymentMethod(null)
   }
 
+  const allocationTypeMap: Record<Allocation, string> = {
+    MONTH : 'Mensal completo', 
+    WEEK  : 'Por semana',
+    DAILY : 'Diário',
+  };
+
   useEffect(() => {
     if (wizardStep >= 3) {
       router.replace({
@@ -657,7 +663,6 @@ const roomRentalWizard = (): React.JSX.Element => {
                           )
                         }
 
-                        // Indisponível
                         return (
                           <View className='gap-3 rounded-xl border-2 border-gray-300 bg-gray-100 p-3 mt-3'>
                             <View className='flex-row items-center gap-2'>
@@ -698,37 +703,63 @@ const roomRentalWizard = (): React.JSX.Element => {
           ) : (
             <>
               <Section title='Resumo'>
-                <View className='rounded-xl bg-white p-4'>
-                  <Text className='text-sm text-medroom-secondary'>Sala</Text>
-                  <Text className='text-medroom-primary font-nunito-bold text-sm mt-1'>{title.split('-')[0]}</Text>
+                <View className='rounded-xl bg-white gap-3'>
+                  <Label___Value
+                    label='Sala'
+                    value={{ _: title.split('-')[0]}}
+                    separationRow
+                  />
 
-                  <View className='h-2' />
-
-                  <Text className='text-sm text-medroom-secondary'>Tipo</Text>
-                  <Text className='text-medroom-primary font-nunito-bold mt-1'>{allocationType === 'MONTH' ? 'Mensal completo' : allocationType === 'WEEK' ? 'Por semana' : 'Diário'}</Text>
-
-                  <View className='h-2' />
+                  <Label___Value
+                    label='Tipo'
+                    value={{ _: allocationType ? allocationTypeMap[allocationType] : '[ não definido ]'}}
+                    separationRow
+                  />
 
                   {allocationType === 'MONTH' ? (
                     <>
-                      <Text className='text-sm text-medroom-secondary'>Período</Text>
-                      <Text className='text-medroom-primary font-nunito-bold mt-1'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '-'}</Text>
-                      <View className='h-2' />
-                      <Text className='text-sm text-medroom-secondary'>Início → Término</Text>
-                      <Text className='text-medroom-primary font-nunito-bold mt-1'>{selectedDate ? `${formatSessionDate(selectedDate)} → ${formatSessionDate(addDays(selectedDate, 29))}` : '-'}</Text>
+                      <Label___Value
+                        label='Período'
+                        separationRow
+                        value={{ _: selectedDate 
+                          ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) 
+                          : '-'
+                        }}
+                      />
+
+                      <Label___Value
+                        label='Início → Término'
+                        separationRow
+                        value={{ _: selectedDate 
+                          ? `${formatSessionDate(selectedDate)} → ${formatSessionDate(addDays(selectedDate, 29))}` 
+                          : '-'
+                        }}
+                      />
                     </>
                   ) : (
-                    <>
-                      <Text className='text-sm text-medroom-secondary'>Período</Text>
-                      <Text className='text-medroom-primary font-nunito-bold mt-1'>{allocationType === 'WEEK' && selectedWeekLabel ? selectedWeekLabel : allocationType === 'DAILY' && selectedDate ? formatSessionDate(selectedDate) : '-'}</Text>
-                    </>
+                    <Label___Value
+                      label='Período'
+                      separationRow
+                      value={{ _: (allocationType === 'WEEK' && selectedWeekLabel) 
+                        ? selectedWeekLabel 
+                        : (allocationType === 'DAILY' && selectedDate) 
+                        ? formatSessionDate(selectedDate) 
+                        : '-'
+                      }}
+                    />
                   )}
 
-                  <View className='h-3' />
-                  <View className='border-t border-gray-200 pt-3'>
-                    <Text className='text-sm text-medroom-secondary'>Total</Text>
-                    <Text className='text-green-600 font-nunito-bold text-lg mt-1'>{allocationType === 'MONTH' ? priceFormat(prices.month) : allocationType === 'WEEK' ? priceFormat(prices._week) : priceFormat(prices.perHour)}</Text>
-                  </View>
+                  <Label___Value
+                    label='Total'
+                    boldLabel
+                    value={{ _: allocationType === 'MONTH' 
+                      ? priceFormat(prices.month) 
+                      : allocationType === 'WEEK' 
+                      ? priceFormat(prices._week) 
+                      : priceFormat(prices.perHour),
+                      color: 'text-green-600'
+                    }}
+                  />
                 </View>
               </Section>
 

@@ -169,10 +169,17 @@ const schedules = (): React.JSX.Element => {
           )}
 
           {closedRentals.length > 0 && (
-            <Section title='Encerrado'>
+            <>
+              <Text className='text-medroom-secondary text-lg font-nunito-bold'>
+                ENCERRADO
+              </Text>
+
               {closedRentals.map((rental) => (
-                <View key={rental.id} className='mb-5'>
-                  <View className='flex-row justify-between items-center mb-3'>
+                <View 
+                key={rental.id}
+                className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3`}
+                >
+                  <View className='flex-row justify-between items-center'>
                     <View>
                       <Text className='font-nunito-bold text-medroom-primary text-xl'>
                         {rental.roomTitle}
@@ -186,7 +193,7 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(rental.startDate)} até {formatSessionDate(rental.endDate)}
+                          {formatSessionDate(rental.startDate)}  até  {formatSessionDate(rental.endDate)}
                         </Text>
                       </View>
                     </View>
@@ -213,7 +220,7 @@ const schedules = (): React.JSX.Element => {
                   />
                 </View>
               ))}
-            </Section>
+            </>
           )}
 
           {rentals.length === 0 && (

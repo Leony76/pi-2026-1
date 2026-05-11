@@ -94,6 +94,7 @@ const Rooms = (): React.JSX.Element => {
             }
             renderItem={({ item }) => (
               <Card.DisplayRoom
+                fromManagerView
                 pressable={false}
                 key={item.id}
                 { ...item }

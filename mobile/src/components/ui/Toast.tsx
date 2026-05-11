@@ -8,12 +8,13 @@ type Props = {
   onClose : () => void
 }
 
-const Toast = ({ 
-  visible, 
-  message, 
-  onClose 
-}:Props): React.JSX.Element | null => {
-  const opacity = new Animated.Value(0);
+const Toast = ({
+  visible,
+  message,
+  onClose
+}: Props): React.JSX.Element | null => {
+
+  const opacity = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
@@ -42,22 +43,22 @@ const Toast = ({
   if (!visible) return null;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={{ opacity }}
       className="absolute top-14 left-4 right-4 z-[999]"
     >
-      <View className="bg-white flex-row items-center p-4 rounded-xl shadow-2xl border-l-4 border-medroom-primary">
+      <View className="flex-row items-center p-4 shadow-2xl border-l-6 border-medroom-primary">
         <Feather name="info" size={20} color="#1AAFB4" />
-        
+
         <Text className="flex-1 text-medroom-primary font-nunito-bold ml-3">
           {message || 'Operação concluída'}
         </Text>
 
         <TouchableOpacity onPress={handleClose} className="ml-2">
-          <Feather 
-            name="x" 
-            size={18} 
-            color="#9ca3af" 
+          <Feather
+            name="x"
+            size={18}
+            color="#9ca3af"
           />
         </TouchableOpacity>
       </View>

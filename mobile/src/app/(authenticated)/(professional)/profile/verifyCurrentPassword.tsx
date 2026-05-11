@@ -52,7 +52,7 @@ const ChangePassword = (): React.JSX.Element => {
       });
       
       if (!passwordMatch) {
-        setPasswordMismatchMessage('Senhas não coincidem');
+        setPasswordMismatchMessage('A senha fornecida não confere com a atual');
         return;
       }
 
@@ -132,7 +132,7 @@ const ChangePassword = (): React.JSX.Element => {
               loading={isSaving}
               CustomIcon={() => <Ionicons name="shield-checkmark" size={24} color="white" />}
               disable={Object.keys(errors).length > 0 || isSaving}
-              label='Verificar'
+              label={isSaving ? 'Verificando...' : 'Verificar'}
               onTouch={handleSubmit(handleVerifyCurrentPassword)}
             />
           </View>

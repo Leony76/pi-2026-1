@@ -16,7 +16,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import { Button } from '@/components/button'
 import { useAuth } from '@/contexts/auth.context'
 import { Modal } from '@/components/modal'
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import Toast from '@/components/ui/Toast'
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials'
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName'
@@ -40,7 +40,6 @@ const Profile = (): React.JSX.Element => {
   const router = useRouter();
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const params = useLocalSearchParams();
-  const navigation = useNavigation();
 
   const [profileImageExpand, setProfileExpand] = useState<boolean>(false);
   
@@ -66,6 +65,8 @@ const Profile = (): React.JSX.Element => {
     if (params.message) {
       setUrlParamsMessage(params.message as string);
       setToastVisible(true);
+
+      router.setParams({ message: undefined });
     }
   }, [params.message]);
 
@@ -147,7 +148,7 @@ const Profile = (): React.JSX.Element => {
       layoutType={profile?.accountType ?? 'PROFESSIONAL'}    
       >
         <ScrollView contentContainerClassName='gap-5 pb-6'>
-            <LinearGradient
+          <LinearGradient
           colors={[systemColors.primary, '#0B4C4E']} 
           className="justify-center items-center w-full gap-4 py-8"
           >
@@ -155,6 +156,7 @@ const Profile = (): React.JSX.Element => {
               { profile?.displayImage ? (
                 <TouchableOpacity
                 activeOpacity={0.67}
+                className='cursor-zoom-in'
                 onPress={() => setProfileExpand(true)}
                 >
                   <Image

@@ -1,7 +1,37 @@
 import prisma from "../../lib/prisma";
-import { WeekDay } from "@prisma/client";
+import { Floor, RoomCharacteristic, RoomItemName, WeekDay } from "@prisma/client";
 import { createHttpError } from "../../lib/http-error";
 import { formatLocalDate } from "../../utils/formatLocalDate";
+
+export const REVERSE_ROOM_ITEMS_LABEL_MAP = {
+  'Sofa / Divã' : 'SOFA_DIVA',
+  'Cadeira' : 'CADEIRA',
+  'Computador' : 'COMPUTADOR',
+  'Maca' : 'MACA',
+  'Armário' : 'ARMARIO',
+  'Banheiro' : 'BANHEIRO',
+  'Ar-condi.' : 'AR_CONDI',
+  'TV / Monitor.' : 'TV_MONITOR',
+  'Equip. médico' : 'EQUIP_MEDICO',
+  'Espelho' : 'ESPELHO',
+  'Plantas' : 'PLANTAS',
+  'Ilumi. especial' : 'ILUMI_ESPECIAL',
+} as const;
+
+export const ROOM_ITEMS_LABEL_MAP = {
+  SOFA_DIVA      : 'Sofa / Divã',
+  CADEIRA        : 'Cadeira',
+  COMPUTADOR     : 'Computador',
+  MACA           : 'Maca',
+  ARMARIO        : 'Armário',
+  BANHEIRO       : 'Banheiro',
+  AR_CONDI       : 'Ar-condi.',
+  TV_MONITOR     : 'TV / Monitor.',
+  EQUIP_MEDICO   : 'Equip. médico',
+  ESPELHO        : 'Espelho',
+  PLANTAS        : 'Plantas',
+  ILUMI_ESPECIAL : 'Ilumi. especial',
+} as const;
 
 const FLOOR_MAP: Record<string, string> = {
 	groundFloor: "GROUND_FLOOR",
@@ -222,6 +252,22 @@ type EnterpriseDashboardEntryExitToday = {
 	totalValue: "DAILY" | "WEEKLY" | "MONTHLY";
 } | null;
 
+export type RoomInfos = {
+	roomName: string;
+	image: string | null;
+	floor: string;
+	area: number;
+	characteristics: string;
+	pricePerHour: number;
+	priceWeek: number;
+	pricePerMonth: number;
+	customItems: string[];
+	items: {
+		name: "Sofa / Divã" | "Cadeira" | "Computador" | "Maca" | "Armário" | "Banheiro" | "Ar-condi." | "TV / Monitor." | "Equip. médico" | "Espelho" | "Plantas" | "Ilumi. especial";
+		quantity: number;
+	}[];
+}
+
 export type EnterpriseDashboardResponse = {
 	stats: {
 		totalRooms: number;
@@ -261,6 +307,24 @@ export type EnterpriseValuesRoomPrice = {
 		byMonth: number;
 	};
 };
+
+export type CreateRoomInput = {
+	roomName: string;
+	roomImage?: string | null;
+	floor: string;
+	area: number;
+	characteristics: string;
+	pricePerHour: number;
+	priceWeek: number;
+	pricePerMonth: number;
+	customItems: string[];
+	items: {
+		name: keyof typeof REVERSE_ROOM_ITEMS_LABEL_MAP;
+		quantity: number;
+	}[];
+};
+
+export type UpdateRoom = CreateRoomInput;
 
 export type EnterpriseValuesResponse = {
 	summary: {
@@ -624,6 +688,7 @@ export async function createRoom(data: {
 	pricePerHour: number;
 		priceWeek: number;
 	pricePerMonth: number;
+	customItems: string[];
 	items: { name: string; quantity: number }[];
 }) {
 	const mappedFloor = FLOOR_MAP[data.floor];
@@ -669,6 +734,9 @@ export async function createRoom(data: {
 			floor: mappedFloor as "GROUND_FLOOR" | "FIRST_FLOOR" | "SECOND_FLOOR" | "THIRD_FLOOR" | "FOURTH_FLOOR" | "FIFTH_FLOOR",
 			area: data.area,
 			characteristic: mappedCharacteristic as "AIR_CONDITIONER" | "SOUNDPROOFED" | "AIR_CONDITIONER_PLUS_SOUNDPROOFED" | "DEFAULT",
+			customItems: {
+				create: data.customItems.map((name) => ({ name }))			
+			},
 			prices: {
 				create: {
 					pricePerHour: data.pricePerHour,
@@ -682,7 +750,8 @@ export async function createRoom(data: {
 					.map((item) => ({
 						name: ROOM_ITEM_MAP[item.name] as "SOFA_DIVA" | "CADEIRA" | "COMPUTADOR" | "MACA" | "ARMARIO" | "BANHEIRO" | "AR_CONDI" | "TV_MONITOR" | "EQUIP_MEDICO" | "ESPELHO" | "PLANTAS" | "ILUMI_ESPECIAL",
 						quantity: item.quantity,
-					})),
+					})
+				),
 			},
 		},
 		select: {
@@ -780,6 +849,109 @@ export async function createRoomRental(data: {
 	});
 
 	return mapRoomRentalToClient(rental);
+}
+
+export async function getRoomDetailsById(roomId : string): Promise<RoomInfos> {
+	const room = await prisma.room.findUnique({
+		where: { id: roomId },
+		select: { 
+			title: true,
+			area: true,
+			characteristic: true,
+			floor: true,
+			displayImage: true,
+			customItems: { select: { name: true }},
+			prices: {
+				select: {
+					pricePerHour: true,
+					pricePerMonth: true,
+					priceWeek: true,
+				}
+			},
+			items: {
+				select: {
+					name     : true,
+					quantity : true,
+				}
+			} 
+		},
+	});
+
+	if (!room) throw new Error("Não foi possível achar a sala");
+
+	return {
+		floor: room.floor,
+		roomName: room.title,
+		area: room.area.toNumber(),
+		characteristics: room.characteristic,
+		image: room.displayImage,
+		pricePerHour: room.prices?.pricePerHour.toNumber() ?? 0,
+		pricePerMonth: room.prices?.pricePerMonth.toNumber() ?? 0,
+		priceWeek: room.prices?.priceWeek.toNumber() ?? 0,
+		customItems: room.customItems.map((item) => item.name),
+		items: room.items.map((item) => ({
+			quantity: item.quantity,
+			name: ROOM_ITEMS_LABEL_MAP[item.name]
+		}))
+	}
+}
+
+export async function updateRoomById(
+  roomId: string,
+  data: UpdateRoom,
+): Promise<void> {
+
+  await prisma.room.update({
+    where: { id: roomId },
+    data: {
+      area: data.area,
+      characteristic: data.characteristics as RoomCharacteristic,
+      displayImage: data.roomImage ?? null,
+      floor: data.floor as Floor,
+      title: data.roomName,
+      customItems: {
+        deleteMany: {},
+        create: data.customItems.map((item) => ({
+          name: item,
+        })),
+      },
+      items: {
+        deleteMany: {},
+        create: data.items.map((item) => ({
+          name: REVERSE_ROOM_ITEMS_LABEL_MAP[item.name],
+          quantity: item.quantity,
+        })),
+      },
+
+      prices: {
+				upsert: {
+					update: {
+						pricePerHour: data.pricePerHour,
+						priceWeek: data.priceWeek,
+						pricePerMonth: data.pricePerMonth,
+					},
+
+					create: {
+						pricePerHour: data.pricePerHour,
+						priceWeek: data.priceWeek,
+						pricePerMonth: data.pricePerMonth,
+					},
+				},
+			},
+    },
+  });
+}
+
+export async function toggleRoomAvailabilityById(
+  roomId: string,
+  status: boolean,
+) {
+	return await prisma.room.update({
+		where: { id: roomId },
+		data: {
+			isAvailable: !status
+		},
+	})
 }
 
 export async function getUserRentals(professionalId: string) {
