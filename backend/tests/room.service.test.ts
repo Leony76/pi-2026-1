@@ -187,6 +187,28 @@ describe("room service", () => {
 
       await expect(getRoomsList()).rejects.toThrow("DB error");
     });
+
+    it("maps zeroed prices when room has no price table", async () => {
+      vi.mocked(prisma.room.findMany).mockResolvedValueOnce([
+        makeRoomListItem({
+          id: "room-without-prices",
+          prices: null,
+        }),
+      ] as never);
+
+      const rooms = await getRoomsList();
+
+      expect(rooms[0]).toEqual(
+        expect.objectContaining({
+          id: "room-without-prices",
+          prices: {
+            perHour: 0,
+            _week: 0,
+            month: 0,
+          },
+        })
+      );
+    });
   });
 
   // ── createRoomRental ────────────────────────────────────────────────────────
