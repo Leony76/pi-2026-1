@@ -9,7 +9,7 @@ const seedUsers = [
   {
     name: "Lucas Almeida",
     specialty: "Cardiologia",
-    crmCrp: "CRM12345",
+    crmCrp: "12345-SP",
     email: "lucas.almeida@checkinmed.test",
     accountType: "PROFESSIONAL",
     password: "12345678",
@@ -17,7 +17,7 @@ const seedUsers = [
   {
     name: "Marina Souza",
     specialty: "Dermatologia",
-    crmCrp: "CRM54321",
+    crmCrp: "54321-RJ",
     email: "marina.souza@checkinmed.test",
     accountType: "PROFESSIONAL",
     password: "12345678",
@@ -25,7 +25,7 @@ const seedUsers = [
   {
     name: "João Empresa",
     specialty: "Clinica Geral",
-    crmCrp: "EMP00001",
+    crmCrp: "00001-EN",
     email: "joao.empresa@checkinmed.test",
     accountType: "ENTERPRISE",
     password: "12345678",
