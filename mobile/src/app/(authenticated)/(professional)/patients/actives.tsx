@@ -50,10 +50,10 @@ const ActivePatients = (): React.JSX.Element => {
   return (
     <LayoutWrapper>
       <SystemLayout
-      title='Pascientes ativos'
+      title='Pacientes ativos'
       description='Listagem dos pacientes ativos'
       tab='PATIENTS'
-      goBack={() => router.replace('/(authenticated)/(professional)/patients')}
+      goBack={() => router.push('/(authenticated)/(professional)/patients')}
       layoutType='PROFESSIONAL'    
       >
         {isLoading ? (
@@ -77,7 +77,7 @@ const ActivePatients = (): React.JSX.Element => {
               data={filteredList}
               contentContainerClassName='gap-4 py-1'
               keyExtractor={(item, index) => `${item.id}-${index}`}
-              ListEmptyComponent={ <ContentNotFound text={`Nenhum resultado para "${ searchValue }"`}/> }
+              ListEmptyComponent={ <ContentNotFound text={searchValue ? `Nenhum resultado para "${ searchValue }"` : 'Você ainda não possui pacientes ativos.'}/> }
               renderItem={({ item, index }) => (
                 <Card.Patient
                   key={item.id}

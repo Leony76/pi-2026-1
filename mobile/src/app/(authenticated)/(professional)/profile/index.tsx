@@ -5,25 +5,37 @@ import { systemColors } from '@/constants/misc/systemColors.misc'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useState } from 'react'
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { updateCurrentUserImageWithAuth } from '@/services/auth'
+import * as ImagePicker from 'expo-image-picker'
 import { priceFormat } from '@/utils/priceFormat'
 import Section from '@/components/ui/Section'
 import Label___Value from '@/components/ui/Label___Value'
 import Entypo from '@expo/vector-icons/Entypo';
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { Button } from '@/components/button'
 import { useAuth } from '@/contexts/auth.context'
 import { Modal } from '@/components/modal'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import Toast from '@/components/ui/Toast'
+import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials'
+import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName'
+import { fetchLoggedProfessionalPaymentsHistory } from '@/services/rooms'
 
 const Profile = (): React.JSX.Element => {
 
-  const { profile } = useLoggedUserData();  
-  const { signOut } = useAuth();
+  const { profile, isLoading, error, refreshProfile } = useLoggedUserData();  
+  const { signOut, token, refreshToken, updateTokens } = useAuth();
+
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [historyCount, setHistoryCount] = useState<number | null>(null);
+  const [urlParamsMessage, setUrlParamsMessage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const [ signOutConfirm, setSignOutConfirm ] = useState<boolean>(false);
+
+  const nameToDisplay = getDisplayNameOrInitials(profile?.name ?? 'Desconhecido');
+  const colors = getColorByName(profile?.name ?? 'Desconhecido');
 
   const router = useRouter();
   const [toastVisible, setToastVisible] = useState<boolean>(false);
@@ -32,23 +44,85 @@ const Profile = (): React.JSX.Element => {
   const [profileImageExpand, setProfileExpand] = useState<boolean>(false);
   
   useEffect(() => {
+    (async() => {
+      try {
+        if (!profile || !token || !refreshToken) return;
+
+        const data = await fetchLoggedProfessionalPaymentsHistory(profile.id, { token, refreshToken, updateTokens, signOut });
+
+        if (!data || data.length === 0) return;
+        setHistoryCount(data.length);
+      } catch(error:unknown) {  
+        if (error instanceof Error) {
+          setUrlParamsMessage(error.message);
+          setToastVisible(true);
+        }
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     if (params.message) {
+      setUrlParamsMessage(params.message as string);
       setToastVisible(true);
+
+      router.setParams({ message: undefined });
     }
   }, [params.message]);
 
   const handleCloseToast = () => {
     setToastVisible(false);
-    router.setParams({ message: '' });
   };
+
+  if (isLoading) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          title='Perfil'
+          description='Carregando seus dados'
+          tab='PROFILE'
+          mainPxOff
+          headerHidden
+          layoutType='PROFESSIONAL'
+        >
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color={systemColors.primary} />
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          title='Perfil'
+          description='Não foi possível carregar seus dados'
+          tab='PROFILE'
+          mainPxOff
+          headerHidden
+          layoutType='PROFESSIONAL'
+        >
+          <View className='flex-1 items-center justify-center px-6'>
+            <Text className='text-center text-red-500 font-nunito-bold'>
+              {error}
+            </Text>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
 
   return (
     <LayoutWrapper>
-      <Modal.ImageExpanded
-        image='https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg'
-        onRequestClose={() => setProfileExpand(false)}
-        visible={profileImageExpand}
-      />
+      { profile?.displayImage &&
+        <Modal.ImageExpanded
+          image={profile.displayImage}
+          onRequestClose={() => setProfileExpand(false)}
+          visible={profileImageExpand}
+        />
+      }
 
       { signOutConfirm &&
         <Modal.ConfirmAction
@@ -60,7 +134,7 @@ const Profile = (): React.JSX.Element => {
       }
 
       <Toast
-        message={params.message as string}
+        message={urlParamsMessage as string}
         onClose={handleCloseToast}
         visible={toastVisible}
       />
@@ -71,7 +145,7 @@ const Profile = (): React.JSX.Element => {
       tab='PROFILE'
       mainPxOff
       headerHidden
-      layoutType='PROFESSIONAL'    
+      layoutType={profile?.accountType ?? 'PROFESSIONAL'}    
       >
         <ScrollView contentContainerClassName='gap-5 pb-6'>
           <LinearGradient
@@ -79,20 +153,85 @@ const Profile = (): React.JSX.Element => {
           className="justify-center items-center w-full gap-4 py-8"
           >
             <View className='relative'>
-              <TouchableOpacity
-              activeOpacity={0.67}
-              onPress={() => setProfileExpand(true)}
-              >
-                <Image
-                  source={{ uri: 'https://d2d7ho1ae66ldi.cloudfront.net/ArquivoNoticias/4d41e027-17d6-11ef-aa78-d602bea5d5c0/mad-max.jpg' }}
-                  className='w-40 h-40 rounded-full border-cyan-200'
-                  style={{ borderWidth: 2 }}
-                />
-              </TouchableOpacity>
+              { profile?.displayImage ? (
+                <TouchableOpacity
+                activeOpacity={0.67}
+                className='cursor-zoom-in'
+                onPress={() => setProfileExpand(true)}
+                >
+                  <Image
+                    source={{ uri: profile?.displayImage }}
+                    className='w-40 h-40 rounded-full border-cyan-200'
+                    style={{ borderWidth: 2 }}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <View 
+                className={`justify-center items-center w-40 h-40 rounded-full border border-cyan-200`}
+                style={{ backgroundColor: colors?.bg }}
+                >
+                  <Text 
+                  className={`text-[76px] font-semibold`} 
+                  style={{ color: colors?.text }}
+                  >
+                    { nameToDisplay.initials }
+                  </Text>
+                </View>
+              )}
+
+              {isUploadingImage && (
+                <View className='mt-2'>
+                  <ActivityIndicator size='small' color={systemColors.primary} />
+                </View>
+              )}
+
+              {imageError && (
+                <View className='mt-2 px-6'>
+                  <Text className='text-red-500 font-nunito'>{imageError}</Text>
+                </View>
+              )}
 
               <TouchableOpacity 
               activeOpacity={0.67}
-              className='absolute bottom-2 right-2 bg-cyan-100 p-1 rounded-full'
+              className='absolute bottom-2 right-2 bg-cyan-100 p-1 rounded-full border border-medroom-secondary'
+              onPress={async () => {
+                try {
+                  setImageError(null);
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ['images'],
+                    allowsEditing: true,
+                    quality: 0.7,
+                    base64: true,
+                  });
+
+                  if (result.canceled) return;
+
+                  const selected = result.assets[0];
+
+                  if (!selected?.base64) {
+                    setImageError('Não foi possível processar a imagem.');
+                    return;
+                  }
+
+                  const mimeType = selected.mimeType ?? 'image/jpeg';
+                  const dataUrl = `data:${mimeType};base64,${selected.base64}`;
+
+                  if (!token || !refreshToken) {
+                    setImageError('Sessão inválida. Faça login novamente.');
+                    return;
+                  }
+
+                  setIsUploadingImage(true);
+
+                  await updateCurrentUserImageWithAuth(dataUrl, { token, refreshToken, updateTokens, signOut });
+
+                  await refreshProfile();
+                } catch (err: any) {
+                  setImageError(err?.message ?? 'Erro ao enviar imagem');
+                } finally {
+                  setIsUploadingImage(false);
+                }
+              }}
               >
                 <MaterialCommunityIcons 
                   name="pencil" 
@@ -104,11 +243,11 @@ const Profile = (): React.JSX.Element => {
 
             <View className='items-center'>
               <Text className='text-white text-2xl font-nunito-bold text-center'>
-                Dr(a) { profile?.name ?? '[ Desconhecido ]' }
+                Dr(a) { nameToDisplay.displayName }
               </Text>
 
               <Text className='text-white text-lg font-nunito'>
-                CRM {'12345-SP'}
+                CRM {profile?.crmCrp ?? '[ Desconhecido ]'}
               </Text>
             </View>
 
@@ -121,7 +260,7 @@ const Profile = (): React.JSX.Element => {
                 />
 
                 <Text className='text-white font-nunito'>
-                  Psicologia
+                  {profile?.specialtyLabel ?? '[ não identificada ]'}
                 </Text>
               </View>
 
@@ -148,7 +287,7 @@ const Profile = (): React.JSX.Element => {
               <View className='flex-row justify-between gap-3'>
                 <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
                   <Text className='font-nunito-bold text-medroom-primary text-4xl'>
-                    {'42'}
+                    {profile?.stats.sessions ?? 0}
                   </Text>
 
                   <Text className='font-nunito-bold text-medroom-secondary'>
@@ -158,7 +297,7 @@ const Profile = (): React.JSX.Element => {
 
                 <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
                   <Text className='font-nunito-bold text-medroom-primary text-4xl'>
-                    {'3'}
+                    {profile?.stats.patients ?? 0}
                   </Text>
 
                   <Text className='font-nunito-bold text-medroom-secondary'>
@@ -168,7 +307,7 @@ const Profile = (): React.JSX.Element => {
 
                 <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
                   <Text className='font-nunito-bold text-green-600 text-base'>
-                    { priceFormat(3200) }
+                    { priceFormat(profile?.stats.totalSpent ?? 0) }
                   </Text>
 
                   <Text className='font-nunito-bold text-medroom-secondary'>
@@ -188,7 +327,7 @@ const Profile = (): React.JSX.Element => {
                     <Icon
                       name='person'
                       sizes={{ height: 20, width: 20 }}
-                    />
+                      />
 
                     <Text className='font-nunito-bold text-medroom-secondary'>
                       Dados pessoais
@@ -199,7 +338,7 @@ const Profile = (): React.JSX.Element => {
 
               <Label___Value
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
-                separationRow
+                onTouch={() => router.push('/(authenticated)/(professional)/profile/verifyCurrentPassword')}
                 LabelComponent={() => (
                   <View className='flex-row gap-2 items-center ml-1'>
                     <Icon
@@ -214,35 +353,11 @@ const Profile = (): React.JSX.Element => {
                 )}          
               />
 
-              <Label___Value
-                LabelComponent={() => (
-                  <View className='flex-row gap-2 items-center ml-1'>
-                    <Icon
-                      name='bell'
-                      sizes={{ height: 20, width: 20 }}
-                      />
-
-                    <Text className='font-nunito-bold text-medroom-secondary'>
-                      Notificações
-                    </Text>
-                  </View>
-                )}          
-                value={{ Component: () => (
-                  <View className='flex-row gap-2'>
-                    <View className='bg-medroom-primary px-[8px] rounded-full justify-center items-center'>
-                      <Text className='text-white font-nunito-bold'>
-                        {'2'}
-                      </Text>
-                    </View>
-
-                    <Entypo name="chevron-right" size={24} color={systemColors.primary}/> 
-                  </View>
-                )}}
-              />
             </Section>
 
             <Section title='Atividade'>
               <Label___Value
+                onTouch={() => router.push('/(authenticated)/(professional)/schedules')}
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
                 separationRow
                 LabelComponent={() => (
@@ -260,6 +375,7 @@ const Profile = (): React.JSX.Element => {
               />
 
               <Label___Value
+                onTouch={() => router.push('/(authenticated)/(professional)/patients')}
                 value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
                 separationRow
                 LabelComponent={() => (
@@ -277,6 +393,7 @@ const Profile = (): React.JSX.Element => {
               />
 
               <Label___Value
+                onTouch={() => router.push('/(authenticated)/(professional)/profile/paymentsHistory')}
                 LabelComponent={() => (
                   <View className='flex-row gap-2 items-center ml-1'>
                     <Icon
@@ -291,11 +408,13 @@ const Profile = (): React.JSX.Element => {
                 )}          
                 value={{ Component: () => (
                   <View className='flex-row gap-2'>
-                    <View className='bg-medroom-primary px-[8px] rounded-full justify-center items-center'>
-                      <Text className='text-white font-nunito-bold'>
-                        {'2'}
-                      </Text>
-                    </View>
+                    { historyCount &&         
+                      <View className='bg-medroom-primary px-[8px] rounded-full justify-center items-center'>
+                        <Text className='text-white font-nunito-bold'>
+                          { historyCount }
+                        </Text>
+                      </View>
+                    }
 
                     <Entypo name="chevron-right" size={24} color={systemColors.primary}/> 
                   </View>
@@ -303,41 +422,9 @@ const Profile = (): React.JSX.Element => {
               />
             </Section>
 
-            <Section title='Suporte'>
-              <Label___Value
-                value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
-                separationRow
-                LabelComponent={() => (
-                  <View className='flex-row gap-2 items-center ml-1'>
-                    <AntDesign 
-                      name="question-circle" 
-                      size={22} 
-                      color={systemColors.primary} 
-                    />
 
-                    <Text className='font-nunito-bold text-medroom-secondary'>
-                      Central de ajuda
-                    </Text>
-                  </View>
-                )}          
-              />
 
-              <Label___Value
-                value={{ Component: () => <Entypo name="chevron-right" size={24} color={systemColors.primary}/> }}
-                LabelComponent={() => (
-                  <View className='flex-row gap-2 items-center ml-1'>
-                    <Icon
-                      name='phone'
-                      sizes={{ height: 20, width: 20 }}
-                    />
 
-                    <Text className='font-nunito-bold text-medroom-secondary'>
-                      Falar com suporte
-                    </Text>
-                  </View>
-                )}          
-              />
-            </Section>
 
             <Button.Default
               label='Sair da conta'

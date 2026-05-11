@@ -21,11 +21,11 @@ export const HOURS = {
     { startHour: '22:00', endHour: '23:00' },
     { startHour: '23:00', endHour: '00:00' },
   ],
-};
+} as const;
 
 export const HOURS_MAP = {
   MORNING    : HOURS.MORNING, 
   AFTERNOON  : HOURS.AFTERNOON,  
   NIGHT      : HOURS.NIGHT,
   UNSELECTED : [],  
-};
+} as const;

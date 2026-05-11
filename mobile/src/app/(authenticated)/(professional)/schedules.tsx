@@ -1,4 +1,3 @@
-import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag'
@@ -12,6 +11,7 @@ import { ScrollView, Text, View, ActivityIndicator } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { fetchUserRentalsWithAuth, RoomRental } from '@/services/rooms'
 import { formatSessionDate } from '@/utils/formatSessionDate'
+import ContentNotFound from '@/components/ui/ContentNotFound'
 
 const schedules = (): React.JSX.Element => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
@@ -48,6 +48,8 @@ const schedules = (): React.JSX.Element => {
     loadRentals();
   }, [token, refreshToken, updateTokens, signOut]);
 
+  
+
   if (loading) {
     return (
       <LayoutWrapper>
@@ -82,8 +84,27 @@ const schedules = (): React.JSX.Element => {
     );
   }
 
-  const activeRentals = rentals.filter(r => r.isActive);
-  const inactiveRentals = rentals.filter(r => !r.isActive);
+  const now = new Date();
+  const getRentalEnd = (rental: RoomRental) => new Date(rental.endDate);
+
+  const getAllocationLabel = (allocationType: RoomRental['allocationType']) => {
+    switch (allocationType) {
+      case 'DAILY' : return 'Por dia';
+      case 'MONTH' : return 'Mensal';
+      default      : return 'Por semana';
+    }
+  };
+
+  const activeRentals = rentals.filter(r => {
+    const end = getRentalEnd(r);
+    return end >= now;
+  });
+
+  const closedRentals = rentals.filter(r => {
+    const end = getRentalEnd(r);
+    return end < now;
+  });
+
 
   return (
     <LayoutWrapper>
@@ -95,10 +116,16 @@ const schedules = (): React.JSX.Element => {
       >
         <ScrollView contentContainerClassName='py-5 gap-5'>
           {activeRentals.length > 0 && (
-            <Section title='Ativo agora'>
+            <>
+            <Text className='text-medroom-secondary text-lg font-nunito-bold'>
+              ATIVOS AGORA
+            </Text>
               {activeRentals.map((rental) => (
-                <View key={rental.id}>
-                  <View className='flex-row justify-between items-center mb-3'>
+                <View 
+                key={rental.id}
+                className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3`}
+                >
+                  <View className='flex-row justify-between items-center'>
                     <View>
                       <Text className='font-nunito-bold text-medroom-primary text-xl'>
                         {rental.roomTitle}
@@ -125,25 +152,9 @@ const schedules = (): React.JSX.Element => {
                     </View>
                   </View>
 
-                  {rental.allocationType === 'PER_HOUR' && rental.selectedHours ? (
-                    <View className='flex-row gap-2 mb-3'>
-                      <Card.EntryAndExit
-                        hour={rental.selectedHours.startHour}
-                        type='ENTRY'
-                        dayMonthYear={formatSessionDate(rental.startDate)}
-                      />
-
-                      <Card.EntryAndExit
-                        hour={rental.selectedHours.endHour}
-                        type='EXIT'
-                        dayMonthYear={formatSessionDate(rental.startDate)}
-                      />         
-                    </View>
-                  ) : null}
-
                   <Label___Value
                     label='Tipo'
-                    value={{ _: rental.allocationType === 'PER_HOUR' ? 'Por hora' : rental.allocationType === '3X_WEEK' ? '3x Semana' : 'Mensal' }}
+                    value={{ _: getAllocationLabel(rental.allocationType) }}
                     separationRow
                   />
 
@@ -154,14 +165,21 @@ const schedules = (): React.JSX.Element => {
                   />
                 </View>
               ))}
-            </Section>
+            </>
           )}
 
-          {inactiveRentals.length > 0 && (
-            <Section title='Histórico'>
-              {inactiveRentals.map((rental) => (
-                <View key={rental.id} className='mb-5'>
-                  <View className='flex-row justify-between items-center mb-3'>
+          {closedRentals.length > 0 && (
+            <>
+              <Text className='text-medroom-secondary text-lg font-nunito-bold'>
+                ENCERRADO
+              </Text>
+
+              {closedRentals.map((rental) => (
+                <View 
+                key={rental.id}
+                className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3`}
+                >
+                  <View className='flex-row justify-between items-center'>
                     <View>
                       <Text className='font-nunito-bold text-medroom-primary text-xl'>
                         {rental.roomTitle}
@@ -175,7 +193,7 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(rental.startDate)} até {formatSessionDate(rental.endDate)}
+                          {formatSessionDate(rental.startDate)}  até  {formatSessionDate(rental.endDate)}
                         </Text>
                       </View>
                     </View>
@@ -184,14 +202,14 @@ const schedules = (): React.JSX.Element => {
                       <AvailbilityTag
                         tagType='ACTIVITY'
                         isAvailable={false}
-                        closed
+                        closed={getRentalEnd(rental) < new Date()}
                       />
                     </View>
                   </View>
 
                   <Label___Value
                     label='Tipo'
-                    value={{ _: rental.allocationType === 'PER_HOUR' ? 'Por hora' : rental.allocationType === '3X_WEEK' ? '3x Semana' : 'Mensal' }}
+                    value={{ _: getAllocationLabel(rental.allocationType) }}
                     separationRow
                   />
 
@@ -202,12 +220,12 @@ const schedules = (): React.JSX.Element => {
                   />
                 </View>
               ))}
-            </Section>
+            </>
           )}
 
           {rentals.length === 0 && (
-            <View className='flex-1 justify-center items-center'>
-              <Text className='text-medroom-secondary'>Nenhuma reserva encontrada</Text>
+            <View className='fixed top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]'>
+              <ContentNotFound text='Nenhuma reserva encontrada!'/>
             </View>
           )}
         </ScrollView>

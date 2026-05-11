@@ -20,7 +20,7 @@ const ImageExpanded = (props:Props): React.JSX.Element => {
             <Image
               source={{ uri: props.image }}
               resizeMode="contain" 
-              className='w-full h-full' 
+              className='w-full h-full cursor-zoom-out' 
             />
           </TouchableWithoutFeedback>
         </View>

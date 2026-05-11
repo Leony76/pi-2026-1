@@ -6,9 +6,11 @@ vi.mock("../src/lib/prisma", () => ({
   default: {
     room: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     roomRental: {
       create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
     },
   },
@@ -34,7 +36,7 @@ const makeRoomListItem = (overrides = {}) => ({
   items: [], // 
   prices: {
     pricePerHour: "80.00",
-    price3xWeek: "220.00",
+    priceWeek: "220.00",
     pricePerMonth: "700.00",
   },
   ...overrides,
@@ -47,7 +49,7 @@ const makeRentalRecord = (overrides = {}) => ({
     floor: "GROUND_FLOOR",
     characteristic: "DEFAULT",
   },
-  allocationType: "THREE_X_WEEK",
+  allocationType: "WEEK",
   startDate: new Date("2026-04-25T08:00:00.000Z"),
   endDate: new Date("2026-05-02T08:00:00.000Z"),
   totalPrice: "220.00",
@@ -66,11 +68,11 @@ const makeRentalListItem = (overrides = {}) => ({
     characteristic: "AIR_CONDITIONER",
     prices: {
       pricePerHour: "80.00",
-      price3xWeek: "220.00",
+      priceWeek: "220.00",
       pricePerMonth: "700.00",
     },
   },
-  allocationType: "THREE_X_WEEK",
+  allocationType: "WEEK",
   startDate: new Date("2026-04-25T10:00:00.000Z"),
   endDate: new Date("2026-04-25T14:00:00.000Z"),
   totalPrice: "220.00",
@@ -113,7 +115,7 @@ describe("room service", () => {
           },
           prices: {
             perHour: 80,
-            _3xWeek: 220,
+            _week: 220,
             month: 700,
           },
         },
@@ -131,7 +133,7 @@ describe("room service", () => {
           isAvailable: true,
           prices: {
             pricePerHour: "50.00",
-            price3xWeek: "120.00",
+            priceWeek: "120.00",
             pricePerMonth: "300.00",
           },
         }),
@@ -145,7 +147,7 @@ describe("room service", () => {
           isAvailable: false,
           prices: {
             pricePerHour: "75.00",
-            price3xWeek: "180.00",
+            priceWeek: "180.00",
             pricePerMonth: "450.00",
           },
         }),
@@ -191,12 +193,14 @@ describe("room service", () => {
 
   describe("createRoomRental", () => {
     it("normalizes allocation type and selected weekdays before persisting", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(makeRentalRecord() as never);
 
       const rental = await createRoomRental({
         professionalId: "prof-1",
         roomId: "room-1",
-        allocationType: "3X_WEEK",
+        allocationType: "WEEK",
         paymentMethod: "PIX",
         startDate: new Date("2026-04-25T08:00:00.000Z"),
         endDate: new Date("2026-05-02T08:00:00.000Z"),
@@ -209,7 +213,7 @@ describe("room service", () => {
           data: expect.objectContaining({
             professionalId: "prof-1",
             roomId: "room-1",
-            allocationType: "THREE_X_WEEK",
+            allocationType: "WEEK",
             paymentMethod: "PIX",
             totalPrice: "220",
             selectedWeekDay: ["MONDAY", "WEDNESDAY", "FRIDAY"],
@@ -223,16 +227,17 @@ describe("room service", () => {
           roomTitle: "Sala 101",
           roomFloor: "Térreo",
           roomCharacteristic: "Padrão",
-          allocationType: "3X_WEEK",
+          allocationType: "WEEK",
           totalPrice: 220,
-          selectedWeekDays: ["MONDAY", "WEDNESDAY", "FRIDAY"],
-          selectedHours: null,
+          selectedWeekDays: ["2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01"],
           isActive: true,
         })
       );
     });
 
-    it("persists PER_HOUR rentals with selected hours and client allocation type", async () => {
+    it("persists DAILY rentals without hour selections", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(
         makeRentalRecord({
           id: "rental-hour",
@@ -241,11 +246,10 @@ describe("room service", () => {
             floor: "SECOND_FLOOR",
             characteristic: "AIR_CONDITIONER",
           },
-          allocationType: "PER_HOUR",
+          allocationType: "DAILY",
           startDate: new Date("2026-04-25T09:00:00.000Z"),
           endDate: new Date("2026-04-25T10:00:00.000Z"),
           totalPrice: "90.00",
-          selectedHours: { startHour: "09:00", endHour: "10:00" },
           selectedWeekDay: [],
         }) as never
       );
@@ -253,22 +257,20 @@ describe("room service", () => {
       const rental = await createRoomRental({
         professionalId: "prof-1",
         roomId: "room-3",
-        allocationType: "PER_HOUR",
+        allocationType: "DAILY",
         paymentMethod: "BANK_SLIP",
         startDate: new Date("2026-04-25T09:00:00.000Z"),
         endDate: new Date("2026-04-25T10:00:00.000Z"),
         totalPrice: 90,
-        selectedHours: { startHour: "09:00", endHour: "10:00" },
       });
 
       expect(prisma.roomRental.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            allocationType: "PER_HOUR",
+            allocationType: "DAILY",
             paymentMethod: "BANK_SLIP",
             totalPrice: "90",
             selectedWeekDay: [],
-            selectedHours: { startHour: "09:00", endHour: "10:00" },
           }),
         })
       );
@@ -276,15 +278,16 @@ describe("room service", () => {
       expect(rental).toEqual(
         expect.objectContaining({
           id: "rental-hour",
-          allocationType: "PER_HOUR",
-          selectedHours: { startHour: "09:00", endHour: "10:00" },
-          selectedWeekDays: [],
-          isActive: false, // 09:00–10:00 já passou (FIXED_NOW = 12:00)
+          allocationType: "DAILY",
+          selectedWeekDays: ["2026-04-25"],
+          isActive: false,
         })
       );
     });
 
-    it("persists MONTH rentals without weekday or hour selections", async () => {
+    it("persists MONTH rentals without weekday selections", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(
         makeRentalRecord({
           id: "rental-month",
@@ -297,7 +300,6 @@ describe("room service", () => {
           startDate: new Date("2026-04-25T12:00:00.000Z"),
           endDate: new Date("2026-05-25T12:00:00.000Z"),
           totalPrice: "800.00",
-          selectedHours: null,
           selectedWeekDay: [],
         }) as never
       );
@@ -306,7 +308,7 @@ describe("room service", () => {
         professionalId: "prof-1",
         roomId: "room-4",
         allocationType: "MONTH",
-        paymentMethod: "PIX", // [fix] campo ausente na versão anterior — inconsistente com os demais testes
+        paymentMethod: "PIX",
         startDate: new Date("2026-04-25T12:00:00.000Z"),
         endDate: new Date("2026-05-25T12:00:00.000Z"),
         totalPrice: 800,
@@ -326,11 +328,51 @@ describe("room service", () => {
         expect.objectContaining({
           id: "rental-month",
           allocationType: "MONTH",
-          selectedHours: null,
-          selectedWeekDays: [],
+          selectedWeekDays: expect.arrayContaining(["2026-04-25", "2026-05-24"]),
           isActive: true,
         })
       );
+    });
+
+    it("rejects overlapping room rentals", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce({ id: "rental-conflict" } as never);
+
+      await expect(
+        createRoomRental({
+          professionalId: "prof-1",
+          roomId: "room-1",
+          allocationType: "WEEK",
+          paymentMethod: "PIX",
+          startDate: new Date("2026-04-25T08:00:00.000Z"),
+          endDate: new Date("2026-05-02T08:00:00.000Z"),
+          totalPrice: 220,
+        })
+      ).rejects.toThrow("A sala já está ocupada nesse período.");
+
+      expect(prisma.roomRental.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects when room is not available", async () => {
+      vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce(null as never);
+      vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: false } as never);
+
+      await expect(
+        createRoomRental({
+          professionalId: "prof-1",
+          roomId: "room-1",
+          allocationType: "WEEK",
+          paymentMethod: "PIX",
+          startDate: new Date("2026-04-25T08:00:00.000Z"),
+          endDate: new Date("2026-05-02T08:00:00.000Z"),
+          totalPrice: 220,
+        })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: "bad_request",
+        message: "A sala não está disponível.",
+      });
+
+      expect(prisma.roomRental.create).not.toHaveBeenCalled();
     });
   });
 
@@ -362,9 +404,9 @@ describe("room service", () => {
           roomTitle: "Sala 101",
           roomFloor: "1º Andar",
           roomCharacteristic: "Climatizado",
-          allocationType: "3X_WEEK",
+          allocationType: "WEEK",
           totalPrice: 220,
-          selectedWeekDays: ["MONDAY", "WEDNESDAY", "FRIDAY"],
+            selectedWeekDays: ["2026-04-25"],
           isActive: true,
         }),
       ]);
@@ -382,7 +424,7 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "60.00",
-              price3xWeek: "150.00",
+              priceWeek: "150.00",
               pricePerMonth: "500.00",
             },
           },
@@ -390,7 +432,6 @@ describe("room service", () => {
           startDate: FIXED_NOW,
           endDate: new Date("2026-04-26T12:00:00.000Z"),
           totalPrice: "500.00",
-          selectedHours: null,
           selectedWeekDay: [],
         }),
       ] as never);
@@ -417,15 +458,14 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "70.00",
-              price3xWeek: "170.00",
+              priceWeek: "170.00",
               pricePerMonth: "600.00",
             },
           },
-          allocationType: "PER_HOUR",
+          allocationType: "MONTH",
           startDate: new Date("2026-04-25T11:00:00.000Z"),
           endDate: FIXED_NOW,
           totalPrice: "70.00",
-          selectedHours: { startHour: "11:00", endHour: "12:00" },
           selectedWeekDay: [],
         }),
       ] as never);
@@ -452,15 +492,14 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "70.00",
-              price3xWeek: "180.00",
+              priceWeek: "180.00",
               pricePerMonth: "600.00",
             },
           },
-          allocationType: "PER_HOUR",
+          allocationType: "DAILY",
           startDate: new Date("2026-04-24T10:00:00.000Z"),
           endDate: new Date("2026-04-24T11:00:00.000Z"),
           totalPrice: "70.00",
-          selectedHours: { startHour: "10:00", endHour: "11:00" },
           selectedWeekDay: [],
         }),
       ] as never);
@@ -470,10 +509,9 @@ describe("room service", () => {
       expect(rentals[0]).toEqual(
         expect.objectContaining({
           id: "past-rental",
-          allocationType: "PER_HOUR",
+          allocationType: "DAILY",
           totalPrice: 70,
-          selectedHours: { startHour: "10:00", endHour: "11:00" },
-          selectedWeekDays: [],
+          selectedWeekDays: ["2026-04-24"],
           isActive: false,
         })
       );
@@ -491,15 +529,14 @@ describe("room service", () => {
             characteristic: "DEFAULT",
             prices: {
               pricePerHour: "60.00",
-              price3xWeek: "140.00",
+              priceWeek: "140.00",
               pricePerMonth: "480.00",
             },
           },
           allocationType: "MONTH",
-          startDate: new Date("2026-04-26T12:00:00.000Z"), // amanhã
+          startDate: new Date("2026-04-26T12:00:00.000Z"),
           endDate: new Date("2026-05-26T12:00:00.000Z"),
           totalPrice: "480.00",
-          selectedHours: null,
           selectedWeekDay: [],
         }),
       ] as never);

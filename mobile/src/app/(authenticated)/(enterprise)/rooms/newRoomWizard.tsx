@@ -13,14 +13,19 @@ import { ROOM_ITEMS } from '@/constants/maps/roomItems.map'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { NewRoomFormData, NewRoomFormInput, newRoomSchema } from '@/schemas/newRoom.schema'
 import { ROOM_ITEMS_LIMIT_MAP } from '@/types/roomItems.type'
+import { createRoomWithAuth } from '@/services/rooms'
+import { useAuth } from '@/contexts/auth.context'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from 'expo-router'
+import * as ImagePicker from 'expo-image-picker'
 import React, { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native'
-import { IconName } from 'root/assets/icons'
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import type { IconName } from 'root/assets/icons'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import ImageExpanded from '@/components/modal/ImageExpanded'
 
 const NewRoomWizard = (): React.JSX.Element => {
 
@@ -40,13 +45,21 @@ const NewRoomWizard = (): React.JSX.Element => {
       area            : '',
       characteristics : '',
       pricePerHour    : '',
-      price_3xWeek    : '',
+      priceWeek       : '',
       pricePerMonth   : '',
       items           : [],
     }
   }); 
 
+  const auth = useAuth();
+
   const [wizardStep, setWizardStep] = useState<number>(1);
+  const [isSavingRoom, setIsSavingRoom] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [roomImage, setRoomImage] = useState<string | null>(null);
+  const [roomImageMissingError, setRoomImageMissingError] = useState<string | null>(null);
+  const [rooImageExpanded, setRoomImageExpanded] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const [persistDataOnInput, setPersistDataOnInput] = useState({
     roomName: '',
@@ -64,7 +77,7 @@ const NewRoomWizard = (): React.JSX.Element => {
     if (wizardStep === 1) {
       fieldsToValidate = ['roomName', 'floor', 'area', 'characteristics'];
     } else if (wizardStep === 2) {
-      fieldsToValidate = ['pricePerHour', 'price_3xWeek', 'pricePerMonth'];
+      fieldsToValidate = ['pricePerHour', 'priceWeek', 'pricePerMonth'];
     }
 
     const isValid = await trigger(fieldsToValidate);
@@ -75,14 +88,74 @@ const NewRoomWizard = (): React.JSX.Element => {
   };
 
   const handleSaveNewRoom = async( data: NewRoomFormData ): Promise<void> => {
-    console.log(data);
+    try {
+      setIsSavingRoom(true);
+      setSubmitError(null);
 
-    router.push({
-      pathname: '/(authenticated)/(enterprise)/rooms',
-      params: {
-        message: 'Sala adicionada com sucesso!'
-      },
-    })
+      if (!auth.token || !auth.refreshToken) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
+
+      const authenticated = {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      };
+
+      await createRoomWithAuth({
+        roomName: data.roomName,
+        roomImage,
+        floor: data.floor,
+        area: data.area,
+        characteristics: data.characteristics,
+        pricePerHour: data.pricePerHour,
+        priceWeek: data.priceWeek,
+        pricePerMonth: data.pricePerMonth,
+        items: data.items,
+        customItems: customItems,
+      }, authenticated);
+
+      router.replace({
+        pathname: '/(authenticated)/(enterprise)/rooms',
+        params: {
+          message: 'Sala adicionada com sucesso!'
+        },
+      })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Não foi possível salvar a sala.');
+    } finally {
+      setIsSavingRoom(false);
+    }
+  };
+
+  const handlePickRoomImage = async (): Promise<void> => {
+    try {
+      setImageError(null);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const selected = result.assets[0];
+
+      if (!selected?.base64) {
+        setImageError('Não foi possível processar a imagem. Tente outra foto.');
+        return;
+      }
+
+      const mimeType = selected.mimeType ?? 'image/jpeg';
+      setRoomImage(`data:${mimeType};base64,${selected.base64}`);
+    } catch {
+      setImageError('Não foi possível selecionar a imagem da sala.');
+    }
   };
 
   const handleAddCustomItem = () => {
@@ -110,7 +183,7 @@ const NewRoomWizard = (): React.JSX.Element => {
   };
 
   const step1ActiveErros = errors.roomName || errors.floor || errors.area || errors.characteristics;
-  const step2ActiveErros = errors.pricePerHour || errors.pricePerMonth || errors.price_3xWeek;
+  const step2ActiveErros = errors.pricePerHour || errors.pricePerMonth || errors.priceWeek;
 
   useEffect(() => {
     setValue('area'     , persistDataOnInput.area);
@@ -118,16 +191,31 @@ const NewRoomWizard = (): React.JSX.Element => {
     setValue('roomName' , persistDataOnInput.roomName);
   },[wizardStep]);
 
+  useEffect(() => {
+    if (roomImage) setRoomImageMissingError(null);
+    if (!roomImage && Object.keys(errors).length > 0) 
+      setRoomImageMissingError('A foto da sala é obrigatória');
+  }, [roomImage]);
+
   switch (wizardStep) {
     case 1:
       return (
         <LayoutWrapper>
+          
+          { roomImage &&
+            <ImageExpanded
+              image={roomImage}
+              onRequestClose={() => setRoomImageExpanded(false)}
+              visible={rooImageExpanded}
+            />
+          }
+          
           <SystemLayout 
           title='Nova sala' 
           description={`Etapa ${wizardStep} de 3 - ${DESCRIPTION_INFOS_BY_WIZARD_STEP_MAP[wizardStep]}`} 
           layoutType={'ENTERPRISE'}      
           tab='ROOMS'
-          goBack={wizardStep > 1 ? () => setWizardStep(prev => prev - 1) : () => router.back()}
+          goBack={wizardStep > 1 ? () => setWizardStep(prev => prev - 1) : () => router.push('/(authenticated)/(enterprise)/rooms')}
           > 
             <ScrollView contentContainerClassName='gap-5 py-6'>
               <View className='py-3'>
@@ -135,6 +223,49 @@ const NewRoomWizard = (): React.JSX.Element => {
               </View>
               
               <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
+                <View className='gap-3'>
+                  <Text className='font-nunito-bold text-lg text-medroom-primary'>
+                    Foto da sala
+                  </Text>
+
+                  {roomImage ? (
+                    <TouchableOpacity
+                    activeOpacity={0.67}
+                    onPress={() => setRoomImageExpanded(true)}
+                    className='cursor-zoom-in'
+                    >
+                      <Image
+                        source={{ uri: roomImage }}
+                        className='w-full h-48 rounded-lg'
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <View className='bg-medroom-primaryLight justify-center items-center w-full rounded-lg h-40'>
+                      <Text className='text-medroom-primary font-nunito-bold'>
+                        Nenhuma foto selecionada
+                      </Text>
+                    </View>
+                  )}
+
+                  {roomImageMissingError && <Input.Error error={roomImageMissingError}/> }
+
+                  <Button.Default
+                    CustomIcon={() => <FontAwesome name="photo" size={22} color={systemColors.primary} />}
+                    label={roomImage ? 'Trocar foto' : 'Selecionar foto'}
+                    onTouch={handlePickRoomImage}
+                  />
+
+                  {roomImage && (
+                    <Button.Default
+                      icon={{ name: 'x_circle', size: { width: 20, height: 20 } }}
+                      label='Remover foto'
+                      onTouch={() => setRoomImage(null)}
+                    />
+                  )}
+
+                  {imageError && <Input.Error error={imageError} />}
+                </View>
+
                 <View>
                   <Controller
                     control={control}
@@ -229,10 +360,13 @@ const NewRoomWizard = (): React.JSX.Element => {
                 <Button.Default
                   customStyle={{ container: 'mt-3' }}
                   filled
-                  disable={!!step1ActiveErros}
+                  disable={!!step1ActiveErros && !roomImage}
                   icon={{ name: 'right_arrow', size: { width: 20, height: 20 } }}
                   label='Próximo'
-                  onTouch={handleNextStep}
+                  onTouch={() => {
+                    if (!roomImage) setRoomImageMissingError('A foto da sala é obrigatória');
+                    handleNextStep();
+                  }}
                 />
               </View>
             </ScrollView>
@@ -263,8 +397,8 @@ const NewRoomWizard = (): React.JSX.Element => {
                       <Input.Style2
                         icon={{ name: 'money' }}
                         maxLength={256}
-                        label='Preço por hora (R$)'
-                        placeholder={{ text: 'R$ XX,XX'}}
+                        label='Preço por dia (R$)'
+                        placeholder={{ text: 'R$ XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
                         keyboardType='number-pad'
@@ -280,13 +414,13 @@ const NewRoomWizard = (): React.JSX.Element => {
                 <View>
                   <Controller
                     control={control}
-                    name='price_3xWeek'
+                    name='priceWeek'
                     render={({ field: { onChange, value, onBlur } }) => (
                       <Input.Style2
                         icon={{ name: 'money' }}
                         maxLength={256}
-                        label='Preço 3x semana (R$)'
-                        placeholder={{ text: 'R$ XXX,XX'}}
+                        label='Preço por semana (R$)'
+                        placeholder={{ text: 'R$ X.XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
                         keyboardType='number-pad'
@@ -296,7 +430,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                     )}
                   />
     
-                  {errors.price_3xWeek?.message && <Input.Error error={errors.price_3xWeek.message as string}/> }
+                  {errors.priceWeek?.message && <Input.Error error={errors.priceWeek.message as string}/> }
                 </View>
 
                 <View>
@@ -308,7 +442,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                         icon={{ name: 'money' }}
                         maxLength={256}
                         label='Preço mensal (R$)'
-                        placeholder={{ text: 'R$ X.XXX,XX'}}
+                        placeholder={{ text: 'R$ XX.XXX,XX'}}
                         type='TEXT'
                         onBlur={onBlur}
                         keyboardType='number-pad'
@@ -387,8 +521,7 @@ const NewRoomWizard = (): React.JSX.Element => {
 
                   const decrease = (itemName: string) => {
                     onChange(
-                      value
-                        .map(item =>
+                      value.map(item =>
                           item.name === itemName
                             ? { ...item, quantity: item.quantity - 1 }
                             : item
@@ -546,11 +679,19 @@ const NewRoomWizard = (): React.JSX.Element => {
               </View>
 
               <View>
+                {submitError && (
+                  <View className='mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3'>
+                    <Text className='text-red-700 font-nunito-bold'>
+                      {submitError}
+                    </Text>
+                  </View>
+                )}
+
                 <Button.Default
                   filled
-                  disable={!isValid}
+                  disable={!isValid || isSavingRoom}
                   icon={{ name: 'room', size: { width: 22, height: 22 } }}
-                  label='Salvar sala'
+                  label={isSavingRoom ? 'Salvando...' : 'Salvar sala'}
                   onTouch={handleSubmit(handleSaveNewRoom)}
                 />
 

@@ -5,91 +5,97 @@ import { Modal } from '@/components/modal'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
-import { Expanses } from '@/types/expenses.type'
-import { RoomPrice } from '@/types/roomPrice.type'
-import { OverallRoomRevenue, RoomRevenue } from '@/types/roomRevenue.type'
+import { useAuth } from '@/contexts/auth.context'
+import { ApiError } from '@/services/api'
+import { EnterpriseValuesResponse, fetchEnterpriseValuesWithAuth } from '@/services/rooms'
 import { priceFormat } from '@/utils/priceFormat'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
-import { ScrollView, Text, View } from 'react-native'
-
-const ROOMS_REVENUE_DATA: OverallRoomRevenue = {
-  totalRevenue: 534322,
-  roomsRevenue: [
-    {
-      id: 1,
-      room: 'Sala 01',
-      totalRevenue: 17500,
-      revenue: {
-        byHour  : 1000,
-        _3xWeek : 7500,
-        byMonth : 9000,
-      }
-    },
-    {
-      id: 2,
-      room: 'Sala 02',
-      totalRevenue: 23500,
-      revenue: {
-        byHour  : 1200,
-        _3xWeek : 8500,
-        byMonth : 13000,
-      }
-    },
-    {
-      id: 3,
-      room: 'Sala 03',
-      totalRevenue: 32500,
-      revenue: {
-        byHour  : 1400,
-        _3xWeek : 9500,
-        byMonth : 15000,
-      }
-    },
-  ],
-};
-
-const EXPENSES_DATA: Expanses = {
-  cleaning: 180,
-  eletricalEnergy: 140,
-  maintenance: 120,
-  totalValue: 440,
-}
-
-const ROOMS_PRICES_DATA: RoomPrice[] = [
-  {
-    id: 1,
-    room: 'Sala 01',
-    price: {
-      byHour  : 1000,
-      _3xWeek : 7500,
-      byMonth : 9000,
-    },
-  },
-  {
-    id: 2,
-    room: 'Sala 02',
-    price: {
-      byHour  : 2000,
-      _3xWeek : 8500,
-      byMonth : 10000,
-    },
-  },
-  {
-    id: 3,
-    room: 'Sala 03',
-    price: {
-      byHour  : 3000,
-      _3xWeek : 9500,
-      byMonth : 11000,
-    },
-  },
-];
+import React, { useEffect, useState } from 'react'
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 
 const Values = (): React.JSX.Element => {
 
   const router = useRouter();
-  const [roomRevenueDetails, setRoomRevenueDetails] = useState<Pick<RoomRevenue, 'room' | 'revenue'> | null>(null);
+  const auth = useAuth();
+  const [values, setValues] = useState<EnterpriseValuesResponse | null>(null);
+  const [roomRevenueDetails, setRoomRevenueDetails] = useState<Pick<EnterpriseValuesResponse['roomRevenue']['roomsRevenue'][number], 'room' | 'revenue'> | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadValues() {
+      if (!auth.token || !auth.refreshToken) {
+        setError('Sessão inválida. Entre novamente para ver os valores.');
+        setIsLoading(false);
+        return;
+      }
+
+      const authenticated = {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      };
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await fetchEnterpriseValuesWithAuth(authenticated);
+        setValues(response);
+      } catch (requestError) {
+        setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar os valores.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadValues();
+  }, [auth]);
+
+  if (isLoading) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          title='Valores'
+          description='Receitas e despesas'
+          layoutType='ENTERPRISE'
+          tab='VALUES'
+        >
+          <View className='flex-1 items-center justify-center'>
+            <ActivityIndicator size='large' color='#1AAFB4' />
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <LayoutWrapper>
+        <SystemLayout
+          title='Valores'
+          description='Receitas e despesas'
+          layoutType='ENTERPRISE'
+          tab='VALUES'
+        >
+          <View className='flex-1 items-center justify-center px-6'>
+            <Text className='text-center text-red-500 font-nunito-bold'>
+              {error}
+            </Text>
+          </View>
+        </SystemLayout>
+      </LayoutWrapper>
+    );
+  }
+
+  const roomRevenueData = values?.roomRevenue.roomsRevenue ?? [];
+  const roomPricesData = values?.roomPrices ?? [];
+
+  const expenseItemsMap = [
+    { label: 'Manutenção das salas' , key: 'maintenance'     },
+    { label: 'Energia elétrica'     , key: 'eletricalEnergy' },
+    { label: 'Limpeza'              , key: 'cleaning'        },
+  ] as const;
 
   return (
     <LayoutWrapper>
@@ -112,7 +118,7 @@ const Values = (): React.JSX.Element => {
           <View className='flex-row justify-between gap-3'>
             <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
               <Text className='font-nunito-bold text-green-600 text-xl'>
-                { '-' + priceFormat(4200.67) }
+                { priceFormat(values?.summary.revenueThisMonth ?? 0) }
               </Text>
 
               <Text className='font-nunito-bold text-medroom-secondary text-sm'>
@@ -122,7 +128,7 @@ const Values = (): React.JSX.Element => {
 
             <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
               <Text className='font-nunito-bold text-red-700 text-xl'>
-                { '-' + priceFormat(157.66) }
+                { '-' + priceFormat(values?.summary.expensesThisMonth ?? 0) }
               </Text>
 
               <Text className='font-nunito-bold text-medroom-secondary text-sm'>
@@ -141,64 +147,51 @@ const Values = (): React.JSX.Element => {
             />
           )}
           >
-            { ROOMS_REVENUE_DATA.roomsRevenue.length > 0 ? (
-              ROOMS_REVENUE_DATA.roomsRevenue.map(( item ) => (
+            { roomRevenueData.length > 0 ? (
+              <>
+                {roomRevenueData.map(( item ) => (
+                  <Label___Value
+                    separationRow
+                    key={item.id}
+                    label={item.room}
+                    value={{ _: priceFormat(item.totalRevenue), color: 'text-green-600' }}
+                    onTouch={() => setRoomRevenueDetails({
+                      room    : item.room,
+                      revenue : item.revenue,
+                    })}
+                  />
+                ))}
+
                 <Label___Value
-                  separationRow
-                  key={item.id}
-                  label={item.room}
-                  value={{ _: priceFormat(item.totalRevenue), color: 'text-green-600' }}
-                  onTouch={() => setRoomRevenueDetails({
-                    room    : item.room,
-                    revenue : item.revenue,
-                  })}
-                />
-              ))
+                  value={{ 
+                    _: priceFormat(values?.roomRevenue.totalRevenue ?? 0),
+                    color: 'text-green-600 text-lg'
+                  }}
+                  label='Receita total'
+                  boldLabel
+                />          
+              </>
             ) : (
               <ContentNotFound text='Nenhuma receita por sala'/>
             )}
 
-            <Label___Value
-              value={{ 
-                _: priceFormat(ROOMS_REVENUE_DATA.totalRevenue),
-                color: 'text-green-600 text-lg'
-              }}
-              label='Receita total'
-              boldLabel
-            />          
           </Section>
 
           <Section title='Despesas'>
-            <Label___Value
-              separationRow
-              value={{ 
-                _: '-' + priceFormat(EXPENSES_DATA.maintenance),
-                color: 'text-red-600'
-              }}
-              label='Manutenção das salas'
-            />  
-            
-            <Label___Value
-              separationRow
-              value={{ 
-                _: '-' + priceFormat(EXPENSES_DATA.eletricalEnergy),
-                color: 'text-red-600'
-              }}
-              label='Energia elétrica'
-            />  
-
-            <Label___Value
-              separationRow
-              value={{ 
-                _: '-' + priceFormat(EXPENSES_DATA.cleaning),
-                color: 'text-red-600'
-              }}
-              label='Limpeza'
-            />  
+            { expenseItemsMap.map((items) => (
+              <Label___Value
+                separationRow
+                value={{ 
+                  _: '-' + priceFormat(values?.expenses[items.key] ?? 0),
+                  color: 'text-red-600'
+                }}
+                label={items.label}
+              />  
+            ))}
 
             <Label___Value
               value={{ 
-                _: '-' + priceFormat(EXPENSES_DATA.totalValue),
+                _: '-' + priceFormat(values?.expenses.totalValue ?? 0),
                 color: 'text-red-600 text-lg'
               }}
               label='Despesas totais'
@@ -217,57 +210,60 @@ const Values = (): React.JSX.Element => {
           )}
           >
             <View className='gap-3'>
-              <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
-                Por hora
+              <Text className='font-nunito-bold text-medroom-primary text-xl'>
+                Por dia
               </Text>
 
               <View className='gap-3'>
-                { ROOMS_PRICES_DATA.length > 0 ? (
-                  ROOMS_PRICES_DATA.map((item, index) => (
+                { roomPricesData.length > 0 ? (
+                  roomPricesData.map((item, index) => (
                     <Label___Value
-                      separationRow={ROOMS_PRICES_DATA.length - 1 !== index}
+                      separationRow={roomPricesData.length - 1 !== index}
+                      key={`hour-${item.id}`}
                       value={{ _: priceFormat(item.price.byHour ?? 0), color: 'text-green-600'}}
                       label={ item.room }
                     /> 
                   ))
                 ) : (
-                  <ContentNotFound text='Nenhum preço por hora'/>
+                  <ContentNotFound text='Nenhum preço por dia'/>
                 )}
               </View>
 
-              <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
-                3x semana
+              <Text className='font-nunito-bold text-medroom-primary text-xl'>
+                Por semana
               </Text>
 
               <View className='gap-3'>
-                { ROOMS_PRICES_DATA.length > 0 ? (
-                  ROOMS_PRICES_DATA.map((item, index) => (
+                { roomPricesData.length > 0 ? (
+                  roomPricesData.map((item, index) => (
                     <Label___Value
-                      separationRow={ROOMS_PRICES_DATA.length - 1 !== index}
-                      value={{ _: priceFormat(item.price._3xWeek ?? 0), color: 'text-green-600'}}
+                      separationRow={roomPricesData.length - 1 !== index}
+                      key={`week-${item.id}`}
+                      value={{ _: priceFormat(item.price._week ?? 0), color: 'text-green-600'}}
                       label={ item.room }
                     /> 
                   ))
                 ) : (
-                  <ContentNotFound text='Nenhum preço por hora'/>
+                  <ContentNotFound text='Nenhum preço por dia'/>
                 )}
               </View>
 
-              <Text className='font-nunito-bold text-medroom-primary text-center text-xl'>
+              <Text className='font-nunito-bold text-medroom-primary text-xl'>
                 Por mês
               </Text>
 
               <View className='gap-3'>
-                { ROOMS_PRICES_DATA.length > 0 ? (
-                  ROOMS_PRICES_DATA.map((item, index) => (
+                { roomPricesData.length > 0 ? (
+                  roomPricesData.map((item, index) => (
                     <Label___Value
-                      separationRow={ROOMS_PRICES_DATA.length - 1 !== index}
+                      separationRow={roomPricesData.length - 1 !== index}
+                      key={`month-${item.id}`}
                       value={{ _: priceFormat(item.price.byMonth ?? 0), color: 'text-green-600'}}
                       label={ item.room }
                     /> 
                   ))
                 ) : (
-                  <ContentNotFound text='Nenhum preço por hora'/>
+                  <ContentNotFound text='Nenhum preço por dia'/>
                 )}
               </View>
             </View>

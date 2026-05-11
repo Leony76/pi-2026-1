@@ -1,53 +1,33 @@
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
-import { Days } from '@/types/days.type'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import AntDesign from '@expo/vector-icons/AntDesign';
-import { Text, View, ActivityIndicator } from 'react-native'
-import Label___Value from '@/components/ui/Label___Value';
+import { Text, View, ActivityIndicator, ScrollView } from 'react-native'
+import Icon from '@/components/ui/Icon'
+import { systemColors } from '@/constants/misc/systemColors.misc'
 import { Allocation } from '@/types/allocation.type';
-import { TRANSLATED_DAYS_MAP } from '@/constants/maps/translatedDays.map';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 import { useAuth } from '@/contexts/auth.context';
-import { createRoomRentalWithAuth } from '@/services/rooms';
-
-function parseHourToMinutes(hour: string): number {
-  const [hoursString = '0', minutesString = '0'] = hour.split(':');
-  const hours = Number(hoursString);
-  const minutes = Number(minutesString);
-
-  return (hours * 60) + minutes;
-}
-
-function buildDateFromHour(baseDate: Date, hour: string): Date {
-  const [hoursString = '0', minutesString = '0'] = hour.split(':');
-  const hours = Number(hoursString);
-  const minutes = Number(minutesString);
-  const date = new Date(baseDate);
-
-  date.setHours(hours, minutes, 0, 0);
-
-  return date;
-}
+import { createRoomRentalWithAuth, storePaymentAtPaymentsHistory } from '@/services/rooms';
+import { parseLocalDate } from '@/utils/parseLocalDate'
+import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 
 const roomRentalSuccess = (): React.JSX.Element => {
 
   const params = useLocalSearchParams();
   const router = useRouter();
   const { token, refreshToken, updateTokens, signOut } = useAuth();
+  const { profile } = useLoggedUserData();
 
   const roomId = params.roomId as string ?? '';
   const roomName = params.roomName as string ?? '[Nome não provido]';
   const allocationType = params.allocationType as Allocation;
   const paymentMethod = params.paymentMethod as 'PIX' | 'BANK_SLIP' | 'CREDIT_CARD' | undefined;
-  const startHour = params.startHour as string ?? '[Entrada não provida]';
-  const endHour = params.endHour as string ?? '[Saída não provida]';
   const pricePaid = params.pricePaid as unknown as number ?? 0;
-  const daysParam = params.days as string | undefined;
-  const days: Days[] = React.useMemo(
-    () => (daysParam ? JSON.parse(daysParam) : []),
-    [daysParam]
+  const dateParam = params.date as string | undefined;
+  const selectedDate = React.useMemo(
+    () => (dateParam ? parseLocalDate(dateParam) : null),
+    [dateParam]
   );
 
   const [isSaving, setIsSaving] = useState(true);
@@ -60,7 +40,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
         return;
       }
 
-      if (!token || !refreshToken || !roomId) {
+      if (!token || !refreshToken || !roomId || !pricePaid || !paymentMethod || !profile?.id) {
         setSaveError('Erro ao salvar reserva: dados insuficientes');
         setIsSaving(false);
         return;
@@ -69,35 +49,15 @@ const roomRentalSuccess = (): React.JSX.Element => {
       hasSavedRental.current = true;
 
       try {
-        const startDate = new Date();
+        const startDate = selectedDate ? new Date(selectedDate) : new Date();
+        startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(startDate);
 
-        if (allocationType === 'PER_HOUR') {
-          const startDateFromSelection = buildDateFromHour(startDate, startHour);
-          const endDateFromSelection = buildDateFromHour(startDate, endHour);
-
-          if (parseHourToMinutes(endHour) <= parseHourToMinutes(startHour)) {
-            endDateFromSelection.setDate(endDateFromSelection.getDate() + 1);
-          }
-
-          await createRoomRentalWithAuth(
-            {
-              roomId,
-              allocationType,
-              paymentMethod,
-              startDate: startDateFromSelection,
-              endDate: endDateFromSelection,
-              totalPrice: pricePaid,
-              selectedHours: { startHour, endHour },
-            },
-            { token, refreshToken, updateTokens, signOut }
-          );
-
-          setIsSaving(false);
-          return;
-        } else if (allocationType === '3X_WEEK') {
-          endDate.setDate(endDate.getDate() + 7);
-        } else if (allocationType === 'MONTH') {
+              if (allocationType === 'DAILY') {
+                endDate.setDate(endDate.getDate() + 1);
+              } else if (allocationType === 'WEEK') {
+                endDate.setDate(endDate.getDate() + 7);
+              } else if (allocationType === 'MONTH') {
           endDate.setMonth(endDate.getMonth() + 1);
         }
 
@@ -109,12 +69,21 @@ const roomRentalSuccess = (): React.JSX.Element => {
             startDate,
             endDate,
             totalPrice: pricePaid,
-            selectedWeekDays: allocationType === '3X_WEEK' 
-              ? days
-              : undefined,
           },
           { token, refreshToken, updateTokens, signOut }
         );
+
+
+        await storePaymentAtPaymentsHistory(
+          {
+            from           : 'ROOM_RENTAL',
+            paid           : pricePaid,
+            paymentMethod  : paymentMethod,
+            professionalId : profile.id,
+          },
+          { token, refreshToken, updateTokens, signOut }
+        )
+
         setIsSaving(false);
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : 'Erro ao salvar reserva');
@@ -123,7 +92,7 @@ const roomRentalSuccess = (): React.JSX.Element => {
     };
 
     saveRental();
-  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, startHour, endHour, pricePaid, days]);
+  }, [token, refreshToken, updateTokens, signOut, roomId, allocationType, paymentMethod, pricePaid, selectedDate]);
 
   if (isSaving) {
     return (
@@ -142,17 +111,13 @@ const roomRentalSuccess = (): React.JSX.Element => {
         <View className='flex-1 justify-center items-center'>
           <View className='w-[80%] items-center gap-5'>
             <View className='bg-red-100 rounded-full p-3 w-32 h-32 justify-center items-center'>
-              <AntDesign 
-                name="close" 
-                size={36} 
-                color="red" 
-              />
+              <Icon name='x_circle' color={'#EF4444'} sizes={{ width: 36, height: 36 }} />
             </View>
             <Text className='font-nunito-bold text-2xl text-red-600'>Erro!</Text>
             <Text className='font-nunito text-medroom-secondary text-center'>{saveError}</Text>
             <Button.Default
               label='Voltar'
-              onTouch={() => router.back()}
+              onTouch={() => router.replace('/(authenticated)/(professional)/home')}
               filled
               customStyle={{ container: 'w-full' }}
             />
@@ -164,84 +129,111 @@ const roomRentalSuccess = (): React.JSX.Element => {
 
   return (
     <LayoutWrapper>
-      <View className='flex-1 justify-center items-center'>
+      <ScrollView contentContainerClassName='justify-center items-center py-6'>
         <View className='w-[80%] items-center gap-5'>
-          <View className='bg-green-100 rounded-full p-3 w-32 h-32 justify-center items-center'>
-            <AntDesign 
-              name="check" 
-              size={36} 
-              color="green" 
-            />
+
+          <View className='bg-medroom-primaryLight rounded-full p-3 w-32 h-32 justify-center items-center'>
+            <Icon name='check' color={systemColors.primary} sizes={{ width: 36, height: 36 }} />
           </View>
 
           <Text className='font-nunito-bold text-2xl text-medroom-primary'>
-            Reserva confirmada!
+            Tudo certo! 🎉
           </Text>
 
           <Text className='font-nunito text-medroom-secondary text-center'>
-            Sua { roomName } foi reservada! Você receberá os detalhes por e-mail. 
+            Sua reserva foi confirmada.
           </Text>
 
-          <View className='border-2 gap-3 border-medroom-primaryLight rounded-xl p-4 w-full'>
-            <Label___Value
-              separationRow
-              label='Sala'
-              value={{ _: roomName }}
-            />
+          <View className='w-full rounded-xl overflow-hidden mt-6 border border-medroom-primaryLight bg-white'>
+            <View className='bg-medroom-primaryLight px-4 py-4 flex-row items-center justify-between'>
+              <Text className='font-nunito-bold text-medroom-primary text-sm'>Reserva #RES-{new Date().getFullYear()}-0847</Text>
+              <View className='flex-row items-center gap-1 bg-medroom-primary px-3 py-1 rounded-full'>
+                <Icon name='check' color='#ffffff' sizes={{ width: 12, height: 12 }} />
+                <Text className='text-[10px] text-white font-nunito-bold uppercase'>Pago</Text>
+              </View>
+            </View>
 
-            { allocationType === 'PER_HOUR' ? (
-              <>
-                <Label___Value
-                  separationRow
-                  label='Entrada'
-                  value={{ _: startHour }}
-                />
+            <View className='p-5 gap-3'>
+              <View className='flex-row justify-between items-center'>
+                <Text className='text-medroom-secondary font-nunito'>Sala</Text>
+                <Text className='text-medroom-primary font-nunito-bold'>{roomName}</Text>
+              </View>
 
-                <Label___Value
-                  separationRow
-                  label='Saída'
-                  value={{ _: endHour }}
-                />
-              </>
-            ) : allocationType === 'MONTH' ? (
-              <Label___Value
-                separationRow
-                label='Período'
-                value={{ _: '1 mês' }}
-              />
-            ) : (    
-              <Label___Value
-                separationRow
-                label='Dias'
-                value={{ 
-                  _:TRANSLATED_DAYS_MAP[days.at(0)!].split('-')[0]  
-                  + ', ' 
-                  + TRANSLATED_DAYS_MAP[days.at(1)!].split('-')[0] 
-                  + ' e ' 
-                  + TRANSLATED_DAYS_MAP[days.at(2)!].split('-')[0] 
-                }}
-              />
-            )}
+              {allocationType === 'MONTH' ? (
+                <>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Período</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>
+                      {selectedDate ? selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase()) : '-'}
+                    </Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Início</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Término</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? new Date(new Date(selectedDate).getFullYear(), new Date(selectedDate).getMonth() + 1, 0).toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                </>
+              ) : allocationType === 'WEEK' ? (
+                <>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Período</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>Na Semana</Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Início</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Término</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? new Date(new Date(selectedDate).setDate(selectedDate.getDate() + 6)).toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View className='flex-row justify-between items-center'>
+                    <Text className='text-medroom-secondary font-nunito'>Dia</Text>
+                    <Text className='text-medroom-primary font-nunito-bold'>{selectedDate ? selectedDate.toLocaleDateString('pt-BR') : '-'}</Text>
+                  </View>
+                </>
+              )}
 
-            <Label___Value
-              boldLabel
-              label='Valor pago'
-              value={{ 
-                _     : priceFormat(pricePaid),
-                color : 'text-green-600' 
-              }}
-            />
+              <View className='h-[1px] border-t border-dashed border-medroom-primaryLight my-2' />
+
+              <View className='flex-row justify-between items-center'>
+                <Text className='text-medroom-secondary font-nunito'>Forma de pagamento</Text>
+                <View className='bg-white px-2 py-1 rounded-full flex-row items-center gap-1 border border-medroom-primaryLight'>
+                  <Icon name={paymentMethod === 'PIX' ? 'pix' : paymentMethod === 'CREDIT_CARD' ? 'credit_card' : 'money'} color={systemColors.primary} sizes={{ width: 14, height: 14 }} />
+                  <Text className='text-medroom-primary font-nunito-bold text-xs uppercase'>
+                      {paymentMethod === 'PIX' ? 'Pix' : paymentMethod === 'CREDIT_CARD' ? 'Cartão' : 'Boleto'}
+                  </Text>
+                </View>
+              </View>
+
+              <View className='flex-row justify-between items-center mt-2'>
+                <Text className='text-medroom-secondary font-nunito-bold text-base'>Valor pago</Text>
+                <Text className='text-medroom-primary font-nunito-bold text-xl'>{priceFormat(pricePaid)}</Text>
+              </View>
+            </View>
           </View>
 
-          <Button.Default
-            label='Ver meus horários'
-            onTouch={() => router.replace('/(authenticated)/(professional)/schedules')}
-            filled
-            customStyle={{ container: 'w-full' }}
-            icon={{ name: 'schedule' }}
-          />
+          <View className='w-full gap-3 mt-4 pb-8'>
+            <Button.Default
+              label='Ver meus horários'
+              onTouch={() => router.replace('/(authenticated)/(professional)/schedules')}
+              customStyle={{ container: 'w-full bg-white border border-medroom-primary py-4 rounded-xl', text: 'text-medroom-primary text-base font-nunito-bold' }}
+              icon={{ name: 'schedule', color: systemColors.primary }}
+            />
+            <Button.Default
+              label='Voltar ao início'
+              onTouch={() => router.replace('/(authenticated)/(professional)/home')}
+              customStyle={{ container: 'w-full bg-white border border-medroom-primary py-4 rounded-xl', text: 'text-medroom-primary text-base font-nunito-bold' }}
+            />
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </LayoutWrapper>
   )
 }

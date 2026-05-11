@@ -7,17 +7,27 @@ const prisma = new PrismaClient();
 
 const seedUsers = [
   {
-    name: "Dr. Lucas Almeida",
+    name: "Lucas Almeida",
     specialty: "Cardiologia",
-    crmCrp: "CRM12345",
+    crmCrp: "12345-SP",
     email: "lucas.almeida@checkinmed.test",
+    accountType: "PROFESSIONAL",
     password: "12345678",
   },
   {
-    name: "Dra. Marina Souza",
+    name: "Marina Souza",
     specialty: "Dermatologia",
-    crmCrp: "CRM54321",
+    crmCrp: "54321-RJ",
     email: "marina.souza@checkinmed.test",
+    accountType: "PROFESSIONAL",
+    password: "12345678",
+  },
+  {
+    name: "João Empresa",
+    specialty: "Clinica Geral",
+    crmCrp: "00001-EN",
+    email: "joao.empresa@checkinmed.test",
+    accountType: "ENTERPRISE",
     password: "12345678",
   },
 ];
@@ -32,7 +42,7 @@ const seedRooms = [
     isAvailable: true,
     prices: {
       pricePerHour: "79.9",
-      price3xWeek: "599.9",
+      priceWeek: "599.9",
       pricePerMonth: "899.9",
     },
   },
@@ -45,7 +55,7 @@ const seedRooms = [
     isAvailable: true,
     prices: {
       pricePerHour: "64.9",
-      price3xWeek: "479.9",
+      priceWeek: "479.9",
       pricePerMonth: "779.9",
     },
   },
@@ -58,7 +68,7 @@ const seedRooms = [
     isAvailable: false,
     prices: {
       pricePerHour: "264.9",
-      price3xWeek: "1779.9",
+      priceWeek: "1779.9",
       pricePerMonth: "2879.9",
     },
   },
@@ -83,6 +93,7 @@ async function main() {
       data: {
         name: user.name,
         specialty: user.specialty,
+        accountType: user.accountType,
         crmCrp: user.crmCrp,
         email: user.email,
         passwordHash,
@@ -93,19 +104,19 @@ async function main() {
   console.log(`${seedUsers.length} usuários processados.`);
 
   
-  const firstUser = await prisma.user.findFirst({
-    where: { email: "lucas.almeida@checkinmed.test" },
+  const enterpriseUser = await prisma.user.findFirst({
+    where: { email: "joao.empresa@checkinmed.test" },
   });
 
-  if (!firstUser) {
-    console.error("Usuário não encontrado para criar salas");
+  if (!enterpriseUser) {
+    console.error("Usuário enterprise não encontrado para criar salas");
     return;
   }
 
   for (const room of seedRooms) {
     const existingRoom = await prisma.room.findFirst({
       where: {
-        AND: [{ enterpriseOwnerId: firstUser.id }, { title: room.title }],
+        AND: [{ enterpriseOwnerId: enterpriseUser.id }, { title: room.title }],
       },
     });
 
@@ -121,7 +132,7 @@ async function main() {
         area: room.area,
         characteristic: room.characteristic,
         isAvailable: room.isAvailable,
-        enterpriseOwnerId: firstUser.id,
+        enterpriseOwnerId: enterpriseUser.id,
       },
     });
 
@@ -130,7 +141,7 @@ async function main() {
       data: {
         roomId: createdRoom.id,
         pricePerHour: room.prices.pricePerHour,
-        price3xWeek: room.prices.price3xWeek,
+        priceWeek: room.prices.priceWeek,
         pricePerMonth: room.prices.pricePerMonth,
       },
     });

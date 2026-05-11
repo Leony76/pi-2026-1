@@ -44,6 +44,31 @@ export async function apiPost<TResponse>(path: string, body: unknown, token?: st
   return parsedPayload as TResponse;
 }
 
+export async function apiPatch<TResponse>(path: string, body: unknown, token?: string): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const rawPayload = await response.text();
+  const parsedPayload = rawPayload ? (JSON.parse(rawPayload) as ApiErrorPayload | TResponse) : null;
+
+  if (!response.ok) {
+    const message =
+      parsedPayload && typeof parsedPayload === "object" && "message" in parsedPayload
+        ? (parsedPayload.message ?? "Erro na requisição")
+        : "Erro na requisição";
+
+    throw new ApiError(message, response.status);
+  }
+
+  return parsedPayload as TResponse;
+}
+
 export async function apiGet<TResponse>(path: string, token?: string): Promise<TResponse> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "GET",

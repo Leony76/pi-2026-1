@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -51,8 +45,8 @@ enum RoomItemName {
 }
 
 enum AllocationType {
-  PER_HOUR
-  THREE_X_WEEK @map("3X_WEEK")
+  DAILY
+  WEEK
   MONTH
 }
 
@@ -78,13 +72,24 @@ enum EntryExitBillingType {
   MONTHLY
 }
 
+enum PaymentFrom {
+  ROOM_RENTAL
+} 
+
+enum AccountType {
+  PROFESSIONAL
+  ENTERPRISE
+}
+
 model User {
   id                              String    @id @default(uuid())
   name                            String
   specialty                       String
+  accountType                     AccountType @default(PROFESSIONAL)
   crmCrp                          String    @unique
   email                           String    @unique
   phone                           String?
+  displayImage                    String?
   passwordHash                    String
   emailVerifiedAt                 DateTime?
   emailVerificationTokenHash      String?
@@ -99,12 +104,13 @@ model User {
   createdAt                       DateTime  @default(now())
   updatedAt                       DateTime  @updatedAt
 
-  patients   Patient[]    @relation("ProfessionalPatients")
-  ownedRooms Room[]       @relation("EnterpriseRooms")
-  rentals    RoomRental[] @relation("ProfessionalRentals")
-  sessions   Session[]    @relation("ProfessionalSessions")
-  entryExits EntryExit[]  @relation("ProfessionalEntryExits")
-  expenses   Expense[]    @relation("EnterpriseExpenses")
+  patients        Patient[]    @relation("ProfessionalPatients")
+  ownedRooms      Room[]       @relation("EnterpriseRooms")
+  rentals         RoomRental[] @relation("ProfessionalRentals")
+  sessions        Session[]    @relation("ProfessionalSessions")
+  entryExits      EntryExit[]  @relation("ProfessionalEntryExits")
+  expenses        Expense[]    @relation("EnterpriseExpenses")
+  paymentsHistory PaymentHistory[]
 
   @@index([refreshTokenHash, refreshTokenExpiresAt],                     map: "User_refresh_token_lookup_idx")
   @@index([emailVerificationTokenHash, emailVerificationTokenExpiresAt], map: "User_email_verification_lookup_idx")
@@ -125,7 +131,7 @@ model Patient {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  professional User      @relation("ProfessionalPatients", fields: [professionalId], references: [id], onDelete: Cascade)
+  professional User            @relation("ProfessionalPatients", fields: [professionalId], references: [id], onDelete: Cascade)
   sessions     Session[]
 
   @@index([professionalId])
@@ -138,15 +144,16 @@ model Room {
   title             String
   displayImage      String?
   floor             Floor
-  area              Decimal            @db.Decimal(5, 2)
+  area              Decimal             @db.Decimal(5, 2)
   characteristic    RoomCharacteristic
-  isAvailable       Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  isAvailable       Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  enterpriseOwner User          @relation("EnterpriseRooms", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
+  enterpriseOwner User                  @relation("EnterpriseRooms", fields: [enterpriseOwnerId], references: [id], onDelete: Cascade)
   prices          RoomPrice?
   items           RoomItem[]
+  customItems     RoomCustomItem[]
   rentals         RoomRental[]
   sessions        Session[]
   entryExits      EntryExit[]
@@ -160,11 +167,34 @@ model RoomPrice {
   id            String   @id @default(uuid())
   roomId        String   @unique
   pricePerHour  Decimal  @db.Decimal(10, 2)
-  price3xWeek   Decimal  @db.Decimal(10, 2)
+  priceWeek     Decimal  @db.Decimal(10, 2)
   pricePerMonth Decimal  @db.Decimal(10, 2)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model PaymentHistory {
+  id              String       @id @default(uuid())
+  from            PaymentFrom  
+  paymentMethod   PaymentMethod?
+  professionalId  String       
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  paid            Decimal      @db.Decimal(10, 2)
+
+  professional  User  @relation(fields: [professionalId], references: [id])
+}
+
+model RoomCustomItem {
+  id        String       @id @default(uuid())
+  roomId    String
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([roomId, name])
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
@@ -191,7 +221,6 @@ model RoomRental {
   startDate       DateTime
   endDate         DateTime
   totalPrice      Decimal        @db.Decimal(10, 2)
-  selectedHours   Json?
   selectedWeekDay WeekDay[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -249,7 +278,7 @@ model RoomRevenue {
   month          Int
   year           Int
   revenuePerHour Decimal  @default(0) @db.Decimal(10, 2)
-  revenue3xWeek  Decimal  @default(0) @db.Decimal(10, 2)
+  revenueWeek    Decimal  @default(0) @db.Decimal(10, 2)
   revenueMonthly Decimal  @default(0) @db.Decimal(10, 2)
   totalRevenue   Decimal  @default(0) @db.Decimal(12, 2)
   createdAt      DateTime @default(now())

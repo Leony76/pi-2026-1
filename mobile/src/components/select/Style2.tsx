@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, Text, Pressable, Modal, FlatList, TouchableOpacity } from 'react-native'
 import Icon from '../ui/Icon'
 import Entypo from '@expo/vector-icons/Entypo';
@@ -30,6 +30,20 @@ const Style2 = (props:Props): React.JSX.Element => {
 
   const [optionsVisible, setOptionsVisible] = useState<boolean>(false);
   const [selectedLabel, setSelectedLabel] = useState<string>('Selecione');
+  const selectedOption = optionsMap.find((item) => item.value === props.value);
+  const selectedText = selectedOption?.label ?? props.value ?? selectedLabel;
+
+  useEffect(() => {
+    if (!props.value) {
+      return;
+    }
+
+    const currentOption = optionsMap.find((item) => item.value === props.value);
+
+    if (currentOption) {
+      setSelectedLabel(currentOption.label);
+    }
+  }, [optionsMap, props.value]);
 
   const handleSelect = (item: { value: string, label: string }) => {
     props.onChange(item.value); 
@@ -66,7 +80,7 @@ const Style2 = (props:Props): React.JSX.Element => {
           onPress={() => setOptionsVisible(true)}
           > 
             <Text className='font-nunito text-medroom-secondary'>
-              { props.value || selectedLabel }
+              { selectedText }
             </Text>
           </Pressable>
 
@@ -116,7 +130,7 @@ const Style2 = (props:Props): React.JSX.Element => {
               className='p-1'
               renderItem={({ item, index }) => (
                 <Button.Default
-                  filled={item.label ===  (props.value || selectedLabel)}
+                    filled={item.label === selectedText}
                   customStyle={{ container: 'py-[6px]', text: 'text-[14px] font-normal' }}
                   key={index}
                   label={item.label}

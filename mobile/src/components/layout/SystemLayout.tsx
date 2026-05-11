@@ -75,7 +75,7 @@ const SystemLayout = (props:Props): React.JSX.Element => {
               {props.title}
             </Text>
 
-            <Text className='text-white font-nunito'>
+            <Text className='text-white font-nunito break-all'>
               {props.description}
             </Text>
           </View>

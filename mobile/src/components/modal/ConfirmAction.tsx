@@ -1,6 +1,6 @@
 import React from 'react'
 import { Text } from 'react-native';
-import { Modal, Pressable, View, TouchableOpacity } from 'react-native'
+import { Modal, Pressable, View } from 'react-native'
 import { Button } from '../button';
 
 type Props = {

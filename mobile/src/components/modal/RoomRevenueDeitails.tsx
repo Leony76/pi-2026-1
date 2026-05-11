@@ -48,13 +48,13 @@ const RoomRevenueDetails = (props:Props): React.JSX.Element => {
             <View className='gap-3'>
               <Label___Value
                 value={{ _: priceFormat(props.roomData.revenue?.byHour || 0), color: 'text-green-600' }}
-                label='Por hora'
+                label='Por dia'
                 separationRow
               />
 
               <Label___Value
-                value={{ _: priceFormat(props.roomData.revenue?._3xWeek || 0), color: 'text-green-600' }}
-                label='3x semana'
+                value={{ _: priceFormat(props.roomData.revenue?._week || 0), color: 'text-green-600' }}
+                label='Por semana'
                 separationRow
               />
 

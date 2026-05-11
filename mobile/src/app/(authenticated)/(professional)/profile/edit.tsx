@@ -10,15 +10,23 @@ import { Select } from '@/components/select'
 import { formatPhone } from '@/utils/formatPhone'
 import { formatCrmCrp } from '@/utils/formatCrmCrp'
 import { ProfileEditFormData, profileEditSchema } from '@/schemas/profileEdit.schema'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { useAuth } from '@/contexts/auth.context'
+import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
+import { updateCurrentUserWithAuth } from '@/services/auth'
+import { ApiError } from '@/services/api'
 
 const Edit = (): React.JSX.Element => {
 
   const router = useRouter();
+  const { profile, refreshProfile } = useLoggedUserData();
+  const auth = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     control, 
     handleSubmit, 
+    reset,
     formState: { errors }
   } = useForm<ProfileEditFormData>({
     resolver: zodResolver(profileEditSchema),
@@ -31,27 +39,77 @@ const Edit = (): React.JSX.Element => {
     }
   }); 
 
-  const handleSaveNewProfileData = async( data: ProfileEditFormData ): Promise<void> => {
-    console.log(data);
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
 
-    router.push({
-      pathname: '/(authenticated)/(professional)/profile',
-      params: {
-        message: 'Dados alterados com sucesso!'
-      },
-    })
+    reset({
+      name: profile.name,
+      specialty: profile.specialty,
+      crmCrp: profile.crmCrp,
+      email: profile.email,
+      phone: profile.phone ?? '',
+    });
+  }, [profile, reset]);
+
+  const handleSaveNewProfileData = async( data: ProfileEditFormData ): Promise<void> => {
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!auth.token || !auth.refreshToken) {
+      router.push({
+        pathname: '/(authenticated)/(professional)/profile',
+        params: {
+          message: 'Sessão inválida. Entre novamente para salvar seus dados.'
+        },
+      });
+
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      await updateCurrentUserWithAuth(data, {
+        token: auth.token,
+        refreshToken: auth.refreshToken,
+        updateTokens: auth.updateTokens,
+        signOut: auth.signOut,
+      });
+      await refreshProfile();
+
+      router.push({
+        pathname: '/(authenticated)/(professional)/profile',
+        params: {
+          message: 'Dados alterados com sucesso!'
+        },
+      })
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Não foi possível salvar os dados.';
+
+      router.push({
+        pathname: '/(authenticated)/(professional)/profile',
+        params: {
+          message,
+        },
+      })
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <LayoutWrapper>
       <SystemLayout
       title='Dados pessoais'
-      description='Atualiza suas informações'
+      description='Atualize suas informações'
       tab='PATIENTS'
-      layoutType='PROFESSIONAL'   
-      goBack={() => router.back()} 
+      layoutType={profile?.accountType ?? 'PROFESSIONAL'}   
+      goBack={() => router.push('/(authenticated)/(professional)/profile')} 
       >
-        <ScrollView contentContainerClassName='flex-1 py-6 gap-5 justify-center'>
+        <ScrollView contentContainerClassName='py-6 gap-5 justify-center'>
           <View className={`gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col`}>
             <View>
               <Controller
@@ -79,11 +137,12 @@ const Edit = (): React.JSX.Element => {
               <Controller
                 control={control}
                 name='specialty'
-                render={({ field: { onChange, onBlur } }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <Select.Style2
                     icon={{ name: 'suitcase' }}
                     optionsMap='SPECIALTY'
                     label='Especialidade'
+                    value={value}
                     onChange={onChange}
                     onBlur={onBlur}
                   />
@@ -146,13 +205,13 @@ const Edit = (): React.JSX.Element => {
                 render={({ field: { onChange, value } }) => (
                   <Input.Style2
                     icon={{ name: 'phone' }}
-                    maxLength={16}
-                    label='Telefone'
+                    maxLength={14}
+                    label='Telefone (opcional)'
                     onChange={(phone) => {
                       const phoneMask = formatPhone(phone);
                       onChange(phoneMask);
                     }}
-                    placeholder={{ text: '(XX) XXXXX-XXXX'}}
+                    placeholder={{ text: '(XX) XXXX-XXXX'}}
                     type='TEXT'
                     value={value ?? ''}
                     keyboardType='number-pad'
@@ -166,7 +225,7 @@ const Edit = (): React.JSX.Element => {
             <Button.Default
               customStyle={{ container: 'mt-3' }}
               filled
-              disable={Object.keys(errors).length > 1}
+              disable={isSubmitting}
               label='Salvar alterações'
               onTouch={handleSubmit(handleSaveNewProfileData)}
               icon={{ name: 'edit', size: { height: 18, width: 18 } }}

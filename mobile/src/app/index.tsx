@@ -9,5 +9,5 @@ export default function Index(): React.JSX.Element {
     return <LoadingScreen message="Carregando sessão..." />;
   }
 
-  return <Redirect href={token ? "/(authenticated)/(professional)/home" : "/login"} />;
+  return <Redirect href={token ? "/(authenticated)" : "/login"} />;
 }

@@ -17,7 +17,11 @@ export const profileEditSchema = z.object({
     .max(255, 'O E-mail deve ter até 255 caracteres'),
   phone: z
     .string()
-    .regex(/^\([1-9]{2}\) 9?[0-9]{5}-[0-9]{4}$/, "Formato de telefone inválido"),
+    .regex(
+      /^\([1-9]{2}\) 9?[0-9]{4}-[0-9]{4}$/,
+      'Formato de telefone inválido'
+    )
+    .or(z.literal('')),
 });
 
 export type ProfileEditFormData = z.infer<typeof profileEditSchema>;

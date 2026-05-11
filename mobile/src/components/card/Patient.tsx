@@ -6,6 +6,9 @@ import { Patient as PatientType } from '@/types/patient.type';
 import { formatSessionDate } from '@/utils/formatSessionDate';
 import { History } from '@/types/history.type';
 import { useRouter } from 'expo-router';
+import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
+import { parseLocalDate } from '@/utils/parseLocalDate';
+import { addHoursToStringDate } from '@/utils/addHoursToStringDate';
 
 type BaseProps = {
   separationRow? : boolean;
@@ -33,26 +36,15 @@ const Patient = (props:Props): React.JSX.Element => {
   ;
 
   const session = props.from === 'ACTIVES'
-    ?  formatSessionDate(props.nextSession)
-    :  new Date(props.lastSession).toLocaleDateString('pt-BR', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: '2-digit' 
-      }
-    );
+  ? formatSessionDate(addHoursToStringDate(props.nextSession, 3))
+  : parseLocalDate(props.lastSession).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    })
   ;
 
-  const nameArray = name.trim().split(' ') || [];
-
-  const displayName = nameArray.length > 1 
-    ? `${nameArray[0]} ${nameArray[1]}` 
-    : nameArray[0]
-  ;
-    
-  const initials = nameArray.length > 1 
-    ? `${nameArray[0]?.[0]}${nameArray[1]?.[0]}` 
-    :    nameArray[0]?.[0]
-  ;
+  const nameToDisplay = getDisplayNameOrInitials(name); 
 
   const colors = getColorByName(name);
 
@@ -76,13 +68,13 @@ const Patient = (props:Props): React.JSX.Element => {
               className='font-nunito-bold text-base'
               style={{ color: colors?.text }}
               >
-                { initials?.toUpperCase() }
+                { nameToDisplay.initials.toUpperCase() }
               </Text>
             </View>
 
             <View>
               <Text className='text-medroom-primary text-xl font-nunito-bold'>
-                { displayName }
+                { nameToDisplay.displayName }
               </Text>
 
               <Text className='text-[13px] font-nunito text-gray-600'>

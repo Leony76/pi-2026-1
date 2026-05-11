@@ -1,10 +1,10 @@
 export type RoomRevenue = {
-  readonly id : number;
+  readonly id : string;
   room : string;
   totalRevenue : number;
   revenue?: {
     byHour  : number;
-    _3xWeek : number;
+    _week : number;
     byMonth : number;
   };
 };

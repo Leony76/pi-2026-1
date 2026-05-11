@@ -6,6 +6,8 @@ import { formatDate } from '@/utils/formatDate'
 import { DefaultInputProps } from '@/types/defaultInputProps.type'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import Entypo from '@expo/vector-icons/Entypo';
+import { formatLocalDate } from '@/utils/formatLocalDate'
+import { parseLocalDate } from '@/utils/parseLocalDate'
 
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
@@ -19,19 +21,25 @@ LocaleConfig.defaultLocale = 'pt-br';
 type DateProps = Omit<DefaultInputProps, 'onChange' | 'type' | 'value'> & {
   onChange: (date: Date | undefined) => void;
   value: Date | string | undefined;
+  maxDate?: string;
+  minDate?: string;
+  markedDates?: Record<string, any>;
 };
 
 const DateTime = (props: DateProps): React.JSX.Element => {
   const [show, setShow] = useState(false);
 
-  const selectedDate = props.value ? new Date(props.value).toISOString().split('T')[0] : '';
+  const selectedDate =
+    typeof props.value === 'string'
+      ? props.value
+      : props.value
+        ? formatLocalDate(props.value)
+        : ''
+    ;
 
   const handleDayPress = (day: any) => {
+    const date = parseLocalDate(day.dateString);
 
-    const date = new Date(day.timestamp);
-
-    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-    
     props.onChange(date);
     setShow(false);
   };
@@ -76,9 +84,11 @@ const DateTime = (props: DateProps): React.JSX.Element => {
               <View className="bg-white rounded-2xl p-4 w-full overflow-hidden border-2 border-medroom-primary">
                 <Calendar
                   current={selectedDate}
-                  onDayPress={handleDayPress}
-                  maxDate={new Date().toISOString().split('T')[0]}
+                  onDayPress={handleDayPress}                  
+                  minDate={props.minDate}                  
+                  maxDate={props.maxDate}
                   markedDates={{
+                    ...(props.markedDates || {}),
                     [selectedDate ?? '']: { selected: true, disableTouchEvent: true }
                   }}
                   theme={{

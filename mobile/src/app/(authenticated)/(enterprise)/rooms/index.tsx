@@ -4,82 +4,57 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import Toast from '@/components/ui/Toast'
 import { RoomDisplayCard } from '@/types/room.type'
+import { fetchRooms } from '@/services/rooms'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
-import { FlatList, View } from 'react-native'
-
-const DISPLAY_ROOMS_DATA: RoomDisplayCard[] = [
-  { 
-    id: 1,
-    displayImage: 'https://kannoarquitetura.com.br/wp-content/uploads/2021/06/Consultorio-medico-moderno.jpg',
-    isAvailable: true,
-    title: 'Sala 01 - Consultório',
-    complementaryData: {
-      area       : 18,
-      additional : 'Climatizado',
-      floor      : 'Térreo',
-    },
-    prices: {
-      perHour : 79.9,
-      _3xWeek : 599.9,
-      month   : 899.9,
-    }
-  },
-  { 
-    id: 2,
-    displayImage: 'https://s2-casaejardim.glbimg.com/YDSDM-LluilU9ssjfRE2TZKyU30=/0x0:1400x933/888x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_a0b7e59562ef42049f4e191fe476fe7d/internal_photos/bs/2023/R/0/0LKjMLQMmeMBUzxzgUuA/1-consultorio-simara-mello.jpg',
-    isAvailable: true,
-    title: 'Sala 02 - Psicologia',
-    complementaryData: {
-      area       : 16,
-      additional : 'Isonorizado',
-      floor      : 'Térreo',
-    },
-    prices: {
-      perHour : 64.9,
-      _3xWeek : 479.9,
-      month   : 779.9,
-    }
-  },
-  { 
-    id: 3,
-    displayImage: 'https://cdn.cineart.com.br/cineart_411857079.jpg',
-    isAvailable: false,
-    title: 'Sala 03 - Premium',
-    complementaryData: {
-      area       : 69,
-      additional : 'Completo',
-      floor      : '1º Andar',
-    },
-    prices: {
-      perHour : 264.9,
-      month   : 879.9,
-      _3xWeek : 1779.9,
-    }
-  },
-]; 
+import { FlatList, Text, View } from 'react-native'
+import ContentNotFound from '@/components/ui/ContentNotFound'
 
 const Rooms = (): React.JSX.Element => {
 
   const [toastVisible, setToastVisible] = useState<boolean>(false);
-  const params = useLocalSearchParams();
+  const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
+  const [urlParamsMessage, setUrlParamsMessage] = useState<string | null>(null);
+  const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(true);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ message?: string }>();
   
   useEffect(() => {
-    if (params.message) {
+    (async() => {
+      try {
+        setIsLoadingRooms(true);
+        setRoomsError(null);
+
+        const roomsData = await fetchRooms();
+
+        setRooms(roomsData);
+      } catch {
+        setRoomsError('Não foi possível carregar as salas.');   
+      } finally {
+        setIsLoadingRooms(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (typeof params.message === 'string' && params.message.trim()) {
+      setUrlParamsMessage(params.message);
       setToastVisible(true);
     }
   }, [params.message]);
 
   const handleCloseToast = () => {
     setToastVisible(false);
-    router.setParams({ message: '' });
+    setUrlParamsMessage(null);
+
+    router.setParams({});
   };
 
   return (
     <LayoutWrapper>
-      { toastVisible &&
+      { (toastVisible && urlParamsMessage) &&
         <Toast
-          message={params.message as string}
+          message={urlParamsMessage}
           onClose={handleCloseToast}
           visible={toastVisible}
         />
@@ -93,13 +68,33 @@ const Rooms = (): React.JSX.Element => {
       > 
         <View className='gap-5 flex-1 pb-6'>
           <FlatList
-            data={DISPLAY_ROOMS_DATA}
+            data={rooms}
             keyExtractor={(item, index) => `${item.id}-${index}`}
             ItemSeparatorComponent={() => <View className='h-5'/>}
             contentContainerClassName='py-6'
             className='border-b border-b-medroom-primaryLight'
+            ListEmptyComponent={
+              isLoadingRooms ? (
+                <View className='py-8 items-center justify-center'>
+                  <Text className='text-medroom-secondary font-nunito'>
+                    Carregando salas...
+                  </Text>
+                </View>
+              ) : roomsError ? (
+                <View className='py-8'>
+                  <Text className='text-red-600 font-nunito-bold text-center'>
+                    {roomsError}
+                  </Text>
+                </View>
+              ) : (
+                <View className='fixed top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]'>
+                  <ContentNotFound text='Nenhuma sala cadastrada no momento!'/>
+                </View>
+              )
+            }
             renderItem={({ item }) => (
               <Card.DisplayRoom
+                fromManagerView
                 pressable={false}
                 key={item.id}
                 { ...item }

@@ -76,10 +76,10 @@ const PatientDetails = (): React.JSX.Element => {
     <LayoutWrapper>
       <SystemLayout
       title={displayName ?? '[ Nome não provido ]'}
-      description={displayName ? 'Pasciente ativo(a)' : 'Pasciente inexistente'}
+      description={displayName ? 'Paciente ativo(a)' : 'Paciente inexistente'}
       tab='PATIENTS'
       layoutType='PROFESSIONAL'    
-      goBack={() => router.back()}
+      goBack={() => router.push('/(authenticated)/(professional)/patients')}
       >
         {isLoading ? (
           <View className='flex-1 justify-center items-center'>
@@ -167,20 +167,20 @@ const PatientDetails = (): React.JSX.Element => {
           <Section title='Histórico de sessões'>
             <Label___Value
               label='Total realizadas'
-              value={{ _: String(patient?.sessionHistory.totalMade) ?? '[ Número não provido ]' }}
+              value={{ _: String(patient?.sessionHistory?.totalMade ?? 0) }}
               separationRow
             />
 
             <Label___Value
               label='Última sessão'
-              value={{ _: formatDate(patient?.sessionHistory.session.lastOneDate ?? '') ?? '[ Data não provida ]' }}
+              value={{ _: patient?.sessionHistory?.session?.lastOneDate ? formatDate(patient.sessionHistory.session.lastOneDate) : '[ Data não provida ]' }}
               separationRow
             />
 
             <Label___Value
               label='Valor por sessão'
               value={{ 
-                _: priceFormat(patient?.sessionHistory.session.valueByEach ?? 0) ?? '[ Valor não provido ]' ,
+                _: priceFormat(patient?.sessionHistory?.session?.valueByEach ?? 0),
                 color: 'text-green-600',
               }}
               separationRow
@@ -189,7 +189,7 @@ const PatientDetails = (): React.JSX.Element => {
             <Label___Value
               label='Total gerado'
               value={{ 
-                _: priceFormat(patient?.sessionHistory.session.totalGenerated ?? 0) ?? '[ Valor não provido ]' ,
+                _: priceFormat(patient?.sessionHistory?.session?.totalGenerated ?? 0),
                 color: 'text-green-600',
               }}
             />
