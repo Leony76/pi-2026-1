@@ -50,7 +50,7 @@ const Toast = ({
         <Feather name="info" size={20} color="#1AAFB4" />
         
         <Text className="flex-1 text-medroom-primary font-nunito-bold ml-3">
-          {message}
+          {message || 'Operação concluída'}
         </Text>
 
         <TouchableOpacity onPress={handleClose} className="ml-2">

@@ -180,7 +180,7 @@ export async function changeProfessionalPasswordController(request: Request, res
 		let payload: AuthPayload;
 
 		const professionalId = request.params.professionalId as string;
-		const currentPassword = request.body.currentPassword as string;
+		const newPassword = request.body.newPassword as string;
 
 		try {
 			payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
@@ -190,7 +190,7 @@ export async function changeProfessionalPasswordController(request: Request, res
 		
 		await changeProfessionalPasswordById(
 			professionalId,
-			currentPassword,
+			newPassword,
 		);
 
 		sendSuccessResponse(response, 200, { message: 'Sucesso ao atualizar a senha!' });

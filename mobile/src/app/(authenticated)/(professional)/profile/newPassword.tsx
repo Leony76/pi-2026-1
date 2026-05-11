@@ -8,7 +8,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
-import Ionicons from '@expo/vector-icons/Ionicons';
 import Icon from '@/components/ui/Icon'
 import { changeProfessionalPasswordWithAuth } from '@/services/auth'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
@@ -72,7 +71,7 @@ const NewPassword = (): React.JSX.Element => {
     if (params.verified !== 'successful') {
       router.push('/(authenticated)/(professional)/profile');
     }
-  }, []);
+  }, [params.verified, router]);
 
   return (
     <LayoutWrapper>

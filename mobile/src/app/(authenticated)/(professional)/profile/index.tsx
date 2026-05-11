@@ -66,22 +66,11 @@ const Profile = (): React.JSX.Element => {
     if (params.message) {
       setUrlParamsMessage(params.message as string);
       setToastVisible(true);
-
-      (navigation as any).setParams({
-        message: undefined,
-      });
-
-      if (typeof window !== 'undefined' && window.history) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('message');
-        window.history.replaceState({}, '', url.pathname);
-      }
     }
   }, [params.message]);
 
   const handleCloseToast = () => {
     setToastVisible(false);
-    router.setParams({ message: '' });
   };
 
   if (isLoading) {
