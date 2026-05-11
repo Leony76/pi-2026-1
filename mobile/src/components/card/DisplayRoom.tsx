@@ -28,9 +28,11 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
     try {
       if (!token || !refreshToken) return;
 
-      const response: boolean = await toggleRoomAvailabilityWithAuth(
+      const toggleStatus: boolean = !isAvailable;
+
+      const response: { success: boolean } = await toggleRoomAvailabilityWithAuth(
         String(props.id),
-        props.isAvailable,
+        toggleStatus,
         {
           token,
           refreshToken,
@@ -39,7 +41,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
         }
       );
 
-      if (response) setIsAvailable(prev => !prev);
+      if (response.success) setIsAvailable(prev => !prev);
     } catch(error:unknown) {
       if (error instanceof Error) setToggleErrorMessage(error.message);
     }

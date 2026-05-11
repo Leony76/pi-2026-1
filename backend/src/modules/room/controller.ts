@@ -160,7 +160,7 @@ export async function toggleRoomAvailabilityController(request: Request, respons
 		const token = getTokenFromHeader(request.headers.authorization);
 		const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
 		const roomId = request.params.roomId;
-		const status: boolean = request.body;
+		const { status }: { status: boolean} = request.body;
 
 		if (!payload.sub) {
 			throw createHttpError(403, 'forbidden', 'Não autenticado');
@@ -172,7 +172,7 @@ export async function toggleRoomAvailabilityController(request: Request, respons
 
 		await toggleRoomAvailabilityById(roomId as string, status);
 
-		sendSuccessResponse(response, 200, true);
+		sendSuccessResponse(response, 200, { success: true });
 	} catch (error) {
 		next(error);
 	}

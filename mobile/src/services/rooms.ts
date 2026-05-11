@@ -212,10 +212,10 @@ export async function toggleRoomAvailabilityWithAuth(
 	roomId: string, 
 	status: boolean,
 	auth: AuthHandlers,
-): Promise<boolean> {
-	return apiPatchWithAuth<boolean>(
+): Promise<{ success: boolean }> {
+	return apiPatchWithAuth<{ success: boolean }>(
 		`/rooms/${roomId}/switchAvailability`,
-		{ status },
+		{ status: status },
 		auth.token,
 		auth.refreshToken,
 		auth.updateTokens,

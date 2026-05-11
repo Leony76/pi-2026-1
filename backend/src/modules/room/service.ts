@@ -947,11 +947,11 @@ export async function toggleRoomAvailabilityById(
   status: boolean,
 ) {
 	return await prisma.room.update({
-		where: { id: roomId },
-		data: {
-			isAvailable: !status
-		},
-	})
+		where : { id: roomId },
+		data  : {
+			isAvailable: status
+		}
+	});
 }
 
 export async function getUserRentals(professionalId: string) {
