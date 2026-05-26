@@ -1,4 +1,4 @@
-import { RoomDisplayCard } from '@/types/room.type'
+import { RoomDisplayCard } from '@/types/room/room.type'
 import React, { useState } from 'react'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
@@ -7,9 +7,10 @@ import { priceFormat } from '@/utils/priceFormat';
 import { Link, useRouter } from 'expo-router';
 import AvailbilityTag from '../ui/AvailbilityTag';
 import { Button } from '../button';
-import { toggleRoomAvailabilityWithAuth } from '@/services/rooms';
+import { RoomService } from '@/services/rooms';
 import { useAuth } from '@/contexts/auth.context';
 import Toast from '../ui/Toast';
+import { AuthHandlers } from '@/types/auth/authHandlers.type';
 
 type Props = RoomDisplayCard & {
   pressable?       : boolean;
@@ -30,15 +31,17 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
 
       const toggleStatus: boolean = !isAvailable;
 
-      const response: { success: boolean } = await toggleRoomAvailabilityWithAuth(
+      const authHandlers: AuthHandlers = {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      };
+
+      const response: { success: boolean } = await RoomService.toggleRoomAvailability(
         String(props.id),
         toggleStatus,
-        {
-          token,
-          refreshToken,
-          updateTokens,
-          signOut,
-        }
+        authHandlers
       );
 
       if (response.success) setIsAvailable(prev => !prev);

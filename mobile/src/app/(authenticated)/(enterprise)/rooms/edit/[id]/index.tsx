@@ -18,13 +18,15 @@ import ImageExpanded from '@/components/modal/ImageExpanded'
 import { ROOM_ITEMS } from '@/constants/maps/roomItems.map'
 import Section from '@/components/ui/Section'
 import Icon from '@/components/ui/Icon'
-import { ROOM_ITEMS_LIMIT_MAP } from '@/types/roomItems.type'
+import { ROOM_ITEMS_LIMIT_MAP } from '@/types/room/roomItems.type'
 import { Card } from '@/components/card'
 import { IconName } from 'root/assets/icons'
 import { AntDesign, Entypo } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchRoomDetailsWithAuth, UpdateRoom, updateRoomWithAuth } from '@/services/rooms'
+import { RoomService } from '@/services/rooms'
 import Toast from '@/components/ui/Toast'
+import { UpdateRoom } from '@/types/room/updateRoom.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const EditRoom = (): React.JSX.Element => {
 
@@ -93,6 +95,13 @@ const EditRoom = (): React.JSX.Element => {
         throw new Error('Sessão inválida. Faça login novamente.');
       }
 
+      const authHandlers: AuthHandlers = { 
+        refreshToken : auth.refreshToken,
+        token        : auth.token,
+        signOut      : auth.signOut,
+        updateTokens : auth.updateTokens,
+      };
+
       const payload: UpdateRoom = {
         id: params.id,
         customItems,
@@ -100,14 +109,9 @@ const EditRoom = (): React.JSX.Element => {
        ...data 
       };
 
-      await updateRoomWithAuth(
+      await RoomService.updateRoom(
         payload,
-        {
-          refreshToken : auth.refreshToken ,
-          token        : auth.token        ,
-          signOut      : auth.signOut      ,
-          updateTokens : auth.updateTokens ,
-        }
+        authHandlers,
       );
 
       router.replace({
@@ -163,14 +167,16 @@ const EditRoom = (): React.JSX.Element => {
       try {
         if (!auth.token || !auth.refreshToken) return;
 
-        const response = await fetchRoomDetailsWithAuth(
+        const authHandlers: AuthHandlers = { 
+          refreshToken : auth.refreshToken,
+          token        : auth.token,
+          signOut      : auth.signOut,
+          updateTokens : auth.updateTokens,
+        };
+
+        const response = await RoomService.fetchRoomDetails(
           params.id,
-          {
-            refreshToken : auth.refreshToken ,
-            token        : auth.token        ,
-            signOut      : auth.signOut      ,
-            updateTokens : auth.updateTokens ,
-          }
+          authHandlers,
         );
 
         reset(response);

@@ -1,12 +1,5 @@
-import { systemColors } from '@/constants/misc/systemColors.misc';
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import {Animated, Switch, View} from 'react-native';
 
 type Props = {
   enabled: boolean;

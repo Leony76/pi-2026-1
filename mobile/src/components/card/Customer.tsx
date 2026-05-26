@@ -1,11 +1,11 @@
 import React from 'react'
 import { Text, View } from 'react-native'
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName';
-import { CustomerHistory, Customer as CustomerType } from '@/types/customer.type';
-import { SPECIALTY_MAP } from '@/constants/maps/specialty.map';
+import { CustomerHistory, Customer as CustomerType } from '@/types/customer/customer.type';
 import { formatLimitDate } from '@/utils/formatLimitDate';
 import { formatMonthNameAndYear } from '@/utils/formatMonthNameAndYear';
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
+import { formatHour } from '@/utils/formatHour';
 
 type BaseProps = {
   gap? : `gap-${number}`;
@@ -50,11 +50,11 @@ const Customer = (props:Props): React.JSX.Element => {
           </View>
         </View>
 
-        { props.from === 'ACTIVES' &&
+        { props.from === 'ACTIVES' && 
       
           <View className='items-end'>
             <Text className='text-medroom-primary text-sm font-nunito-bold'>
-              { props.occupation.startHour } às { props.occupation.endHour }
+              { props.occupation.startHour ? formatHour(props.occupation.startHour) : '--:--'} às { props.occupation.endHour ? formatHour(props.occupation.endHour) : '--:--'}
             </Text>
 
             <Text className='text-[13px] font-nunito text-gray-600'>

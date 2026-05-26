@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import AvailbilityTag from '../ui/AvailbilityTag';
 import { formatHour } from '@/utils/formatHour';
-import { RoomOccupation as RoomOccupationType } from '@/types/roomOccupation.type';
+import { RoomOccupation as RoomOccupationType } from '@/types/room/roomOccupation.type';
 
 type Props = RoomOccupationType;
 

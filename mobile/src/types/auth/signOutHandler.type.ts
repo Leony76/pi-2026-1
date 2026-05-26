@@ -1,0 +1,1 @@
+export type SignOutHandler = () => Promise<void>;

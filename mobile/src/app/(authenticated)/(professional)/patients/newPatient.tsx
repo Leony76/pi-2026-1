@@ -4,8 +4,8 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import { useAuth } from '@/contexts/auth.context'
 import { NewPatientFormData, newPatientSchema } from '@/schemas/newPatient.schema'
-import { createPatientWithAuth } from '@/services/patients'
-import { fetchUserRentalsWithAuth, RoomRental } from '@/services/rooms'
+import { PatientService } from '@/services/patients'
+import { RoomService } from '@/services/rooms'
 import { HOURS_MAP } from '@/constants/maps/roomsHours.map'
 import { isHourOccupied } from '@/utils/isHourOccuped'
 import { formatPhone } from '@/utils/formatPhone'
@@ -16,8 +16,11 @@ import { Controller, useForm } from 'react-hook-form'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import Feather from '@expo/vector-icons/Feather';
 import { systemColors } from '@/constants/misc/systemColors.misc'
-import { HourShift } from '@/types/hourShift.type'
+import { HourShift } from '@/types/room/hourShift.type'
 import { formatLocalDate } from '@/utils/formatLocalDate'
+import { RoomRental } from '@/types/room/roomRental.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { CreatePatient } from '@/types/patient/createPatientWithAuth.type'
 
 const NewPatient = (): React.JSX.Element => {
 
@@ -52,16 +55,18 @@ const NewPatient = (): React.JSX.Element => {
     const loadRentals = async () => {
       if (!token || !refreshToken) return;
 
+      const authHandlers: AuthHandlers = { 
+        refreshToken,
+        token,
+        signOut,
+        updateTokens,
+      };
+
       try {
-        const data = await fetchUserRentalsWithAuth({
-          token,
-          refreshToken,
-          updateTokens,
-          signOut,
-        });
+        const data = await RoomService.fetchUserRentals(authHandlers);
 
         setRentals(data);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Erro ao carregar reservas:', err);
         setRentals([]);
       }
@@ -197,21 +202,25 @@ const NewPatient = (): React.JSX.Element => {
       setIsSaving(true);
       setSubmitError(null);
 
-      await createPatientWithAuth(
-        {
-          name: data.name,
-          phone: data.phone,
-          email: data.email?.trim() ? data.email : undefined,
-          initialDate: data.initialDate,
-          initialHour: data.initialHour,
-          observations: data.observations?.trim() ? data.observations : undefined,
-        },
-        {
-          token,
-          refreshToken,
-          updateTokens,
-          signOut,
-        }
+      const authHandlers: AuthHandlers = {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      };
+
+      const createPatientPayload: CreatePatient = {
+        name: data.name,
+        phone: data.phone,
+        email: data.email?.trim() ? data.email : undefined,
+        initialDate: data.initialDate,
+        initialHour: data.initialHour,
+        observations: data.observations?.trim() ? data.observations : undefined,
+      };
+
+      await PatientService.createPatient(
+        createPatientPayload,
+        authHandlers
       );
 
       router.push({

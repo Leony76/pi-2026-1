@@ -2,9 +2,9 @@ import React from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import AvailbilityTag from '../ui/AvailbilityTag';
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName';
-import { Patient as PatientType } from '@/types/patient.type';
+import { Patient as PatientType } from '@/types/patient/patient.type';
 import { formatSessionDate } from '@/utils/formatSessionDate';
-import { History } from '@/types/history.type';
+import { History } from '@/types/room/history.type';
 import { useRouter } from 'expo-router';
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
 import { parseLocalDate } from '@/utils/parseLocalDate';

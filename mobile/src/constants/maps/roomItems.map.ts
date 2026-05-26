@@ -1,4 +1,4 @@
-import { RoomItem } from "@/types/roomItems.type";
+import { RoomItem } from "@/types/room/roomItems.type";
 
 export const ROOM_ITEMS: RoomItem[] = [
   { name: 'Sofa / Divã'     , icon: 'couch'             },

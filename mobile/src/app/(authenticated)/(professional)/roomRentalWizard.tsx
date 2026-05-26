@@ -7,9 +7,9 @@ import Section from '@/components/ui/Section'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { useAuth } from '@/contexts/auth.context'
 import { ApiError } from '@/services/api'
-import { fetchRoomOccupancy, RoomOccupancyResponse } from '@/services/rooms'
-import { Allocation } from '@/types/allocation.type'
-import { RoomDisplayCard } from '@/types/room.type'
+import { RoomService } from '@/services/rooms'
+import { Allocation } from '@/types/room/allocation.type'
+import { RoomDisplayCard } from '@/types/room/room.type'
 import { formatSessionDate } from '@/utils/formatSessionDate'
 import { priceFormat } from '@/utils/priceFormat'
 import { MaterialIcons } from '@expo/vector-icons'
@@ -20,6 +20,8 @@ import { ScrollView, Text, View, TouchableOpacity } from 'react-native'
 import { Calendar } from 'react-native-calendars'
 import { formatLocalDate } from '@/utils/formatLocalDate'
 import { parseLocalDate } from '@/utils/parseLocalDate'
+import { RoomOccupancyResponse } from '@/types/room/roomOccupancyResponse.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const roomRentalWizard = (): React.JSX.Element => {
   const params = useLocalSearchParams()
@@ -49,13 +51,24 @@ const roomRentalWizard = (): React.JSX.Element => {
 
   useEffect(() => {
     async function loadRoomOccupancy() {
-      if (!auth.token || !roomId || roomId.startsWith('[')) {
+      if (!auth.token || !auth.refreshToken || !roomId || roomId.startsWith('[')) {
         return
       }
 
+      const authHandlers: AuthHandlers = {
+        refreshToken : auth.refreshToken,
+        token        : auth.token,
+        signOut      : auth.signOut,
+        updateTokens : auth.updateTokens,
+      };
+
       try {
-        const data = await fetchRoomOccupancy(roomId, auth.token)
-        setRoomOccupancy(data)
+        const data = await RoomService.fetchRoomOccupancy(
+          roomId, 
+          authHandlers,
+        );
+
+        setRoomOccupancy(data);
       } catch (error) {
         if (error instanceof ApiError) {
           setRoomOccupancy({ occupiedHours: [], occupiedDays: [] })
@@ -63,7 +76,7 @@ const roomRentalWizard = (): React.JSX.Element => {
       }
     }
 
-    loadRoomOccupancy()
+    loadRoomOccupancy();
   }, [auth.token, roomId])
 
   const todayKey = formatLocalDate(new Date());

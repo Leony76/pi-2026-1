@@ -6,8 +6,9 @@ import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchPatientByIdWithAuth } from '@/services/patients'
-import { PatientInfos } from '@/types/patient.type'
+import { PatientService } from '@/services/patients'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { PatientInfos } from '@/types/patient/patient.type'
 import { formatDate } from '@/utils/formatDate'
 import { formatHour } from '@/utils/formatHour'
 import { priceFormat } from '@/utils/priceFormat'
@@ -38,12 +39,17 @@ const PatientDetails = (): React.JSX.Element => {
         return;
       }
 
-      const response = await fetchPatientByIdWithAuth(patientId, {
+      const authHandlers: AuthHandlers = {
         token,
         refreshToken,
         updateTokens,
         signOut,
-      });
+      };
+
+      const response = await PatientService.fetchPatientById(
+        patientId, 
+        authHandlers
+      );
 
       setPatient(response);
     } catch (error:unknown) {

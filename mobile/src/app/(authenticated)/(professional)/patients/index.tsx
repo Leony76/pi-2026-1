@@ -6,15 +6,16 @@ import Section from '@/components/ui/Section'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import Toast from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchActivePatientsWithAuth, fetchPatientHistoryWithAuth } from '@/services/patients'
-import { History } from '@/types/history.type'
-import { Patient } from '@/types/patient.type'
+import { PatientService } from '@/services/patients'
+import { History } from '@/types/room/history.type'
+import { Patient } from '@/types/patient/patient.type'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
-import { fetchUserRentalsWithAuth } from '@/services/rooms'
+import { RoomService } from '@/services/rooms'
 import { Entypo } from '@expo/vector-icons'
 import { systemColors } from '@/constants/misc/systemColors.misc'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Patients = (): React.JSX.Element => {
 
@@ -43,14 +44,21 @@ const Patients = (): React.JSX.Element => {
         return;
       }
 
+      const authHandlers: AuthHandlers = { 
+        refreshToken,
+        token,
+        signOut,
+        updateTokens,
+      };
+
       try {
         setIsLoading(true);
         setError(null);
 
         const [active, history, userRentals] = await Promise.all([
-          fetchActivePatientsWithAuth({ token, refreshToken, updateTokens, signOut }, 3),
-          fetchPatientHistoryWithAuth({ token, refreshToken, updateTokens, signOut }, 2),
-          fetchUserRentalsWithAuth({ token, refreshToken, updateTokens, signOut }),
+          PatientService.fetchActivePatients(authHandlers, 3),
+          PatientService.fetchPatientHistory(authHandlers, 2),
+          RoomService.fetchUserRentals(authHandlers),
         ]);
 
         setActivePatients(active);

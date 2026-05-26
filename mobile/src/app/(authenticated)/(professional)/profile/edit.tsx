@@ -13,14 +13,15 @@ import { ProfileEditFormData, profileEditSchema } from '@/schemas/profileEdit.sc
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth.context'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
-import { updateCurrentUserWithAuth } from '@/services/auth'
 import { ApiError } from '@/services/api'
+import { UserService } from '@/services/user'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Edit = (): React.JSX.Element => {
 
   const router = useRouter();
   const { profile, refreshProfile } = useLoggedUserData();
-  const auth = useAuth();
+  const {token, refreshToken, updateTokens, signOut} = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -58,7 +59,7 @@ const Edit = (): React.JSX.Element => {
       return;
     }
 
-    if (!auth.token || !auth.refreshToken) {
+    if (!token || !refreshToken) {
       router.push({
         pathname: '/(authenticated)/(professional)/profile',
         params: {
@@ -72,12 +73,18 @@ const Edit = (): React.JSX.Element => {
     try {
       setIsSubmitting(true);
 
-      await updateCurrentUserWithAuth(data, {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
-      });
+      const authHandlers: AuthHandlers = {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      };
+
+      await UserService.updateCurrentUser(
+        data, 
+        authHandlers
+      );
+      
       await refreshProfile();
 
       router.push({

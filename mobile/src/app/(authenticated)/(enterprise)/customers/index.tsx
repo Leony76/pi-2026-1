@@ -6,7 +6,7 @@ import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
 import { ApiError } from '@/services/api'
-import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
+import { EnterpriseService} from '@/services/enterprise'
 import { formatDayMonthYear } from '@/utils/formatDayMonthYear'
 import { formatHour } from '@/utils/formatHour'
 import { useRouter } from 'expo-router'
@@ -14,6 +14,8 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { systemColors } from '@/constants/misc/systemColors.misc'
+import { EnterpriseDashboardResponse } from '@/types/metrics/enterpriseDashboardResponse.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Customers = (): React.JSX.Element => {
 
@@ -31,17 +33,19 @@ const Customers = (): React.JSX.Element => {
         return;
       }
 
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+
+        const response = await EnterpriseService.fetchEnterpriseDashboard(authHandlers);
+        
         setDashboard(response);
       } catch (requestError) {
         setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar os clientes.');

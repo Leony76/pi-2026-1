@@ -1,12 +1,12 @@
 import React from 'react'
 import { Text, View } from 'react-native'
-import { FetchProfessionalPaymentsHistory } from '@/services/rooms';
 import { formatDate } from '@/utils/formatDate';
 import { formatHour } from '@/utils/formatHour';
 import Label___Value from '../ui/Label___Value';
 import { priceFormat } from '@/utils/priceFormat';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { systemColors } from '@/constants/misc/systemColors.misc';
+import { FetchProfessionalPaymentsHistory } from '@/types/payment/fetchProfessionalPaymentsHistory.type';
 
 type BaseProps = {
   separationRow? : boolean;

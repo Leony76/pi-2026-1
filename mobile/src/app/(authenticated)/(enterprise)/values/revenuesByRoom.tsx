@@ -7,7 +7,9 @@ import Label___Value from '@/components/ui/Label___Value'
 import Toast from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/auth.context'
 import { ApiError } from '@/services/api'
-import { EnterpriseValuesResponse, fetchEnterpriseValuesWithAuth } from '@/services/rooms'
+import { EnterpriseService } from '@/services/enterprise'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { EnterpriseValuesResponse } from '@/types/metrics/enterpriseValuesResponse.type'
 import { priceFormat } from '@/utils/priceFormat'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -30,17 +32,17 @@ const RevenuesByRoom = (): React.JSX.Element => {
         return;
       }
 
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
       try {
         setIsLoading(true);
         setErrorMessage(null);
-        const response = await fetchEnterpriseValuesWithAuth(authenticated);
+        const response = await EnterpriseService.fetchEnterpriseValues(authHandlers);
         setValues(response);
       } catch (requestError) {
         setErrorMessage(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar as receitas por sala.');

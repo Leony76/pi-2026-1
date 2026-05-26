@@ -8,8 +8,10 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { ApiError } from '@/services/api'
-import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
+import { EnterpriseService } from '@/services/enterprise'
 import { systemColors } from '@/constants/misc/systemColors.misc'
+import { EnterpriseDashboardResponse } from '@/types/metrics/enterpriseDashboardResponse.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Home = (): React.JSX.Element => {
 
@@ -27,18 +29,19 @@ const Home = (): React.JSX.Element => {
         return;
       }
 
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
       try {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+        const response = await EnterpriseService.fetchEnterpriseDashboard(authHandlers);
+        
         setDashboard(response);
       } catch (requestError) {
         setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar o painel.');

@@ -2,14 +2,18 @@ import React, { useEffect, useState } from 'react'
 import { FlatList, View, ActivityIndicator, Text } from 'react-native'
 import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import SystemLayout from '@/components/layout/SystemLayout';
-import { RoomDisplayCard } from '@/types/room.type';
+import { RoomDisplayCard } from '@/types/room/room.type';
 import { Card } from '@/components/card';
 import { getFirstName } from '@/utils/getFirstName';
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context';
-import { fetchRooms } from '@/services/rooms';
+import { RoomService } from '@/services/rooms';
 import ContentNotFound from '@/components/ui/ContentNotFound';
+import { useAuth } from '@/contexts/auth.context';
+import { AuthHandlers } from '@/types/auth/authHandlers.type';
 
 const Home = (): React.JSX.Element => {
+
+  const auth = useAuth();
 
   const { profile } = useLoggedUserData(); 
   const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
@@ -19,9 +23,19 @@ const Home = (): React.JSX.Element => {
   useEffect(() => {
     (async () => {
       try {
+        if (!auth.refreshToken || !auth.token) return;
+
         setLoading(true);
         setError(null);
-        const data = await fetchRooms();
+
+        const authHandlers: AuthHandlers = { 
+          refreshToken : auth.refreshToken,
+          token        : auth.token,
+          signOut      : auth.signOut,
+          updateTokens : auth.updateTokens,
+        };
+
+        const data = await RoomService.fetchRooms(authHandlers);
         setRooms(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar salas');

@@ -1,4 +1,4 @@
-import { ITEMS_NAMES } from '@/types/roomItems.type';
+import { ITEMS_NAMES } from '@/types/room/roomItems.type';
 import { z } from 'zod';
 
 export const newRoomSchema = z.object({
