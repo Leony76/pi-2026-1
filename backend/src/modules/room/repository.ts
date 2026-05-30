@@ -1,5 +1,5 @@
 import prisma from "../../lib/prisma";
-import { Floor, RoomCharacteristic } from "@prisma/client";
+import { Floor, Prisma, RoomCharacteristic, RoomItemName, WeekDay } from "@prisma/client";
 import { createHttpError } from "../../lib/http-error";
 import { REVERSE_ROOM_ITEMS_LABEL_MAP, FLOOR_MAP, CHARACTERISTIC_MAP, ROOM_ITEM_MAP, ROOM_ITEMS_LABEL_MAP } from "../../consts/room/service.consts";
 import { EnterpriseDashboardResponse } from "../../types/room/enterpriseDashboardResponse.type";
@@ -14,172 +14,240 @@ import { mapRoomRentalToClient } from "./mappers/roomRentalToClient.mapper";
 import { EnterpriseValuesResponse } from "../../types/room/enterpriseValuesResponse.type";
 import { EnterpriseValuesRoomRevenue } from "../../types/room/enterpriseValuesRoomRevenue.type";
 import { UpdateRoom } from "../../types/room/updateRoom.type";
+import { nextDay } from "../../utils/nextDay.util";
 import { nextMonth } from "../../utils/nextMonth.util";
+import { startOfDay } from "../../utils/startOfDay.util";
 import { startOfMonth } from "../../utils/startOfMonth.util";
-import { RoomRepository } from "./repository";
-import { AuthPayload } from "../../types/auth/authPayload.type";
 import { NewRoom } from "../../types/room/newRoom.type";
 import { CreateRoomRental } from "../../types/room/createRoomRental.type";
 
-export class RoomService {
+export class RoomRepository {
 
-	public static async getEnterpriseDashboard(userId: string): Promise<EnterpriseDashboardResponse> {
-		const user = await RoomRepository.getUserAccountTypeById(userId);
-	
-		if (!user) {
-			throw createHttpError(404, "not_found", "Usuário não encontrado!");
-		} if (user.accountType !== "ENTERPRISE") {
-			throw createHttpError(403, "forbidden", "Acesso restrito ao painel da empresa.");
-		}
-	
-		const {
-			rooms,
-			activeRentals,
-			entriesToday,
-			exitsToday,
-		} = await RoomRepository.getEnterpriseDashboard();
-	
-		const activeRentalByRoomId = new Map(activeRentals.map((rental) => [rental.roomId, rental]));
-	
-		const roomOccupation = rooms.map((room) => {
-			const activeRental = activeRentalByRoomId.get(room.id);
-	
-			return {
-				id: room.id,
-				isAvailable: activeRental ? false : room.isAvailable,
-				occupant: activeRental ? activeRental.professional.name : null,
-				title: room.title,
-				occupation: {
-					startTime: activeRental ? activeRental.startDate.toISOString() : null,
-					endTime: activeRental ? activeRental.endDate.toISOString() : null,
-				},
-			};
+  public static async getUserAccountTypeById(id: string) {
+    return await prisma.user.findUnique({
+			where: { id },
+			select: {
+				accountType: true,
+			},
 		});
-	
-		const activeCustomers = activeRentals.map((rental) => ({
-			id: rental.roomId,
-			name: rental.professional.name,
-			specialty: rental.professional.specialty,
-			occupiedRoom: rental.room.title,
-			occupation: {
-				startHour: rental.startDate.toISOString(),
-				endHour: rental.endDate.toISOString(),
-				limitDate: rental.endDate.toISOString(),
-			},
-		}));
-	
-		const historyCustomers = (
-			await RoomRepository.roomRentalsByEndDate()
-		).map((rental) => ({
-			id: rental.id,
-			name: rental.professional.name,
-			specialty: rental.professional.specialty,
-			occupiedRoom: rental.room.title,
-			unoccupiedRoomAt: rental.endDate.toISOString(),
-		}));
-	
-		const latestEntryExit = (await RoomRepository.lastEntryExit())[0];
-	
-		const availableRooms = roomOccupation.filter((room) => room.isAvailable).length;
-	
-		return {
-			stats: {
-				totalRooms: rooms.length,
-				availableRooms,
-				occupiedRooms: rooms.length - availableRooms,
-				entriesToday,
-				exitsToday,
-			},
-			roomOccupation,
-			activeCustomers,
-			historyCustomers,
-			entryExitToday: latestEntryExit
-				? {
-					occupantName: latestEntryExit.professional.name,
-					room: latestEntryExit.room.title,
-					entry: latestEntryExit.enteredAt.toISOString(),
-					exit: latestEntryExit.exitedAt?.toISOString() ?? latestEntryExit.enteredAt.toISOString(),
-					sessions: latestEntryExit.sessionsCount,
-					totalValue: latestEntryExit.billingType,
-				}
-				: null,
-		};
+  }
+
+	public static async getEnterpriseDashboard() {
+		const now = new Date();
+		const dayStart = startOfDay(now);
+		const dayEnd = nextDay(dayStart);
+
+		const [rooms, activeRentals, _historyRentals, entriesToday, exitsToday, _latestEntryExit] = await Promise.all([
+			prisma.room.findMany({
+				select: {
+					id: true,
+					title: true,
+					isAvailable: true,
+				},
+				orderBy: {
+					createdAt: "asc",
+				},
+			}),
+			prisma.roomRental.findMany({
+				where: {
+					startDate: {
+						lte: now,
+					},
+					endDate: {
+						gte: now,
+					},
+				},
+				select: {
+					roomId: true,
+					startDate: true,
+					endDate: true,
+					professional: {
+						select: {
+							name: true,
+							specialty: true,
+						},
+					},
+					room: {
+						select: {
+							title: true,
+						},
+					},
+				},
+			}),
+			prisma.roomRental.findMany({
+				where: {
+					endDate: {
+						lt: now,
+					},
+				},
+				select: {
+					id: true,
+					startDate: true,
+					endDate: true,
+					professional: {
+						select: {
+							name: true,
+							specialty: true,
+						},
+					},
+					room: {
+						select: {
+							title: true,
+						},
+					},
+				},
+				orderBy: {
+					endDate: "desc",
+				},
+			}),
+			prisma.entryExit.count({
+				where: {
+					enteredAt: {
+						gte: dayStart,
+						lt: dayEnd,
+					},
+				},
+			}),
+			prisma.entryExit.count({
+				where: {
+					exitedAt: {
+						gte: dayStart,
+						lt: dayEnd,
+					},
+				},
+			}),
+			prisma.entryExit.findMany({
+				where: {
+					enteredAt: {
+						gte: dayStart,
+						lt: dayEnd,
+					},
+				},
+				select: {
+					enteredAt: true,
+					exitedAt: true,
+					sessionsCount: true,
+					billingType: true,
+					professional: {
+						select: {
+							name: true,
+						},
+					},
+					room: {
+						select: {
+							title: true,
+						},
+					},
+				},
+				orderBy: {
+					enteredAt: "desc",
+				},
+				take: 1,
+			}),
+		]);
+
+    return {
+      rooms,
+      activeRentals,
+      _historyRentals,
+      entriesToday,
+      exitsToday,
+      _latestEntryExit,
+    };
 	}
 	
-	public static async createRoom(
-		payload : AuthPayload,
-		data    : NewRoom
-	) {
-		const user = await RoomRepository.getUserAccountTypeById(payload.sub);
 
-		if (!user || user.accountType !== "ENTERPRISE") {
-			throw createHttpError(403, "forbidden", "Apenas contas enterprise podem criar salas.");
-		}
+  public static async lastEntryExit() {
+    const dayStart = startOfDay(new Date());
+		const dayEnd = nextDay(dayStart);
 
-		const mappedFloor = FLOOR_MAP[data.floor];
-		const mappedCharacteristic = CHARACTERISTIC_MAP[data.characteristics];
-		const roomName = data.roomName.trim();
-	
-		if (!roomName) {
-			throw createHttpError(400, "bad_request", "Nome da sala invalido.");
-		} if (!mappedFloor) {
-			throw createHttpError(400, "bad_request", "Andar invalido.");
-		} if (!mappedCharacteristic) {
-			throw createHttpError(400, "bad_request", "Característica invalida.");
-		} if (data.area <= 0) {
-			throw createHttpError(400, "bad_request", "Área invalida.");
-		} if (data.roomImage && !isValidRoomImageUrl(data.roomImage)) {
-			throw createHttpError(400, "bad_request", "Imagem da sala invalida.");
-		}
-	
-		const existingRoom = await RoomRepository.findRoomByName(data.enterpriseOwnerId, roomName);
-	
-		if (existingRoom) {
-			throw createHttpError(409, "conflict", "Já existe uma sala com esse nome.");
-		}
-
-		const roomData = {
-			title: roomName,
-			displayImage: data.roomImage ?? null,
-			floor: mappedFloor as "GROUND_FLOOR" | "FIRST_FLOOR" | "SECOND_FLOOR" | "THIRD_FLOOR" | "FOURTH_FLOOR" | "FIFTH_FLOOR",
-			area: data.area,
-			characteristic: mappedCharacteristic as "AIR_CONDITIONER" | "SOUNDPROOFED" | "AIR_CONDITIONER_PLUS_SOUNDPROOFED" | "DEFAULT",
-			enterpriseOwner: { connect: { id: data.enterpriseOwnerId }},
-			customItems: { create: data.customItems.map((name) => ({ name }))},
-			prices: {
-				create: {
-					pricePerHour: data.pricePerHour,
-					priceWeek: data.priceWeek,
-					pricePerMonth: data.pricePerMonth,
+    return await prisma.entryExit.findMany({
+			where: {
+				enteredAt: {
+					gte: dayStart,
+					lt: dayEnd,
 				},
 			},
-			items: {
-				create: data.items.filter((item) => Boolean(ROOM_ITEM_MAP[item.name])).map((item) => ({
-					name: ROOM_ITEM_MAP[item.name] as "SOFA_DIVA" | "CADEIRA" | "COMPUTADOR" | "MACA" | "ARMARIO" | "BANHEIRO" | "AR_CONDI" | "TV_MONITOR" | "EQUIP_MEDICO" | "ESPELHO" | "PLANTAS" | "ILUMI_ESPECIAL",
-					quantity: item.quantity,
-				})),
+			select: {
+				enteredAt: true,
+				exitedAt: true,
+				sessionsCount: true,
+				billingType: true,
+				professional: {
+					select: {
+						name: true,
+					},
+				},
+				room: {
+					select: {
+						title: true,
+					},
+				},
 			},
-		};
-	
-		const room = await RoomRepository.createRoom(roomData);
-	
-		return mapRoomToClient(room);
-	}
-	
+			orderBy: {
+				enteredAt: "desc",
+			},
+			take: 1,
+		});
+  }
+
+
+	public static async roomRentalsByEndDate() {
+    return await prisma.roomRental.findMany({
+			where: {
+				endDate: {
+					lt: new Date(),
+				},
+			},
+			select: {
+				id: true,
+				endDate: true,
+				professional: {
+					select: {
+						name: true,
+						specialty: true,
+					},
+				},
+				room: {
+					select: {
+						title: true,
+					},
+				},
+			},
+			orderBy: {
+				endDate: "desc",
+			},
+		});
+  }
 	
 	public static async getRoomOccupancy(roomId: string): Promise<RoomOccupancyResponse> {
-		const room = await RoomRepository.findRoomById(roomId);
+		const room = await prisma.room.findUnique({
+			where: { id: roomId },
+			select: {
+				id: true,
+			},
+		});
 	
 		if (!room) {
 			throw createHttpError(404, "not_found", "Sala não encontrada!");
 		}
 	
-		const activeRentals = await RoomRepository.getRoomActiveRentals(roomId);
+		const now = new Date();
+		const activeRentals = await prisma.roomRental.findMany({
+			where: {
+				roomId,
+				endDate: {
+					gte: now,
+				},
+			},
+			select: {
+				selectedWeekDay: true,
+				startDate: true,
+				endDate: true,
+			},
+		});
 	
-		const occupiedHours: { 
-			startHour: string; 
-			endHour: string 
-		}[] = [];
+		const occupiedHours: { startHour: string; endHour: string }[] = [];
 	
 		const occupiedDays = Array.from(
 			new Set(activeRentals.flatMap((rental) => getDateRangeKeys(rental.startDate, rental.endDate)))
@@ -192,41 +260,153 @@ export class RoomService {
 	}
 	
 	
+
+  public static async getRoomAvailabilityById(id: string) {
+    return await prisma.room.findUnique({
+			where: { id },
+			select: {
+				isAvailable: true,
+			},
+		})
+  }
+
+
+
+  public static async overlappingRental(roomId: string, startDate: Date, endDate: Date) {
+    return await prisma.roomRental.findFirst({
+      where: {
+        roomId,
+        startDate: {
+          lt: endDate,
+        },
+        endDate: {
+          gt: startDate,
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+  }
+
+
 	
 	public static async getRoomsList() {
-		const rooms = await RoomRepository.getRoomsList();
-	
-		return rooms.map((room) => mapRoomToClient(room));
+		return await prisma.room.findMany({
+			select: {
+				id: true,
+				title: true,
+				displayImage: true,
+				floor: true,
+				area: true,
+				characteristic: true,
+				isAvailable: true,
+				prices: {
+					select: {
+						pricePerHour: true,
+						priceWeek: true,
+						pricePerMonth: true,
+					},
+				},
+			},
+			orderBy: {
+				createdAt: "asc",
+			},
+		});
 	}
 	
 	
-	public static async createRoomRental(data: CreateRoomRental) {
-		const selectedWeekDays = toWeekDays(data.selectedWeekDays);
-		const startDate = new Date(data.startDate);
-		const endDate = new Date(data.endDate);
 	
-		const overlappingRental = await RoomRepository.overlappingRental(data.roomId, startDate, endDate);
+	public static async createRoom(data: Prisma.RoomCreateInput) {
+    return prisma.room.create({
+      data,
+      select: {
+        id: true,
+        displayImage: true,
+        isAvailable: true,
+        title: true,
+        floor: true,
+        area: true,
+        characteristic: true,
+        prices: {
+          select: {
+            pricePerHour: true,
+            priceWeek: true,
+            pricePerMonth: true,
+          },
+        },
+      },
+    });
+  }
+  
+
+
+  public static async getRoomActiveRentals(roomId: string) {
+    return await prisma.roomRental.findMany({
+			where: {
+				roomId,
+				endDate: {
+					gte: new Date(),
+				},
+			},
+			select: {
+				selectedWeekDay: true,
+				startDate: true,
+				endDate: true,
+			},
+		})
+  }
+
+
+
+  public static async findRoomById(id: string) {
+    return await prisma.room.findUnique({
+			where: { id },
+			select: { id: true },
+		})
+  }
+
+
+
+	public static async findRoomByName(
+    enterpriseOwnerId: string,
+    roomName: string
+  ) {
+    return prisma.room.findFirst({
+      where: {
+        enterpriseOwnerId,
+        title: roomName,
+      },
+    });
+  }
 	
-		if (overlappingRental) {
-			throw createHttpError(409, "conflict", "A sala já está ocupada nesse período.");
-		}
-	
-		const room = await RoomRepository.getRoomAvailabilityById(data.roomId);
-	
-		if (!room) {
-			throw createHttpError(404, "not_found", "Sala não encontrada.");
-		} if (!room.isAvailable) {
-			throw createHttpError(400, "bad_request", "A sala não está disponível.");
-		}
-	
-		const rental = await RoomRepository.createRoomRental({
-			...data,
-			selectedWeekDays,
-			endDate,
-			startDate,
-		});
-	
-		return mapRoomRentalToClient(rental);
+	public static async createRoomRental(data: CreateRoomRental & {
+    selectedWeekDays: WeekDay[];
+    startDate: Date;
+    endDate: Date;
+  }) {
+		return await prisma.roomRental.create({
+			data: {
+				professionalId: data.professionalId,
+				roomId: data.roomId,
+				allocationType: toPrismaAllocationType(data.allocationType),
+				paymentMethod: data.paymentMethod ?? null,
+				startDate: data.startDate,
+				endDate: data.endDate,
+				totalPrice: data.totalPrice.toString(),
+				selectedWeekDay: data.selectedWeekDays,
+			},
+			include: {
+				room: {
+					select: {
+						title: true,
+						floor: true,
+						area: true,
+						characteristic: true,
+					},
+				},
+			},
+		})
 	}
 	
 	

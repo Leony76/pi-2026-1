@@ -1,18 +1,18 @@
 import { Router } from "express";
 
-import { enterpriseDashboardController, enterpriseValuesController, listRoomsController, createRentalController, getUserRentalsController, roomOccupancyController, createRoomController, getRoomDetailsController, updateRoomController, toggleRoomAvailabilityController } from "./controller";
+import { RoomController } from "./controller";
 
 const roomRoutes = Router();
 
-roomRoutes.get("/", listRoomsController);
-roomRoutes.post("/", createRoomController);
-roomRoutes.get("/dashboard", enterpriseDashboardController);
-roomRoutes.get("/values", enterpriseValuesController);
-roomRoutes.get("/:roomId/occupancy", roomOccupancyController);
-roomRoutes.post("/rentals", createRentalController);
-roomRoutes.get("/rentals/me", getUserRentalsController);
-roomRoutes.get("/:roomId/details", getRoomDetailsController);
-roomRoutes.patch("/:roomId/update", updateRoomController);
-roomRoutes.patch("/:roomId/switchAvailability", toggleRoomAvailabilityController);
+roomRoutes.get("/"                             , RoomController.listRooms);
+roomRoutes.post("/"                            , RoomController.createRoom);
+roomRoutes.get("/dashboard"                    , RoomController.enterpriseDashboard);
+roomRoutes.get("/values"                       , RoomController.enterpriseValues);
+roomRoutes.get("/:roomId/occupancy"            , RoomController.roomOccupancy);
+roomRoutes.post("/rentals"                     , RoomController.createRental);
+roomRoutes.get("/rentals/me"                   , RoomController.getUserRentals);
+roomRoutes.get("/:roomId/details"              , RoomController.getRoomDetails);
+roomRoutes.patch("/:roomId/update"             , RoomController.updateRoom);
+roomRoutes.patch("/:roomId/switchAvailability" , RoomController.toggleRoomAvailability);
 
 export default roomRoutes;

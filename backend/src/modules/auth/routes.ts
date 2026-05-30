@@ -1,17 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-
-import {
-	loginController,
-	logoutController,
-	refreshController,
-	registerController,
-	requestEmailVerificationController,
-	requestPasswordResetController,
-	resetPasswordController,
-	verifyResetCodeController,
-	verifyEmailController,
-} from "./controller";
+import { AuthController } from "./controller";
 
 const authRoutes = Router();
 
@@ -24,14 +13,14 @@ const authLimiter = rateLimit({
 
 authRoutes.use(authLimiter);
 
-authRoutes.post("/register", registerController);
-authRoutes.post("/login", loginController);
-authRoutes.post("/refresh", refreshController);
-authRoutes.post("/logout", logoutController);
-authRoutes.post("/request-email-verification", requestEmailVerificationController);
-authRoutes.post("/verify-email", verifyEmailController);
-authRoutes.post("/request-password-reset", requestPasswordResetController);
-authRoutes.post("/verify-reset-code", verifyResetCodeController);
-authRoutes.post("/reset-password", resetPasswordController);
+authRoutes.post("/register"                   , AuthController.register);
+authRoutes.post("/login"                      , AuthController.login);
+authRoutes.post("/refresh"                    , AuthController.refresh);
+authRoutes.post("/logout"                     , AuthController.logout);
+authRoutes.post("/request-email-verification" , AuthController.requestEmailVerification);
+authRoutes.post("/verify-email"               , AuthController.verifyEmail);
+authRoutes.post("/request-password-reset"     , AuthController.requestPasswordReset);
+authRoutes.post("/verify-reset-code"          , AuthController.verifyResetCode);
+authRoutes.post("/reset-password"             , AuthController.resetPassword);
 
 export default authRoutes;

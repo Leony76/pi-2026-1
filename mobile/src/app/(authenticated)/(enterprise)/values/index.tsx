@@ -95,14 +95,6 @@ const Values = (): React.JSX.Element => {
   const roomRevenueData = values?.roomRevenue.roomsRevenue ?? [];
   const roomPricesData = values?.roomPrices ?? [];
 
-  {/* SEM MOTIVO PARA EXISTÊNCIA */}
-
-  // const expenseItemsMap = [
-  //   { label: 'Manutenção das salas' , key: 'maintenance'     },
-  //   { label: 'Energia elétrica'     , key: 'eletricalEnergy' },
-  //   { label: 'Limpeza'              , key: 'cleaning'        },
-  // ] as const;
-
   return (
     <LayoutWrapper>
 
@@ -131,18 +123,6 @@ const Values = (): React.JSX.Element => {
                 Receita do mês
               </Text>
             </View>
-
-            {/* SEM MOTIVO PARA EXISTÊNCIA */}
-
-            {/* <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
-              <Text className='font-nunito-bold text-red-700 text-xl'>
-                { '-' + priceFormat(values?.summary.expensesThisMonth ?? 0) }
-              </Text>
-
-              <Text className='font-nunito-bold text-medroom-secondary text-sm'>
-                Despesas
-              </Text>
-            </View>            */}
           </View>
 
           <Section 
@@ -184,30 +164,6 @@ const Values = (): React.JSX.Element => {
             )}
 
           </Section>
-
-          {/* SEM MOTIVO PARA EXISTÊNCIA */}
-
-          {/* <Section title='Despesas'>
-            { expenseItemsMap.map((items) => (
-              <Label___Value
-                separationRow
-                value={{ 
-                  _: '-' + priceFormat(values?.expenses[items.key] ?? 0),
-                  color: 'text-red-600'
-                }}
-                label={items.label}
-              />  
-            ))}
-
-            <Label___Value
-              value={{ 
-                _: '-' + priceFormat(values?.expenses.totalValue ?? 0),
-                color: 'text-red-600 text-lg'
-              }}
-              label='Despesas totais'
-              boldLabel
-            />  
-          </Section> */}
 
           <Section 
           title='preços por sala'
