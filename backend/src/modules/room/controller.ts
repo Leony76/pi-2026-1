@@ -3,11 +3,11 @@ import jwt from "jsonwebtoken";
 import { RoomService } from "./service";
 import { sendSuccessResponse } from "../../lib/auth-response";
 import { createHttpError } from "../../lib/http-error";
-import prisma from "../../lib/prisma";
 import { AuthPayload } from "../../types/auth/authPayload.type";
 import { getTokenFromHeader } from "../../utils/getTokenFromHeader.util";
 import { getJwtSecret } from "../../utils/getJwtSecret.util";
 import { UpdateRoom } from "../../types/room/updateRoom.type";
+import { requestCreateRoomPayloadMapper } from "./mappers/createRoomPayload.mapper";
 
 export class RoomController {
 
@@ -27,20 +27,10 @@ export class RoomController {
 		try {
 			const token = getTokenFromHeader(request.headers.authorization);
 			const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
-	
-			const room = await RoomService.createRoom(payload, {
-				enterpriseOwnerId: payload.sub,
-				roomName: request.body.roomName,
-				roomImage: request.body.roomImage,
-				floor: request.body.floor,
-				area: request.body.area,
-				characteristics: request.body.characteristics,
-				pricePerHour: request.body.pricePerHour,
-				priceWeek: request.body.priceWeek,
-				pricePerMonth: request.body.pricePerMonth,
-				items: Array.isArray(request.body.items) ? request.body.items : [],
-				customItems: Array.isArray(request.body.customItems) ? request.body.customItems : [],
-			});
+			
+			const roomPayload = requestCreateRoomPayloadMapper(request, payload);
+
+			const room = await RoomService.createRoom(payload, roomPayload);
 	
 			sendSuccessResponse(response, 201, room);
 		} catch (error) {
@@ -144,9 +134,7 @@ export class RoomController {
 	
 			if (!payload.sub) {
 				throw createHttpError(403, 'forbidden', 'Não autenticado');
-			}
-	
-			if (!roomId) {
+			} if (!roomId) {
 				throw createHttpError(403, 'forbidden', 'Sala não encontrada');
 			}
 	
@@ -169,9 +157,7 @@ export class RoomController {
 	
 			if (!payload.sub) {
 				throw createHttpError(403, 'forbidden', 'Não autenticado');
-			}
-	
-			if (!roomId) {
+			} if (!roomId) {
 				throw createHttpError(403, 'forbidden', 'Sala não encontrada');
 			}
 	

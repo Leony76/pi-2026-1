@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import prisma from "../../lib/prisma";
 import { createHttpError } from "../../lib/http-error";
 import { sendPasswordResetCodeEmail } from "../../lib/mailer";
-import { generateOpaqueToken, hashToken } from "../../lib/token";
+import { generateOpaqueToken } from "../../lib/token";
 import { normalizeSpecialty } from "../shared/specialty";
 import { RegisterInput } from "../../types/auth/registerInput.type";
 import { AuthResponse } from "../../types/auth/authResponse.type";
@@ -14,18 +14,18 @@ import { PasswordResetRequestInput } from "../../types/auth/passwordResetRequest
 import { RefreshInput } from "../../types/auth/refreshInput.type";
 import { VerifyEmailInput } from "../../types/auth/verifyEmailInput.type";
 import { VerifyResetCodeInput } from "../../types/auth/verifyResetCodeInput.type";
-import { addDays } from "../../utils/addDays.util";
 import { normalizeCrmCrp } from "../../utils/normalizeCrpCrp.util";
 import { normalizeEmail } from "../../utils/normalizeEmail.util";
-import { REFRESH_TOKEN_TTL_DAYS, EMAIL_VERIFICATION_TOKEN_TTL_DAYS } from "../../consts/auth/service.consts";
 import { buildAuthResponse } from "../../utils/buildAuthResponse.util";
 import { toSafeUser } from "../../utils/toSafeUser.type";
 import { generateSixDigitCode } from "../../utils/generateSixDigitCode.util";
 import { AuthRepository } from "./repository";
+import { registerPayloadMapper } from "./mapper/registerPayload.mapper";
 
 export class AuthService {
 
 	public static async register(data: RegisterInput): Promise<AuthResponse> {
+
 		const name = data.name?.trim();
 		const specialty = data.specialty?.trim();
 		const crmCrp = data.crmCrp?.trim();
@@ -33,9 +33,7 @@ export class AuthService {
 	
 		if (!name || !specialty || !crmCrp || !email || !data.password || !data.repeatPassword) {
 			throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
-		}
-	
-		if (data.password !== data.repeatPassword) {
+		} if (data.password !== data.repeatPassword) {
 			throw createHttpError(400, "bad_request", "Senhas não coincidem");
 		}
 	
@@ -56,26 +54,25 @@ export class AuthService {
 		const refreshToken = generateOpaqueToken();
 		const emailVerificationToken = generateOpaqueToken();
 	
-		const user = await AuthRepository.register({
+		const registerPayload = registerPayloadMapper(
 			name,
-			specialty: normalizedSpecialty,
-			crmCrp: normalizedCrmCrp,
-			email: normalizedEmail,
+			normalizedSpecialty,
+			normalizedCrmCrp,
+			normalizedEmail,
 			passwordHash,
-			emailVerifiedAt: null,
-			refreshTokenHash: hashToken(refreshToken),
-			refreshTokenExpiresAt: addDays(new Date(), REFRESH_TOKEN_TTL_DAYS),
-			emailVerificationTokenHash: hashToken(emailVerificationToken),
-			emailVerificationTokenExpiresAt: addDays(new Date(), EMAIL_VERIFICATION_TOKEN_TTL_DAYS),
-		});
+			emailVerificationToken,
+			refreshToken,
+		);
+
+		const user = await AuthRepository.register(registerPayload);
 
 		return buildAuthResponse(toSafeUser(user), refreshToken, emailVerificationToken);
 	}
 	
 
 	
-	
 	public static async login(data: LoginInput): Promise<AuthResponse> {
+
 		const email = data.email?.trim();
 	
 		if (!email || !data.password) {
@@ -108,6 +105,7 @@ export class AuthService {
 	
 	
 	public static async refreshSession(data: RefreshInput): Promise<AuthResponse> {
+		
 		if (!data.refreshToken) {
 			throw createHttpError(400, "bad_request", "Token de atualização não provido!");
 		}
@@ -130,6 +128,7 @@ export class AuthService {
 	
 	
 	public static async logout(data: LogoutInput): Promise<{ message: string }> {
+		
 		if (!data.refreshToken) {
 			throw createHttpError(400, "bad_request", "Token de atualização não provido!");
 		}
@@ -148,6 +147,7 @@ export class AuthService {
 	
 	
 	public static async requestEmailVerification(data: EmailVerificationRequestInput): Promise<{ message: string; verificationToken: string }> {
+		
 		const email = normalizeEmail(data.email);
 	
 		const user = await AuthRepository.findUserByEmail(email);
@@ -171,6 +171,7 @@ export class AuthService {
 	
 	
 	public static async verifyEmail(data: VerifyEmailInput): Promise<{ message: string }> {
+		
 		if (!data.token) {
 			throw createHttpError(400, "bad_request", "Token de verificação não provido!");
 		}
@@ -217,14 +218,13 @@ export class AuthService {
 	
 	
 	public static async verifyResetCode(data: VerifyResetCodeInput): Promise<{ message: string; sessionToken: string }> {
+
 		const email = data.email?.trim();
 		const code = data.code?.trim();
 	
 		if (!email || !code) {
 			throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
-		}
-	
-		if (!/^\d{6}$/.test(code)) {
+		} if (!/^\d{6}$/.test(code)) {
 			throw createHttpError(400, "bad_request", "Código de redefinição inválido!");
 		}
 	
@@ -249,11 +249,10 @@ export class AuthService {
 	
 	
 	public static async resetPassword(data: PasswordResetInput): Promise<{ message: string }> {
+		
 		if (!data.sessionToken || !data.password || !data.repeatPassword) {
 			throw createHttpError(400, "bad_request", "Campos requeríveis não preenchidos!");
-		}
-	
-		if (data.password !== data.repeatPassword) {
+		} if (data.password !== data.repeatPassword) {
 			throw createHttpError(400, "bad_request", "Senhas não coincidem!");
 		}
 	

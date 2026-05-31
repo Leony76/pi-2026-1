@@ -15,3 +15,20 @@ export type CreateRoomInput = {
 		quantity: number;
 	}[];
 };
+
+export type CreateRoomResponse = {
+	id: string;
+	displayImage: string | null;
+	isAvailable: boolean;
+	title: string;
+	complementaryData: {
+		area: number;
+		additional: string;
+		floor: string;
+	};
+	prices: {
+		perHour: number;
+		_week: number;
+		month: number;
+	};
+}

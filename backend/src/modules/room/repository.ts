@@ -1,24 +1,15 @@
 import prisma from "../../lib/prisma";
-import { Floor, Prisma, RoomCharacteristic, RoomItemName, WeekDay } from "@prisma/client";
+import { Floor, Prisma, RoomCharacteristic, WeekDay } from "@prisma/client";
 import { createHttpError } from "../../lib/http-error";
-import { REVERSE_ROOM_ITEMS_LABEL_MAP, FLOOR_MAP, CHARACTERISTIC_MAP, ROOM_ITEM_MAP, ROOM_ITEMS_LABEL_MAP } from "../../consts/room/service.consts";
-import { EnterpriseDashboardResponse } from "../../types/room/enterpriseDashboardResponse.type";
-import { RoomInfos } from "../../types/room/roomInfos.type";
+import { REVERSE_ROOM_ITEMS_LABEL_MAP } from "../../consts/room/service.consts";
 import { RoomOccupancyResponse } from "../../types/room/roomOccupancyResponse.type";
 import { getDateRangeKeys } from "../../utils/getDateRangeKeys.util";
-import { isValidRoomImageUrl } from "../../utils/isValidRoomImageUrl.util";
 import { toPrismaAllocationType } from "../../utils/toPrismaAllocationType.util";
-import { toWeekDays } from "../../utils/toWeekDays.util";
-import { mapRoomToClient } from "./mappers/mapRoomToClient.mapper";
-import { mapRoomRentalToClient } from "./mappers/roomRentalToClient.mapper";
-import { EnterpriseValuesResponse } from "../../types/room/enterpriseValuesResponse.type";
-import { EnterpriseValuesRoomRevenue } from "../../types/room/enterpriseValuesRoomRevenue.type";
 import { UpdateRoom } from "../../types/room/updateRoom.type";
 import { nextDay } from "../../utils/nextDay.util";
 import { nextMonth } from "../../utils/nextMonth.util";
 import { startOfDay } from "../../utils/startOfDay.util";
 import { startOfMonth } from "../../utils/startOfMonth.util";
-import { NewRoom } from "../../types/room/newRoom.type";
 import { CreateRoomRental } from "../../types/room/createRoomRental.type";
 
 export class RoomRepository {
@@ -26,9 +17,7 @@ export class RoomRepository {
   public static async getUserAccountTypeById(id: string) {
     return await prisma.user.findUnique({
 			where: { id },
-			select: {
-				accountType: true,
-			},
+			select: { accountType: true },
 		});
   }
 
@@ -44,18 +33,13 @@ export class RoomRepository {
 					title: true,
 					isAvailable: true,
 				},
-				orderBy: {
-					createdAt: "asc",
-				},
+				orderBy: { createdAt: "asc" },
 			}),
+
 			prisma.roomRental.findMany({
 				where: {
-					startDate: {
-						lte: now,
-					},
-					endDate: {
-						gte: now,
-					},
+					startDate: { lte: now },
+					endDate: { gte: now },
 				},
 				select: {
 					roomId: true,
@@ -68,17 +52,13 @@ export class RoomRepository {
 						},
 					},
 					room: {
-						select: {
-							title: true,
-						},
+						select: { title: true },
 					},
 				},
 			}),
 			prisma.roomRental.findMany({
 				where: {
-					endDate: {
-						lt: now,
-					},
+					endDate: { lt: now },
 				},
 				select: {
 					id: true,
@@ -91,14 +71,10 @@ export class RoomRepository {
 						},
 					},
 					room: {
-						select: {
-							title: true,
-						},
+						select: { title: true },
 					},
 				},
-				orderBy: {
-					endDate: "desc",
-				},
+				orderBy: { endDate: "desc" },
 			}),
 			prisma.entryExit.count({
 				where: {
@@ -129,19 +105,13 @@ export class RoomRepository {
 					sessionsCount: true,
 					billingType: true,
 					professional: {
-						select: {
-							name: true,
-						},
+						select: { name: true },
 					},
 					room: {
-						select: {
-							title: true,
-						},
+						select: { title: true },
 					},
 				},
-				orderBy: {
-					enteredAt: "desc",
-				},
+				orderBy: { enteredAt: "desc" },
 				take: 1,
 			}),
 		]);
@@ -174,19 +144,13 @@ export class RoomRepository {
 				sessionsCount: true,
 				billingType: true,
 				professional: {
-					select: {
-						name: true,
-					},
+					select: { name: true },
 				},
 				room: {
-					select: {
-						title: true,
-					},
+					select: { title: true },
 				},
 			},
-			orderBy: {
-				enteredAt: "desc",
-			},
+			orderBy: { enteredAt: "desc" },
 			take: 1,
 		});
   }
@@ -195,9 +159,7 @@ export class RoomRepository {
 	public static async roomRentalsByEndDate() {
     return await prisma.roomRental.findMany({
 			where: {
-				endDate: {
-					lt: new Date(),
-				},
+				endDate: { lt: new Date() },
 			},
 			select: {
 				id: true,
@@ -209,23 +171,17 @@ export class RoomRepository {
 					},
 				},
 				room: {
-					select: {
-						title: true,
-					},
+					select: { title: true },
 				},
 			},
-			orderBy: {
-				endDate: "desc",
-			},
+			orderBy: { endDate: "desc" },
 		});
   }
 	
 	public static async getRoomOccupancy(roomId: string): Promise<RoomOccupancyResponse> {
 		const room = await prisma.room.findUnique({
 			where: { id: roomId },
-			select: {
-				id: true,
-			},
+			select: { id: true },
 		});
 	
 		if (!room) {
@@ -236,9 +192,7 @@ export class RoomRepository {
 		const activeRentals = await prisma.roomRental.findMany({
 			where: {
 				roomId,
-				endDate: {
-					gte: now,
-				},
+				endDate: { gte: now },
 			},
 			select: {
 				selectedWeekDay: true,
@@ -264,9 +218,7 @@ export class RoomRepository {
   public static async getRoomAvailabilityById(id: string) {
     return await prisma.room.findUnique({
 			where: { id },
-			select: {
-				isAvailable: true,
-			},
+			select: { isAvailable: true },
 		})
   }
 
@@ -276,16 +228,10 @@ export class RoomRepository {
     return await prisma.roomRental.findFirst({
       where: {
         roomId,
-        startDate: {
-          lt: endDate,
-        },
-        endDate: {
-          gt: startDate,
-        },
+        startDate: { lt: endDate },
+        endDate: { gt: startDate },
       },
-      select: {
-        id: true,
-      },
+      select: { id: true },
     })
   }
 
@@ -309,9 +255,7 @@ export class RoomRepository {
 					},
 				},
 			},
-			orderBy: {
-				createdAt: "asc",
-			},
+			orderBy: { createdAt: "asc" },
 		});
 	}
 	
@@ -345,9 +289,7 @@ export class RoomRepository {
     return await prisma.roomRental.findMany({
 			where: {
 				roomId,
-				endDate: {
-					gte: new Date(),
-				},
+				endDate: { gte: new Date() },
 			},
 			select: {
 				selectedWeekDay: true,
@@ -411,8 +353,8 @@ export class RoomRepository {
 	
 	
 	
-	public static async getRoomDetailsById(roomId : string): Promise<RoomInfos> {
-		const room = await prisma.room.findUnique({
+	public static async getRoomDetailsById(roomId : string) {
+		return await prisma.room.findUnique({
 			where: { id: roomId },
 			select: { 
 				title: true,
@@ -436,24 +378,6 @@ export class RoomRepository {
 				} 
 			},
 		});
-	
-		if (!room) throw new Error("Não foi possível achar a sala");
-	
-		return {
-			floor: room.floor,
-			roomName: room.title,
-			area: room.area.toNumber(),
-			characteristics: room.characteristic,
-			image: room.displayImage,
-			pricePerHour: room.prices?.pricePerHour.toNumber() ?? 0,
-			pricePerMonth: room.prices?.pricePerMonth.toNumber() ?? 0,
-			priceWeek: room.prices?.priceWeek.toNumber() ?? 0,
-			customItems: room.customItems.map((item) => item.name),
-			items: room.items.map((item) => ({
-				quantity: item.quantity,
-				name: ROOM_ITEMS_LABEL_MAP[item.name]
-			}))
-		}
 	}
 	
 	
@@ -461,9 +385,8 @@ export class RoomRepository {
 	public static async updateRoomById(
 		roomId: string,
 		data: UpdateRoom,
-	): Promise<void> {
-	
-		await prisma.room.update({
+	) {
+		return await prisma.room.update({
 			where: { id: roomId },
 			data: {
 				area: data.area,
@@ -512,19 +435,15 @@ export class RoomRepository {
 	) {
 		return await prisma.room.update({
 			where : { id: roomId },
-			data  : {
-				isAvailable: status
-			}
+			data  : { isAvailable: status }
 		});
 	}
 	
 	
 	
 	public static async getUserRentals(professionalId: string) {
-		const rentals = await prisma.roomRental.findMany({
-			where: {
-				professionalId,
-			},
+		return await prisma.roomRental.findMany({
+			where: { professionalId },
 			include: {
 				room: {
 					select: {
@@ -543,31 +462,13 @@ export class RoomRepository {
 					},
 				},
 			},
-			orderBy: {
-				startDate: "desc",
-			},
+			orderBy: { startDate: "desc" },
 		});
-	
-		return rentals.map((rental) => mapRoomRentalToClient(rental));
 	}
 	
 	
 	
-	public static async getEnterpriseValues(userId: string): Promise<EnterpriseValuesResponse> {
-		const user = await prisma.user.findUnique({
-			where: { id: userId },
-			select: {
-				accountType: true,
-			},
-		});
-	
-		if (!user) {
-			throw createHttpError(404, "not_found", "Usuário não encontrado!");
-		}
-	
-		if (user.accountType !== "ENTERPRISE") {
-			throw createHttpError(403, "forbidden", "Acesso restrito ao painel da empresa.");
-		}
+	public static async getEnterpriseValues() {
 	
 		const now = new Date();
 		const monthStart = startOfMonth(now);
@@ -623,77 +524,12 @@ export class RoomRepository {
 				},
 			}),
 		]);
-	
-		const roomsRevenueById = new Map<string, EnterpriseValuesRoomRevenue>(
-			rooms.map((room) => [
-				room.id,
-				{
-					id: room.id,
-					room: room.title,
-					totalRevenue: 0,
-					revenue: {
-						byHour: 0,
-						_week: 0,
-						byMonth: 0,
-					},
-				},
-			])
-		);
-	
-		for (const rental of monthlyRentals) {
-			const currentRoom = roomsRevenueById.get(rental.roomId);
-	
-			if (!currentRoom) {
-				continue;
-			}
-	
-			const rentalValue = parseFloat(rental.totalPrice.toString());
-			currentRoom.totalRevenue += rentalValue;
-	
-			if (rental.allocationType === "DAILY") {
-				currentRoom.revenue.byHour += rentalValue;
-				continue;
-			}
-	
-			if (rental.allocationType === "WEEK") {
-				currentRoom.revenue._week += rentalValue;
-				continue;
-			}
-	
-			currentRoom.revenue.byMonth += rentalValue;
-		}
-	
-		const roomsRevenue = rooms.map((room) => roomsRevenueById.get(room.id)!);
-		const totalRevenue = roomsRevenue.reduce((accumulator, room) => accumulator + room.totalRevenue, 0);
-	
-		const expenses = {
-			maintenance: parseFloat(expensesSummary._sum.maintenance?.toString() ?? "0"),
-			eletricalEnergy: parseFloat(expensesSummary._sum.electricalEnergy?.toString() ?? "0"),
-			cleaning: parseFloat(expensesSummary._sum.cleaning?.toString() ?? "0"),
-			totalValue: parseFloat(expensesSummary._sum.totalValue?.toString() ?? "0"),
-		};
-	
+
 		return {
-			summary: {
-				revenueThisMonth: totalRevenue,
-				expensesThisMonth: expenses.totalValue,
-				netIncome: totalRevenue - expenses.totalValue,
-			},
-			roomRevenue: {
-				totalRevenue,
-				roomsRevenue,
-			},
-			expenses,
-			roomPrices: rooms.map((room) => ({
-				id: room.id,
-				room: room.title,
-				price: {
-					byHour: parseFloat(room.prices?.pricePerHour.toString() ?? "0"),
-					_week: parseFloat(room.prices?.priceWeek.toString() ?? "0"),
-					byMonth: parseFloat(room.prices?.pricePerMonth.toString() ?? "0"),
-				},
-			})),
-		};
+			rooms,
+			monthlyRentals,
+			expensesSummary,
+		}
 	}
 }
 

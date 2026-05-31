@@ -1,3 +1,5 @@
+import { Decimal } from "@prisma/client/runtime/library";
+
 export type RoomInfos = {
 	roomName: string;
 	image: string | null;
@@ -12,4 +14,20 @@ export type RoomInfos = {
 		name: "Sofa / Divã" | "Cadeira" | "Computador" | "Maca" | "Armário" | "Banheiro" | "Ar-condi." | "TV / Monitor." | "Equip. médico" | "Espelho" | "Plantas" | "Ilumi. especial";
 		quantity: number;
 	}[];
+}
+
+export type RoomBrief = {
+	id: string;
+	title: string;
+	isAvailable: boolean;
+};
+
+export type RoomPrices = {
+	id: string;
+	title: string;
+	prices: {
+			pricePerHour: Decimal;
+			priceWeek: Decimal;
+			pricePerMonth: Decimal;
+	} | null;
 }
