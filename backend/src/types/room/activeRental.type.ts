@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 export type ActiveRental = {
   roomId: string;
   professional: {
@@ -10,3 +12,4 @@ export type ActiveRental = {
   endDate: Date;
   startDate: Date;
 }
+

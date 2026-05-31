@@ -1,221 +1,135 @@
-import prisma from "../../lib/prisma";
 import { createHttpError } from "../../lib/http-error";
-import { normalizeSpecialty } from "../shared/specialty";
 import bcrypt from 'bcrypt';
+import { ProfileResponse } from "../../types/user/profileResponse.type";
+import { StorePaymentHistory } from "../../types/user/storePaymentHistory.type";
+import { UserRepository } from "./repository";
+import { buildProfileMapper } from "./mapper/buildProfile.mapper";
+import { UpdateProfile } from "../../types/user/updateProfile.type";
 
-type ProfileStats = {
-	sessions: number;
-	patients: number;
-	totalSpent: number;
-};
+export class UserService {
 
-export type ProfileResponse = {
-	id: string;
-	name: string;
-	displayImage: string | null;
-	specialty: string;
-	specialtyLabel: string;
-	accountType: "PROFESSIONAL" | "ENTERPRISE";
-	crmCrp: string;
-	email: string;
-	phone: string | null;
-	createdAt: string;
-	updatedAt: string;
-	stats: ProfileStats;
-};
+	private static async buildProfileResponse(userId: string): Promise<ProfileResponse | null> {
+		const user = await UserRepository.getUserInfosById(userId);
+	
+		if (!user) return null;
+	
+		const {
+			rentals,
+			patients,
+			sessions,
+		} = await UserRepository.getUserSessionsRentalsAndPatients(userId);
 
-export type StorePaymentHistory = {
-	from: 'ROOM_RENTAL',
-	paymentMethod: "PIX" | "BANK_SLIP" | "CREDIT_CARD",
-	professionalId: string;
-	paid: number;
-}
-
-async function buildProfileResponse(userId: string): Promise<ProfileResponse | null> {
-	const user = await prisma.user.findUnique({
-		where: { id: userId },
-		select: {
-			id: true,
-			displayImage: true,
-			name: true,
-			specialty: true,
-			accountType: true,
-			crmCrp: true,
-			email: true,
-			phone: true,
-			createdAt: true,
-			updatedAt: true,
-		},
-	});
-
-	if (!user) {
-		return null;
-	}
-
-	const [sessions, patients, rentals] = await Promise.all([
-		prisma.session.count({
-			where: { professionalId: userId },
-		}),
-		prisma.patient.count({
-			where: { professionalId: userId },
-		}),
-		prisma.roomRental.aggregate({
-			where: { professionalId: userId },
-			_sum: {
-				totalPrice: true,
-			},
-		}),
-	]);
-	return {
-		id: user.id,
-		displayImage: user.displayImage ?? null,
-		name: user.name,
-		specialty: user.specialty,
-		specialtyLabel: normalizeSpecialty(user.specialty),
-		accountType: user.accountType,
-		crmCrp: user.crmCrp,
-		email: user.email,
-		phone: user.phone,
-		createdAt: user.createdAt.toISOString(),
-		updatedAt: user.updatedAt.toISOString(),
-		stats: {
+		return buildProfileMapper(
+			user,
 			sessions,
 			patients,
-			totalSpent: Number(rentals._sum.totalPrice?.toString() ?? "0"),
-		},
-	};
-}
-
-export async function getProfileById(userId: string) {
-	return buildProfileResponse(userId);
-}
-
-export async function updateProfileImageById(
-	userId: string,
-	displayImage: string | null
-) {
-	await prisma.user.update({
-		where: { id: userId },
-		data: { displayImage },
-	});
-
-	return buildProfileResponse(userId);
-}
-
-export async function storePaymentHistory(
-	data: StorePaymentHistory,
-) {
-	return await prisma.paymentHistory.create({
-		data: {
-			from: data.from,
-			paid: data.paid,
-			paymentMethod: data.paymentMethod,
-			professionalId: data.professionalId,
-		}
-	});
-}
-
-export async function getProfessionalPaymentsHistory(
-	id: string,
-) {
-	return await prisma.paymentHistory.findMany({
-		where: { professionalId: id },
-		omit: {
-			updatedAt: true,
-		}
-	});
-}
-
-export async function verifyCurrentPasswordMatchById(
-	professionalId  : string,
-	currentPassword : string,
-): Promise<boolean> {
-	const user = await prisma.user.findUnique({
-		where: { id: professionalId },
-	});
-
-	if (!user) {
-		throw createHttpError(401, "unauthorized", "Usuário não existe!");
+			rentals,
+		);
 	}
 
-	const passwordIsValid = await bcrypt.compare(currentPassword, user.passwordHash);
+
 	
-	if (!passwordIsValid) {
-		return false;
-	} 
+	public static async getProfileById(userId: string) {
+		return this.buildProfileResponse(userId);
+	}
+	
 
-	return true;
-}
 
-export async function changeProfessionalPasswordById(
-	professionalId : string,
-	newPassword    : string,
-) {
-	const user = await prisma.user.findUnique({
-		where: { id: professionalId },
-	});
+	public static async updateProfileImageById(
+		userId: string,
+		displayImage: string | null
+	) {
+		await UserRepository.updateProfileImageById(userId, displayImage);
+	
+		return this.buildProfileResponse(userId);
+	}
+	
 
-	if (!user) {
-		throw createHttpError(401, "unauthorized", "Usuário não existe!");
+
+	public static async storePaymentHistory(data: StorePaymentHistory) {
+		return await UserRepository.storePaymentHistory(data);
 	}
 
-	const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-	return await prisma.user.update({
-		where: { id: professionalId },
-		data: {
-			passwordHash: hashedPassword,
-		},
-	});
-}
-
-export async function updateProfileById(
-	userId: string,
-	data: {
-		name: string;
-		specialty: string;
-		crmCrp: string;
-		email: string;
-		phone: string;
-		profileImage?: string | null;
+	
+	public static async getProfessionalPaymentsHistory(id: string) {
+		return await UserRepository.getProfessionalPaymentsHistory(id);
 	}
-) {
-	const name = data.name.trim();
-	const specialty = data.specialty.trim();
-	const crmCrp = data.crmCrp.trim().toUpperCase();
-	const email = data.email.trim().toLowerCase();
-	const phone = data.phone.trim();
+	
 
-	if (name.length < 3) {
-		throw createHttpError(400, "bad_request", "Nome invalido.");
-	}
-	if (!specialty) {
-		throw createHttpError(400, "bad_request", "Especialidade invalida.");
-	}
 
-	if (!/^\d{5}-[A-Z]{2}$/.test(crmCrp)) {
-		throw createHttpError(400, "bad_request", "Formato de CRM/CRP invalido.");
+	public static async verifyCurrentPasswordMatchById(
+		professionalId  : string,
+		currentPassword : string,
+	): Promise<boolean> {
+		const user = await UserRepository.getUserById(professionalId);
+	
+		if (!user) {
+			throw createHttpError(401, "unauthorized", "Usuário não existe!");
+		}
+	
+		const passwordIsValid = await bcrypt.compare(currentPassword, user.passwordHash);
+		
+		if (!passwordIsValid) return false; 
+	
+		return true;
 	}
+	
 
-	if (!email) {
-		throw createHttpError(400, "bad_request", "E-mail invalido.");
+	
+	public static async changeProfessionalPasswordById(
+		professionalId : string,
+		newPassword    : string,
+	) {
+		const user = await UserRepository.getUserById(professionalId);
+	
+		if (!user) {
+			throw createHttpError(401, "unauthorized", "Usuário não existe!");
+		}
+	
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
+	
+		return await UserRepository.changeProfessionalPasswordById(
+			professionalId,
+			hashedPassword,
+		);
 	}
+	
 
-	if (!/^\([1-9]{2}\) [0-9]{4,5}-[0-9]{4}$/.test(phone) && phone) {
-		throw createHttpError(400, "bad_request", "Formato de telefone invalido.");
-	}
 
-	await prisma.user.update({
-		where: { id: userId },
-		data: {
+	public static async updateProfileById(
+		userId : string,
+		data   : UpdateProfile
+	) {
+		const name = data.name.trim();
+		const specialty = data.specialty.trim();
+		const crmCrp = data.crmCrp.trim().toUpperCase();
+		const email = data.email.trim().toLowerCase();
+		const phone = data.phone.trim();
+	
+		if (name.length < 3) {
+			throw createHttpError(400, "bad_request", "Nome invalido.");
+		} if (!specialty) {
+			throw createHttpError(400, "bad_request", "Especialidade invalida.");
+		} if (!/^\d{5}-[A-Z]{2}$/.test(crmCrp)) {
+			throw createHttpError(400, "bad_request", "Formato de CRM/CRP invalido.");
+		} if (!email) {
+			throw createHttpError(400, "bad_request", "E-mail invalido.");
+		} if (!/^\([1-9]{2}\) [0-9]{4,5}-[0-9]{4}$/.test(phone) && phone) {
+			throw createHttpError(400, "bad_request", "Formato de telefone invalido.");
+		}
+	
+		await UserRepository.updateProfileById(
+			userId,
 			name,
 			specialty,
 			crmCrp,
 			email,
 			phone,
-			...(data.profileImage !== undefined ? { displayImage: data.profileImage } : {}),
-		},
-	});
-
-	return buildProfileResponse(userId);
+			data
+		);
+	
+		return this.buildProfileResponse(userId);
+	}
 }
+

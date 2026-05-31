@@ -1,16 +1,16 @@
 import { Router } from "express";
-import { changeProfessionalPasswordController, getProfessionalPaymentHistoryController, meController, storePaymentToPaymentHistoryController, updateMeController, updateMeImageController, verifyCurrentPasswordMatchController } from "./controller";
+import { UserController } from "./controller";
 
 const userRoutes = Router();
 
-userRoutes.get("/me", meController);
-userRoutes.put("/me", updateMeController);
-userRoutes.patch("/me", updateMeController);
-userRoutes.post("/:professionalId/verifyCurrentPasswordMatch", verifyCurrentPasswordMatchController);
-userRoutes.post("/:professionalId/changePassword", changeProfessionalPasswordController);
-userRoutes.patch("/me/image", updateMeImageController);
-userRoutes.post("/payments/storage", storePaymentToPaymentHistoryController);
-userRoutes.get("/payments/:professionalId", getProfessionalPaymentHistoryController);
+userRoutes.get("/me"                                          , UserController.me);
+userRoutes.put("/me"                                          , UserController.updateMe);
+userRoutes.patch("/me"                                        , UserController.updateMe);
+userRoutes.post("/:professionalId/verifyCurrentPasswordMatch" , UserController.verifyCurrentPasswordMatch);
+userRoutes.post("/:professionalId/changePassword"             , UserController.changeProfessionalPassword);
+userRoutes.patch("/me/image"                                  , UserController.updateMeImage);
+userRoutes.post("/payments/storage"                           , UserController.storePaymentToPaymentHistory);
+userRoutes.get("/payments/:professionalId"                    , UserController.getProfessionalPaymentHistory);
 
 
 export default userRoutes;
