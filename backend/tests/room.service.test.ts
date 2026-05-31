@@ -19,7 +19,7 @@ vi.mock("../src/lib/prisma", () => ({
 // ─── Imports ────────────────────────────────────────────────────────────────
 
 import prisma from "../src/lib/prisma";
-import { createRoomRental, getRoomsList, getUserRentals } from "../src/modules/room/service";
+import { RoomService } from "../src/modules/room/service";
 
 const FIXED_NOW = new Date("2026-04-25T12:00:00.000Z");
 
@@ -100,7 +100,7 @@ describe("room service", () => {
     it("maps room list response to the client contract", async () => {
       vi.mocked(prisma.room.findMany).mockResolvedValueOnce([makeRoomListItem()] as never);
 
-      const rooms = await getRoomsList();
+      const rooms = await RoomService.getRoomsList();
 
       expect(rooms).toEqual([
         {
@@ -153,7 +153,7 @@ describe("room service", () => {
         }),
       ] as never);
 
-      const rooms = await getRoomsList();
+      const rooms = await RoomService.getRoomsList();
 
       expect(rooms).toHaveLength(2);
       expect(rooms[0]).toEqual(
@@ -185,7 +185,7 @@ describe("room service", () => {
     it("propagates Prisma failures", async () => {
       vi.mocked(prisma.room.findMany).mockRejectedValueOnce(new Error("DB error"));
 
-      await expect(getRoomsList()).rejects.toThrow("DB error");
+      await expect(RoomService.getRoomsList()).rejects.toThrow("DB error");
     });
 
     it("maps zeroed prices when room has no price table", async () => {
@@ -196,7 +196,7 @@ describe("room service", () => {
         }),
       ] as never);
 
-      const rooms = await getRoomsList();
+      const rooms = await RoomService.getRoomsList();
 
       expect(rooms[0]).toEqual(
         expect.objectContaining({
@@ -219,7 +219,7 @@ describe("room service", () => {
       vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: true } as never);
       vi.mocked(prisma.roomRental.create).mockResolvedValueOnce(makeRentalRecord() as never);
 
-      const rental = await createRoomRental({
+      const rental = await RoomService.createRoomRental({
         professionalId: "prof-1",
         roomId: "room-1",
         allocationType: "WEEK",
@@ -276,7 +276,7 @@ describe("room service", () => {
         }) as never
       );
 
-      const rental = await createRoomRental({
+      const rental = await RoomService.createRoomRental({
         professionalId: "prof-1",
         roomId: "room-3",
         allocationType: "DAILY",
@@ -326,7 +326,7 @@ describe("room service", () => {
         }) as never
       );
 
-      const rental = await createRoomRental({
+      const rental = await RoomService.createRoomRental({
         professionalId: "prof-1",
         roomId: "room-4",
         allocationType: "MONTH",
@@ -360,7 +360,7 @@ describe("room service", () => {
       vi.mocked(prisma.roomRental.findFirst).mockResolvedValueOnce({ id: "rental-conflict" } as never);
 
       await expect(
-        createRoomRental({
+        RoomService.createRoomRental({
           professionalId: "prof-1",
           roomId: "room-1",
           allocationType: "WEEK",
@@ -379,7 +379,7 @@ describe("room service", () => {
       vi.mocked(prisma.room.findUnique).mockResolvedValueOnce({ isAvailable: false } as never);
 
       await expect(
-        createRoomRental({
+        RoomService.createRoomRental({
           professionalId: "prof-1",
           roomId: "room-1",
           allocationType: "WEEK",
@@ -404,7 +404,7 @@ describe("room service", () => {
     it("returns an empty array when there are no rentals", async () => {
       vi.mocked(prisma.roomRental.findMany).mockResolvedValueOnce([] as never);
 
-      const rentals = await getUserRentals("prof-1");
+      const rentals = await RoomService.getUserRentals("prof-1");
 
       expect(rentals).toEqual([]);
     });
@@ -412,13 +412,13 @@ describe("room service", () => {
     it("propagates Prisma failures", async () => {
       vi.mocked(prisma.roomRental.findMany).mockRejectedValueOnce(new Error("DB error"));
 
-      await expect(getUserRentals("prof-1")).rejects.toThrow("DB error");
+      await expect(RoomService.getUserRentals("prof-1")).rejects.toThrow("DB error");
     });
 
     it("marks rentals as active when now is between startDate and endDate", async () => {
       vi.mocked(prisma.roomRental.findMany).mockResolvedValueOnce([makeRentalListItem()] as never);
 
-      const rentals = await getUserRentals("prof-1");
+      const rentals = await RoomService.getUserRentals("prof-1");
 
       expect(rentals).toEqual([
         expect.objectContaining({
@@ -458,7 +458,7 @@ describe("room service", () => {
         }),
       ] as never);
 
-      const rentals = await getUserRentals("prof-1");
+      const rentals = await RoomService.getUserRentals("prof-1");
 
       expect(rentals[0]).toEqual(
         expect.objectContaining({
@@ -492,7 +492,7 @@ describe("room service", () => {
         }),
       ] as never);
 
-      const rentals = await getUserRentals("prof-1");
+      const rentals = await RoomService.getUserRentals("prof-1");
 
       expect(rentals[0]).toEqual(
         expect.objectContaining({
@@ -526,7 +526,7 @@ describe("room service", () => {
         }),
       ] as never);
 
-      const rentals = await getUserRentals("prof-1");
+      const rentals = await RoomService.getUserRentals("prof-1");
 
       expect(rentals[0]).toEqual(
         expect.objectContaining({
@@ -563,7 +563,7 @@ describe("room service", () => {
         }),
       ] as never);
 
-      const rentals = await getUserRentals("prof-1");
+      const rentals = await RoomService.getUserRentals("prof-1");
 
       expect(rentals[0]).toEqual(
         expect.objectContaining({

@@ -31,15 +31,7 @@ vi.mock("bcrypt", () => ({
 }));
 
 import prisma from "../src/lib/prisma";
-import {
-  changeProfessionalPasswordById,
-  getProfessionalPaymentsHistory,
-  getProfileById,
-  storePaymentHistory,
-  updateProfileById,
-  updateProfileImageById,
-  verifyCurrentPasswordMatchById,
-} from "../src/modules/user/service";
+import { UserService } from "../src/modules/user/service";
 
 const makeDbUser = (overrides = {}) => ({
   id: "prof-1",
@@ -67,7 +59,7 @@ describe("user service", () => {
     it("returns null when user does not exist", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null as never);
 
-      const profile = await getProfileById("missing-user");
+      const profile = await UserService.getProfileById("missing-user");
 
       expect(profile).toBeNull();
       expect(prisma.session.count).not.toHaveBeenCalled();
@@ -87,7 +79,7 @@ describe("user service", () => {
         } as never
       );
 
-      const profile = await getProfileById("prof-1");
+      const profile = await UserService.getProfileById("prof-1");
 
       expect(profile).toEqual(
         expect.objectContaining({
@@ -121,7 +113,7 @@ describe("user service", () => {
         { _sum: { totalPrice: null } } as never
       );
 
-      const profile = await updateProfileImageById("prof-1", null);
+      const profile = await UserService.updateProfileImageById("prof-1", null);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: "prof-1" },
@@ -139,7 +131,7 @@ describe("user service", () => {
         { id: "payment-1" } as never
       );
 
-      await storePaymentHistory({
+      await UserService.storePaymentHistory({
         from: "ROOM_RENTAL",
         paymentMethod: "PIX",
         professionalId: "prof-1",
@@ -161,7 +153,7 @@ describe("user service", () => {
     it("queries payment history by professional id omitting updatedAt", async () => {
       vi.mocked(prisma.paymentHistory.findMany).mockResolvedValueOnce([] as never);
 
-      const history = await getProfessionalPaymentsHistory("prof-1");
+      const history = await UserService.getProfessionalPaymentsHistory("prof-1");
 
       expect(history).toEqual([]);
       expect(prisma.paymentHistory.findMany).toHaveBeenCalledWith({
@@ -180,7 +172,7 @@ describe("user service", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null as never);
 
       await expect(
-        verifyCurrentPasswordMatchById("missing-user", "12345678")
+        UserService.verifyCurrentPasswordMatchById("missing-user", "12345678")
       ).rejects.toMatchObject({
         statusCode: 401,
         code: "unauthorized",
@@ -192,7 +184,7 @@ describe("user service", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(makeDbUser() as never);
       vi.mocked(bcrypt.compare).mockResolvedValueOnce(false as never);
 
-      const isValid = await verifyCurrentPasswordMatchById("prof-1", "wrong-password");
+      const isValid = await UserService.verifyCurrentPasswordMatchById("prof-1", "wrong-password");
 
       expect(isValid).toBe(false);
     });
@@ -201,7 +193,7 @@ describe("user service", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(makeDbUser() as never);
       vi.mocked(bcrypt.compare).mockResolvedValueOnce(true as never);
 
-      const isValid = await verifyCurrentPasswordMatchById("prof-1", "correct-password");
+      const isValid = await UserService.verifyCurrentPasswordMatchById("prof-1", "correct-password");
 
       expect(isValid).toBe(true);
     });
@@ -212,7 +204,7 @@ describe("user service", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null as never);
 
       await expect(
-        changeProfessionalPasswordById("missing-user", "new-pass")
+        UserService.changeProfessionalPasswordById("missing-user", "new-pass")
       ).rejects.toMatchObject({
         statusCode: 401,
         code: "unauthorized",
@@ -226,7 +218,7 @@ describe("user service", () => {
         makeDbUser({ passwordHash: "new-hash" }) as never
       );
 
-      await changeProfessionalPasswordById("prof-1", "new-pass");
+      await UserService.changeProfessionalPasswordById("prof-1", "new-pass");
 
       expect(bcrypt.hash).toHaveBeenCalledWith("new-pass", 10);
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -243,7 +235,7 @@ describe("user service", () => {
   describe("updateProfileById", () => {
     it("validates name minimum length", async () => {
       await expect(
-        updateProfileById("prof-1", {
+        UserService.updateProfileById("prof-1", {
           name: "An",
           specialty: "Psicologia",
           crmCrp: "12345-SP",
@@ -259,7 +251,7 @@ describe("user service", () => {
 
     it("validates empty specialty", async () => {
       await expect(
-        updateProfileById("prof-1", {
+        UserService.updateProfileById("prof-1", {
           name: "Ana Silva",
           specialty: " ",
           crmCrp: "12345-SP",
@@ -275,7 +267,7 @@ describe("user service", () => {
 
     it("validates crm format", async () => {
       await expect(
-        updateProfileById("prof-1", {
+        UserService.updateProfileById("prof-1", {
           name: "Ana Silva",
           specialty: "Psicologia",
           crmCrp: "1234-SP",
@@ -291,7 +283,7 @@ describe("user service", () => {
 
     it("validates empty email", async () => {
       await expect(
-        updateProfileById("prof-1", {
+        UserService.updateProfileById("prof-1", {
           name: "Ana Silva",
           specialty: "Psicologia",
           crmCrp: "12345-SP",
@@ -307,7 +299,7 @@ describe("user service", () => {
 
     it("validates phone format when non-empty", async () => {
       await expect(
-        updateProfileById("prof-1", {
+        UserService.updateProfileById("prof-1", {
           name: "Ana Silva",
           specialty: "Psicologia",
           crmCrp: "12345-SP",
@@ -338,7 +330,7 @@ describe("user service", () => {
         { _sum: { totalPrice: "90.00" } } as never
       );
 
-      const profile = await updateProfileById("prof-1", {
+      const profile = await UserService.updateProfileById("prof-1", {
         name: "  Ana Clara  ",
         specialty: "  Psicologia  ",
         crmCrp: " 12345-sp ",
@@ -370,7 +362,7 @@ describe("user service", () => {
         { _sum: { totalPrice: null } } as never
       );
 
-      await updateProfileById("prof-1", {
+      await UserService.updateProfileById("prof-1", {
         name: "Ana Silva",
         specialty: "Psicologia",
         crmCrp: "12345-SP",

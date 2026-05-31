@@ -43,14 +43,7 @@ vi.mock("jsonwebtoken", () => ({
 import prisma from "../src/lib/prisma";
 import { generateOpaqueToken } from "../src/lib/token";
 import { sendPasswordResetCodeEmail } from "../src/lib/mailer";
-import {
-  login,
-  refreshSession,
-  register,
-  requestPasswordReset,
-  resetPassword,
-  verifyResetCode,
-} from "../src/modules/auth/service";
+import { AuthService } from "../src/modules/auth/service";
 
 // ─── Factories ───────────────────────────────────────────────────────────────
 
@@ -110,7 +103,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
       vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
 
-      const response = await register(REGISTER_PAYLOAD);
+      const response = await AuthService.register(REGISTER_PAYLOAD);
 
       expect(response.token).toBe("access-token");
       expect(response.refreshToken).toBe("opaque-token");
@@ -122,7 +115,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
       vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
 
-      await register(REGISTER_PAYLOAD);
+      await AuthService.register(REGISTER_PAYLOAD);
 
       expect(prisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -138,7 +131,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
       vi.mocked(prisma.user.create).mockResolvedValue(makeUser({ emailVerifiedAt: null }) as never);
 
-      await register(REGISTER_PAYLOAD);
+      await AuthService.register(REGISTER_PAYLOAD);
 
       expect(bcrypt.hash).toHaveBeenCalledWith("12345678", expect.any(Number));
     });
@@ -152,7 +145,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      const response = await login(LOGIN_PAYLOAD);
+      const response = await AuthService.login(LOGIN_PAYLOAD);
 
       expect(response.token).toBe("access-token");
       expect(response.refreshToken).toBe("opaque-token");
@@ -163,7 +156,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      await login(LOGIN_PAYLOAD);
+      await AuthService.login(LOGIN_PAYLOAD);
 
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -185,7 +178,7 @@ describe("auth service", () => {
       );
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      const response = await refreshSession({ refreshToken: "opaque-token" });
+      const response = await AuthService.refreshSession({ refreshToken: "opaque-token" });
 
       expect(response.token).toBe("access-token");
       expect(response.refreshToken).toBe("opaque-token");
@@ -201,7 +194,7 @@ describe("auth service", () => {
       vi.mocked(generateOpaqueToken).mockReturnValueOnce("opaque-token-2");
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      const response = await refreshSession({ refreshToken: "opaque-token" });
+      const response = await AuthService.refreshSession({ refreshToken: "opaque-token" });
 
       expect(response.refreshToken).toBe("opaque-token-2");
 
@@ -220,7 +213,7 @@ describe("auth service", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(makeUser() as never);
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      const response = await requestPasswordReset({ email: "ana@teste.com" });
+      const response = await AuthService.requestPasswordReset({ email: "ana@teste.com" });
 
       expect(response.message).toBe("Se esse e-mail estiver cadastrado, enviaremos um código de redefinição.");
       expect(prisma.user.update).toHaveBeenCalledWith(
@@ -237,7 +230,7 @@ describe("auth service", () => {
     it("does not reveal if the email exists", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
 
-      const response = await requestPasswordReset({ email: "inexistente@teste.com" });
+      const response = await AuthService.requestPasswordReset({ email: "inexistente@teste.com" });
 
       expect(response).toEqual({
         message: "Se esse e-mail estiver cadastrado, enviaremos um código de redefinição.",
@@ -259,7 +252,7 @@ describe("auth service", () => {
       );
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      const response = await verifyResetCode({ email: "ana@teste.com", code: "123456" });
+      const response = await AuthService.verifyResetCode({ email: "ana@teste.com", code: "123456" });
 
       expect(response).toEqual({
         message: "Código de redefinição validado!",
@@ -287,7 +280,7 @@ describe("auth service", () => {
         );
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      await expect(verifyResetCode({ email: "ana@teste.com", code: "123456" })).rejects.toMatchObject({
+      await expect(AuthService.verifyResetCode({ email: "ana@teste.com", code: "123456" })).rejects.toMatchObject({
         statusCode: 401,
         code: "unauthorized",
       });
@@ -311,7 +304,7 @@ describe("auth service", () => {
         );
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      await expect(verifyResetCode({ email: "ana@teste.com", code: "123456" })).rejects.toMatchObject({
+      await expect(AuthService.verifyResetCode({ email: "ana@teste.com", code: "123456" })).rejects.toMatchObject({
         statusCode: 401,
         code: "unauthorized",
       });
@@ -341,7 +334,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("new-hash" as never);
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      const response = await resetPassword({
+      const response = await AuthService.resetPassword({
         sessionToken: "opaque-token",
         password: "87654321",
         repeatPassword: "87654321",
@@ -360,7 +353,7 @@ describe("auth service", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("new-hash" as never);
       vi.mocked(prisma.user.update).mockResolvedValue({} as never);
 
-      await resetPassword({
+      await AuthService.resetPassword({
         sessionToken: "opaque-token",
         password: "87654321",
         repeatPassword: "87654321",
