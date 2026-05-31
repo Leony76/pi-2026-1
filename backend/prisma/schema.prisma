@@ -124,7 +124,7 @@ model Patient {
   name           String
   phone          String
   email          String?
-  initialDate    DateTime
+  initialDate    DateTime?
   observations   String?
   status         PatientStatus @default(ACTIVE)
   nextSessionAt  DateTime?
@@ -236,16 +236,16 @@ model Session {
   id             String   @id @default(uuid())
   patientId      String
   professionalId String
-  roomId         String
+  roomId         String?
   startsAt       DateTime
   endsAt         DateTime
-  price          Decimal  @db.Decimal(10, 2)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  price          Decimal?  @db.Decimal(10, 2)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  patient      Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  professional User    @relation("ProfessionalSessions", fields: [professionalId], references: [id], onDelete: Cascade)
-  room         Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professional User     @relation("ProfessionalSessions", fields: [professionalId], references: [id], onDelete: Cascade)
+  room         Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
   @@index([professionalId])

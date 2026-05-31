@@ -1,6 +1,6 @@
 import { UserRentalTotalPrice } from "../../../types/room/userRentalTotalPrice.type";
 import { UserInfos } from "../../../types/user/userInfos.type";
-import { normalizeSpecialty } from "../../shared/specialty";
+import { normalizeSpecialty } from "../../../utils/normalizeSpecialty.util";
 
 export const buildProfileMapper = (
   user: UserInfos,

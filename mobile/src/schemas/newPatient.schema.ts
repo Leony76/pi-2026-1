@@ -15,12 +15,15 @@ export const newPatientSchema = z.object({
     .max(255, 'O e-mail deve ter até 255 caracteres')
     .optional()
     .or(z.literal('')),
-  initialDate: z
+  date: z
     .string()
-    .min(1, 'A data de início deve ser fornecida'),
-  initialHour: z
+    .min(1, 'A data deve ser fornecida'),
+  startHour: z
     .string()
     .min(1, 'O horário deve ser selecionado'),
+  endHour: z
+    .string()
+    .min(1, "O horário final deve ser selecionado"),
   observations: z
     .string()
     .min(3, 'A observação deve ter 3 caracteres no mínimo')

@@ -9,6 +9,9 @@ import { useRouter } from 'expo-router';
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
 import { parseLocalDate } from '@/utils/parseLocalDate';
 import { addHoursToStringDate } from '@/utils/addHoursToStringDate';
+import { formatDayMonth } from '@/utils/formatDayMonth';
+import { formatHour } from '@/utils/formatHour';
+import { formatDate } from '@/utils/formatDate';
 
 type BaseProps = {
   separationRow? : boolean;
@@ -36,7 +39,7 @@ const Patient = (props:Props): React.JSX.Element => {
   ;
 
   const session = props.from === 'ACTIVES'
-  ? formatSessionDate(addHoursToStringDate(props.nextSession, 3))
+  ? `${formatDate(props.nextSession.startHour)} - ${formatHour(props.nextSession.startHour)} às ${formatHour(props.nextSession.endHour)}`
   : parseLocalDate(props.lastSession).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',

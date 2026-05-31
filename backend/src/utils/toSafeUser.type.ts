@@ -1,4 +1,4 @@
-import { normalizeSpecialty } from "../modules/shared/specialty";
+import { normalizeSpecialty } from "./normalizeSpecialty.util";
 import { SafeUser } from "../types/auth/safeUser.type";
 
 export function toSafeUser(user: {

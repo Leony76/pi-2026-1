@@ -71,7 +71,7 @@ const NextSessions = (): React.JSX.Element => {
   }, [id, token, refreshToken, updateTokens, signOut]);
 
   const filteredPatientNextSessions = sessions?.filter((session) => 
-    session.room.toLocaleLowerCase().includes(searchValue?.toLocaleLowerCase() ?? '')
+    session.room?.toLocaleLowerCase().includes(searchValue?.toLocaleLowerCase() ?? '')
   );
 
   return (

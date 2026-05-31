@@ -5,10 +5,10 @@ import { toNumber } from "../../../utils/toNumber.util";
 type Session = {
   startsAt: Date;
   endsAt: Date;
-  price: Decimal;
+  price: Decimal | null;
   room: {
       title: string;
-  };
+  } | null;
 }
 
 type MapperRequest = {
@@ -39,13 +39,13 @@ export const getPatientMapper = (
           ? null
           : {
               lastOneDate: (patient.lastSession!.startsAt).toISOString(),
-              valueByEach: patient.lastSession ? toNumber(patient.lastSession.price) : 0,
+              valueByEach: patient.lastSession ? toNumber(patient.lastSession.price ?? 0) : 0,
               totalGenerated: patient.totalGenerated,
             },
     },
     sessions: patient.upcomingSessions.map((session) => ({
       date: session.startsAt.toISOString(),
-      room: session.room.title,
+      room: session.room?.title,
       hour: {
         start: session.startsAt.toISOString(),
         end: session.endsAt.toISOString(),

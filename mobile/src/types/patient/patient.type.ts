@@ -1,7 +1,10 @@
 export type Patient = {
   readonly id : string;
   name        : string;
-  nextSession : string;
+  nextSession: {
+    startHour: string;
+    endHour: string;
+  }
   status      : 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 };
 

@@ -13,6 +13,11 @@ import { formatSessionDate } from '@/utils/formatSessionDate'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { RoomRental } from '@/types/room/roomRental.type'
 import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { formatDayMonth } from '@/utils/formatDayMonth'
+import { formatFullDayRange } from '@/utils/formatFullDayRange'
+import { Allocation } from '@/types/room/allocation.type'
+import { formatDayMonthYear } from '@/utils/formatDayMonthYear'
+import { formatDate } from '@/utils/formatDate'
 
 const schedules = (): React.JSX.Element => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
@@ -92,13 +97,24 @@ const schedules = (): React.JSX.Element => {
   const now = new Date();
   const getRentalEnd = (rental: RoomRental) => new Date(rental.endDate);
 
-  const getAllocationLabel = (allocationType: RoomRental['allocationType']) => {
+  const getAllocationLabel = (allocationType: Allocation) => {
     switch (allocationType) {
       case 'DAILY' : return 'Por dia';
       case 'MONTH' : return 'Mensal';
       default      : return 'Por semana';
     }
   };
+
+  const occupationPeriodDisplayFormatByAllocationType = (
+    allocationType : Allocation,
+    startDate      : string | Date,
+    endDate        : string | Date,
+  ) => {
+    switch (allocationType) {
+      case 'DAILY' : return formatFullDayRange(startDate, true);
+      default      : return formatDate(startDate) + ' à ' + formatDate(endDate);   
+    }
+  } 
 
   const activeRentals = rentals.filter(r => {
     const end = getRentalEnd(r);
@@ -144,7 +160,13 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(rental.startDate)}
+                          { 
+                            occupationPeriodDisplayFormatByAllocationType(
+                              rental.allocationType,
+                              rental.startDate,
+                              rental.endDate,
+                            ) 
+                          }
                         </Text>
                       </View>
                     </View>

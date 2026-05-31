@@ -3,7 +3,10 @@ import { CreatePatientInput } from "../../types/patient/createPatientInput.type"
 
 export class PatientRepository {
 
-	public static async getActivePatients(professionalId: string, limit?: number) {
+	public static async getActivePatients(
+		professionalId: string, 
+		limit?: number
+	) {
 		return await prisma.patient.findMany({
 			where: {
 				professionalId,
@@ -27,6 +30,7 @@ export class PatientRepository {
 					take: 1,
 					select: {
 						startsAt: true,
+						endsAt: true,
 					},
 				},
 			},
@@ -106,7 +110,10 @@ export class PatientRepository {
 	
 	
 	
-	public static async createPatient(professionalId: string, data: CreatePatientInput) {
+	public static async createPatient(
+		professionalId: string, 
+		data: CreatePatientInput
+	) {
     const name = data.name?.trim();
 		const phone = data.phone?.trim();
 		const email = data.email?.trim() || null;
@@ -119,8 +126,14 @@ export class PatientRepository {
 				phone,
 				email,
 				observations,
-				initialDate: data.initialDate,
 				status: "ACTIVE",
+				sessions: {
+					create: {
+						startsAt       : data.startHour,
+						endsAt         : data.endHour,		
+						professionalId : data.professionalId,
+					}
+				}
 			},
 			select: {
 				id: true,

@@ -3,7 +3,7 @@ import prisma from "../../lib/prisma";
 import { createHttpError } from "../../lib/http-error";
 import { sendPasswordResetCodeEmail } from "../../lib/mailer";
 import { generateOpaqueToken } from "../../lib/token";
-import { normalizeSpecialty } from "../shared/specialty";
+import { normalizeSpecialty } from "../../utils/normalizeSpecialty.util"; 
 import { RegisterInput } from "../../types/auth/registerInput.type";
 import { AuthResponse } from "../../types/auth/authResponse.type";
 import { EmailVerificationRequestInput } from "../../types/auth/emailVerificationRequestInput.type";

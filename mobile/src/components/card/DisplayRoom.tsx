@@ -113,7 +113,6 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
 
           <Button.Default
             label='Editar sala'
-            /// @ts-ignore
             onTouch={() => router.push(`/(authenticated)/(enterprise)/rooms/edit/${props.id}`)}
             icon={{ name: 'edit', size: { height: 20, width: 20 } }}
           />
@@ -165,6 +164,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
       pathname: '/(authenticated)/(professional)/roomRentalWizard',
       params: {
         roomId            : props.id, 
+        roomDisplayImage  : props.displayImage,
         isAvailable       : String(props.isAvailable),
         title             : props.title,
         complementaryData : JSON.stringify(props.complementaryData),
@@ -172,7 +172,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
       }
     }} 
     >
-      {content}
+      { content }
     </Link>
   )
 }

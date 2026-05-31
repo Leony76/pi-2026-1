@@ -1,7 +1,6 @@
 import { createHttpError } from "../../lib/http-error";
 import { toNumber } from "../../utils/toNumber.util";
 import { CreatePatientInput } from "../../types/patient/createPatientInput.type";
-import { parseDateOrThrow } from "../../utils/parseDateOrThrow.util";
 import { PatientRepository } from "./repository";
 import { getPatientMapper } from "./mappers/getPatient.mapper";
 
@@ -12,13 +11,19 @@ export class PatientService {
 		const patients = await PatientRepository.getActivePatients(professionalId, limit);
 	
 		return patients.map((patient) => {
-			const next = patient.nextSessionAt ?? patient.sessions[0]?.startsAt ?? null;
+			const nextSession = {
+				startHour: patient.sessions[0]?.startsAt ?? null,
+				endHour: patient.sessions[0]?.endsAt ?? null,
+			} 
 	
 			return {
 				id: patient.id,
 				name: patient.name,
 				status: patient.status,
-				nextSession: next ? next.toISOString() : null,
+				nextSession: {
+					startHour : nextSession.startHour?.toISOString(),
+					endHour   : nextSession.endHour?.toISOString(),
+				}
 			};
 		});
 	}
@@ -51,7 +56,7 @@ export class PatientService {
 		const completedSessions = patient.sessions.filter((session) => session.startsAt <= now);
 		const upcomingSessions = patient.sessions.filter((session) => session.startsAt > now);
 		const lastSession = completedSessions[completedSessions.length - 1];
-		const totalGenerated = completedSessions.reduce((acc, session) => acc + toNumber(session.price), 0);
+		const totalGenerated = completedSessions.reduce((acc, session) => acc + toNumber(session.price ?? 0), 0);
 	
 		return getPatientMapper({
 			...patient,
@@ -64,7 +69,10 @@ export class PatientService {
 	
 	
 	
-	public static async createPatient(professionalId: string, data: CreatePatientInput) {
+	public static async createPatient(
+		professionalId: string, 
+		data: CreatePatientInput
+	) {
 		const name = data.name?.trim();
 		const phone = data.phone?.trim();
 		const email = data.email?.trim() || null;
@@ -75,11 +83,12 @@ export class PatientService {
 		} if (!phone) {
 			throw createHttpError(400, "bad_request", "Telefone invalido.");
 		} 
-	
-		const initialDate = parseDateOrThrow(String(data.initialDate), "initialDate");
+
 	
 		const createdPatient = await PatientRepository.createPatient(professionalId, {
-			initialDate,
+			professionalId: data.professionalId,
+			startHour: data.startHour,
+			endHour: data.endHour,
 			name,
 			phone,
 			email,
@@ -88,7 +97,7 @@ export class PatientService {
 	
 		return {
 			...createdPatient,
-			initialDate: createdPatient.initialDate.toISOString(),
+			initialDate: createdPatient.initialDate?.toISOString(),
 			createdAt: createdPatient.createdAt.toISOString(),
 		};
 	}
