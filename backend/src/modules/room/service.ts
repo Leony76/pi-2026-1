@@ -22,7 +22,7 @@ import { createRoomPayloadMapper } from "./mappers/createRoomPayload.mapper";
 
 export class RoomService {
 
-	public static async getEnterpriseDashboard(userId: string): Promise<EnterpriseDashboardResponse> {
+	public static async getEnterpriseDashboard(userId: string) {
 		const user = await RoomRepository.getUserAccountTypeById(userId);
 	
 		if (!user) {

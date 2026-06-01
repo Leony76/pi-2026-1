@@ -1,4 +1,3 @@
-import { Button } from '@/components/button'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag'
@@ -11,7 +10,6 @@ import { AuthHandlers } from '@/types/auth/authHandlers.type'
 import { PatientInfos } from '@/types/patient/patient.type'
 import { formatDate } from '@/utils/formatDate'
 import { formatHour } from '@/utils/formatHour'
-import { priceFormat } from '@/utils/priceFormat'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
@@ -85,7 +83,7 @@ const PatientDetails = (): React.JSX.Element => {
       description={displayName ? 'Paciente ativo(a)' : 'Paciente inexistente'}
       tab='PATIENTS'
       layoutType='PROFESSIONAL'    
-      goBack={() => router.push('/(authenticated)/(professional)/patients')}
+      goBack={() => router.push('/(authenticated)/(professional)/patients/actives')}
       >
         {isLoading ? (
           <View className='flex-1 justify-center items-center'>
@@ -127,21 +125,7 @@ const PatientDetails = (): React.JSX.Element => {
             />
           </Section>
 
-          <Section 
-          title='Próximas sessões'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.replace({
-                pathname: '/(authenticated)/(professional)/patients/[id]/nextSessions',
-                params: {
-                  id: patient?.id!,
-                },
-              })}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
-          >
+          <Section title='Próxima sessão'>
             <View className="gap-3">
               {patient?.sessions && patient.sessions.length > 0 ? (
                 patient.sessions.slice(0, 2).map((item, index) => (
@@ -168,38 +152,7 @@ const PatientDetails = (): React.JSX.Element => {
                 <ContentNotFound text='Nenhuma sessão encontrada'/>
               )}
             </View>
-          </Section>
-
-          <Section title='Histórico de sessões'>
-            <Label___Value
-              label='Total realizadas'
-              value={{ _: String(patient?.sessionHistory?.totalMade ?? 0) }}
-              separationRow
-            />
-
-            <Label___Value
-              label='Última sessão'
-              value={{ _: patient?.sessionHistory?.session?.lastOneDate ? formatDate(patient.sessionHistory.session.lastOneDate) : '[ Data não provida ]' }}
-              separationRow
-            />
-
-            <Label___Value
-              label='Valor por sessão'
-              value={{ 
-                _: priceFormat(patient?.sessionHistory?.session?.valueByEach ?? 0),
-                color: 'text-green-600',
-              }}
-              separationRow
-            />
-
-            <Label___Value
-              label='Total gerado'
-              value={{ 
-                _: priceFormat(patient?.sessionHistory?.session?.totalGenerated ?? 0),
-                color: 'text-green-600',
-              }}
-            />
-          </Section>
+          </Section>      
         </ScrollView>
         )}
       </SystemLayout>
@@ -208,3 +161,36 @@ const PatientDetails = (): React.JSX.Element => {
 }
 
 export default PatientDetails
+
+// Cortado //
+
+{/* <Section title='Histórico de sessões'>
+  <Label___Value
+    label='Total realizadas'
+    value={{ _: String(patient?.sessionHistory?.totalMade ?? 0) }}
+    separationRow
+  />
+
+  <Label___Value
+    label='Última sessão'
+    value={{ _: patient?.sessionHistory?.session?.lastOneDate ? formatDate(patient.sessionHistory.session.lastOneDate) : '-' }}
+    separationRow
+  />
+
+  <Label___Value
+    label='Valor por sessão'
+    value={{ 
+      _: priceFormat(patient?.sessionHistory?.session?.valueByEach ?? 0),
+      color: 'text-green-600',
+    }}
+    separationRow
+  />
+
+  <Label___Value
+    label='Total gerado'
+    value={{ 
+      _: priceFormat(patient?.sessionHistory?.session?.totalGenerated ?? 0),
+      color: 'text-green-600',
+    }}
+  />
+</Section> */}

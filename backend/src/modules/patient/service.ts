@@ -19,7 +19,7 @@ export class PatientService {
 			return {
 				id: patient.id,
 				name: patient.name,
-				status: patient.status,
+				status: 'ACTIVE',
 				nextSession: {
 					startHour : nextSession.startHour?.toISOString(),
 					endHour   : nextSession.endHour?.toISOString(),
@@ -29,6 +29,17 @@ export class PatientService {
 	}
 	
 	
+
+	public static async getOccupiedHours(
+		professionalId: string,
+		date: Date
+	) {
+		return PatientRepository.getOccupiedHours(
+			professionalId,
+			date
+		);
+	}
+
 	
 	public static async getPatientHistory(professionalId: string, limit?: number) {
 	
@@ -37,8 +48,11 @@ export class PatientService {
 		return patients.map((patient) => ({
 			id: patient.id,
 			patientName: patient.name,
-			lastSession: (patient.sessions[0]?.startsAt ?? patient.updatedAt).toISOString(),
-			status: "CLOSED" as const,
+			status: 'CLOSED',
+			lastSession: {
+				startHour : patient.sessions[0]?.startsAt.toISOString(),
+				endHour   : patient.sessions[0]?.endsAt.toISOString(),
+			}
 		}));
 	}
 	
@@ -84,6 +98,15 @@ export class PatientService {
 			throw createHttpError(400, "bad_request", "Telefone invalido.");
 		} 
 
+		const conflict = await PatientRepository.existsSessionConflict(
+			professionalId,
+			data.startHour,
+			data.endHour
+		);
+
+		if (conflict) {
+			throw createHttpError(409, "conflict", "Já existe uma sessão nesse horário.");
+		}
 	
 		const createdPatient = await PatientRepository.createPatient(professionalId, {
 			professionalId: data.professionalId,

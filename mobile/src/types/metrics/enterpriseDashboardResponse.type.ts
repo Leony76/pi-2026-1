@@ -1,5 +1,7 @@
 import { Specialty } from "@/constants/maps/selectOptions.map";
 import { EnterpriseRoomOccupation } from "../room/enterpriseRoomOccupation.type";
+import { RoomOccupation } from "../room/roomOccupation.type";
+import { Allocation } from "../room/allocation.type";
 
 export type EnterpriseDashboardResponse = {
   stats: {
@@ -9,12 +11,13 @@ export type EnterpriseDashboardResponse = {
     entriesToday: number;
     exitsToday: number;
   };
-  roomOccupation: EnterpriseRoomOccupation[];
+  roomOccupation: RoomOccupation[];
   activeCustomers: {
     id: string;
     name: string;
     specialty: Specialty;
     occupiedRoom: string | null;
+    allocationType: Allocation;
     occupation: {
       startHour: string | null;
       endHour: string | null;
@@ -25,6 +28,9 @@ export type EnterpriseDashboardResponse = {
     id: string;
     name: string;
     specialty: Specialty;
+    allocationType: Allocation;
+    startDate : string;
+    endDate   : string;
     occupiedRoom: string | null;
     unoccupiedRoomAt: string;
   }[];

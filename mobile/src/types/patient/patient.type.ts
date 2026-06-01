@@ -1,11 +1,11 @@
 export type Patient = {
   readonly id : string;
   name        : string;
+  status      : 'ACTIVE' | 'INACTIVE' | 'CLOSED';
   nextSession: {
     startHour: string;
     endHour: string;
   }
-  status      : 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 };
 
 export type PatientInfos = Pick<Patient, 'id' | 'name' | 'status'> & {

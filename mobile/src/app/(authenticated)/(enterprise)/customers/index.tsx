@@ -89,7 +89,7 @@ const Customers = (): React.JSX.Element => {
       <LayoutWrapper>
         <SystemLayout 
         title='Clientes cadastrados' 
-        description={'Profissionais e horários'} 
+        description={'Profissionais da saúde cads'} 
         layoutType={'ENTERPRISE'}      
         tab='CUSTOMERS'
         > 
@@ -114,21 +114,23 @@ const Customers = (): React.JSX.Element => {
         <ScrollView contentContainerClassName='py-6 gap-5'>
           <Section 
           title='Ativos agora'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.push('/(authenticated)/(enterprise)/customers/actives')}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
+          {...(activeCustomers.length > 3) && {
+            SideComponent: () => (
+              <Button.Default
+                label='Ver mais'
+                onTouch={() => router.push('/(authenticated)/(enterprise)/customers/actives')}
+                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+              />
+            )
+          }}
           >
             { activeCustomers.length > 0 ? (
-              activeCustomers.map((item, index) => (
+              activeCustomers.slice(0, 3).map((item, index) => (
                 <Card.Customer
                   key={item.id}
                   { ...item }
                   gap='gap-3'
-                  separationRow={activeCustomers.length - 1 !== index}
+                  separationRow={activeCustomers.slice(0, 3).length - 1 !== index}
                   from='ACTIVES'
                 />
               ))
@@ -139,21 +141,23 @@ const Customers = (): React.JSX.Element => {
 
           <Section 
           title='Histórico'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.push('/(authenticated)/(enterprise)/customers/history')}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
+          {...(historyCustomers.length > 3 && {
+            SideComponent: () => (
+              <Button.Default
+                label='Ver mais'
+                onTouch={() => router.push('/(authenticated)/(enterprise)/customers/history')}
+                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+              />
+            )
+          })}
           >
             { historyCustomers.length > 0 ? (
-              historyCustomers.map((item, index) => (
+              historyCustomers.slice(0, 3).map((item, index) => (
                 <Card.Customer
                   key={item.id}
                   { ...item }
                   gap='gap-3'
-                  separationRow={historyCustomers.length - 1 !== index}
+                  separationRow={historyCustomers.slice(0, 3).length - 1 !== index}
                   from='HISTORY'
                 />
               ))

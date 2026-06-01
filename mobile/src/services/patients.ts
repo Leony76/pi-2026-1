@@ -3,6 +3,8 @@ import { ApiService } from "./api";
 import { History } from "@/types/room/history.type";
 import { Patient, PatientInfos } from "@/types/patient/patient.type";
 import { CreatePatient } from "@/types/patient/createPatientWithAuth.type";
+import { OccupiedHour } from "@/types/occupedHours.type";
+import { formatLocalDate } from "@/utils/formatLocalDate";
 
 export class PatientService {
 
@@ -41,6 +43,21 @@ export class PatientService {
   
     return ApiService.getWithAuth<History[]>(
       `/patients/history${query}`,
+      auth.token,
+      auth.refreshToken,
+      auth.updateTokens,
+      auth.signOut
+    );
+  }
+
+
+
+  public static async fetchOccupiedHours(
+    auth: AuthHandlers,
+    date: Date
+  ): Promise<OccupiedHour[]> {
+    return ApiService.getWithAuth<OccupiedHour[]>(
+      `/patients/occupied-hours?date=${formatLocalDate(date)}`,
       auth.token,
       auth.refreshToken,
       auth.updateTokens,

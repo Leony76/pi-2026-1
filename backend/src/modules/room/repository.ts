@@ -42,20 +42,26 @@ export class RoomRepository {
 					endDate: { gte: now },
 				},
 				select: {
+					id: true,
 					roomId: true,
 					startDate: true,
 					endDate: true,
+					allocationType: true,
 					professional: {
 						select: {
+							id: true,
 							name: true,
 							specialty: true,
 						},
 					},
 					room: {
-						select: { title: true },
+						select: {
+							title: true,
+						},
 					},
 				},
 			}),
+			
 			prisma.roomRental.findMany({
 				where: {
 					endDate: { lt: now },
@@ -164,6 +170,8 @@ export class RoomRepository {
 			select: {
 				id: true,
 				endDate: true,
+				startDate: true,
+				allocationType: true,
 				professional: {
 					select: {
 						name: true,
@@ -245,8 +253,8 @@ export class RoomRepository {
 				displayImage: true,
 				floor: true,
 				area: true,
-				characteristic: true,
 				isAvailable: true,
+				characteristic: true,
 				prices: {
 					select: {
 						pricePerHour: true,

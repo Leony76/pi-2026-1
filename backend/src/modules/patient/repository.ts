@@ -3,25 +3,84 @@ import { CreatePatientInput } from "../../types/patient/createPatientInput.type"
 
 export class PatientRepository {
 
-	public static async getActivePatients(
-		professionalId: string, 
-		limit?: number
+	public static async existsSessionConflict(
+		professionalId: string,
+		startsAt: Date,
+		endsAt: Date
 	) {
-		return await prisma.patient.findMany({
+		return prisma.session.findFirst({
 			where: {
 				professionalId,
-				status: "ACTIVE",
+				AND: [
+					{
+						startsAt: {
+							lt: endsAt,
+						},
+					},
+					{
+						endsAt: {
+							gt: startsAt,
+						},
+					},
+				],
+			},
+			select: {
+				id: true,
+			},
+		});
+	}
+
+
+
+	public static async getOccupiedHours(
+		professionalId: string,
+		date: Date
+	) {
+		const startDay = new Date(date);
+		startDay.setHours(0, 0, 0, 0);
+
+		const endDay = new Date(date);
+		endDay.setHours(23, 59, 59, 999);
+
+		return prisma.session.findMany({
+			where: {
+				professionalId,
+				startsAt: {
+					gte: startDay,
+					lte: endDay,
+				},
+			},
+			select: {
+				startsAt: true,
+				endsAt: true,
+			},
+		});
+	}
+
+
+
+	public static async getActivePatients(
+		professionalId: string,
+		limit?: number
+	) {
+		return prisma.patient.findMany({
+			where: {
+				professionalId,
+				sessions: {
+					some: {
+						startsAt: {
+							gt: new Date(),
+						},
+					},
+				},
 			},
 			select: {
 				id: true,
 				name: true,
-				status: true,
-				nextSessionAt: true,
-				initialDate: true,
 				sessions: {
 					where: {
 						startsAt: {
-							gte: new Date(),
+							gt: new Date(),
 						},
 					},
 					orderBy: {
@@ -43,28 +102,46 @@ export class PatientRepository {
 	
 	
 	
-	public static async getPatientHistory(professionalId: string, limit?: number) {
-		return await prisma.patient.findMany({
+	public static async getPatientHistory(
+		professionalId: string,
+		limit?: number
+	) {
+		return prisma.patient.findMany({
 			where: {
 				professionalId,
-				status: "CLOSED",
+				sessions: {
+					some: {
+						endsAt: {
+							lt: new Date(),
+						},
+					},
+				},
+				NOT: {
+					sessions: {
+						some: {
+							startsAt: {
+								gt: new Date(),
+							},
+						},
+					},
+				},
 			},
 			select: {
 				id: true,
 				name: true,
-				updatedAt: true,
 				sessions: {
 					where: {
-						startsAt: {
-							lte: new Date(),
+						endsAt: {
+							lt: new Date(),
 						},
 					},
 					orderBy: {
-						startsAt: "desc",
+						endsAt: "desc",
 					},
 					take: 1,
 					select: {
 						startsAt: true,
+						endsAt: true,
 					},
 				},
 			},

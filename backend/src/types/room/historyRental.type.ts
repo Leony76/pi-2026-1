@@ -1,11 +1,15 @@
+import { AllocationType } from "@prisma/client";
+
 export type HistoryRental = {
-  room: {
-    title: string;
-  };
   id: string;
-  professional: {
-    name: string;
-    specialty: string;
+  room: {
+      title: string;
   };
+  allocationType: AllocationType;
+  startDate: Date;
   endDate: Date;
+  professional: {
+      name: string;
+      specialty: string;
+  };
 }

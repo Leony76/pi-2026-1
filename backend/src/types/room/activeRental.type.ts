@@ -1,13 +1,18 @@
+import { AllocationType } from "@prisma/client";
+
 export type ActiveRental = {
-  roomId: string;
-  professional: {
-    name: string;
-    specialty: string;
-  };
+  id: string;
+  allocationType: AllocationType;
   room: {
-    title: string;
+      title: string;
   };
-  endDate: Date;
+  roomId: string;
   startDate: Date;
+  endDate: Date;
+  professional: {
+      id: string;
+      name: string;
+      specialty: string;
+  };
 }
 

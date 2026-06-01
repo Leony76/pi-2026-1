@@ -1,7 +1,7 @@
-export const formatHour = (dateString: string) => {
+export const formatHour = (dateString: string, utc?: boolean) => {
   return new Date(dateString).toLocaleTimeString('pt-BR', { 
     hour: '2-digit', 
     minute: '2-digit', 
-    timeZone: 'UTC' 
+    ...(utc && { timeZone: 'UTC' }), 
   });
 };

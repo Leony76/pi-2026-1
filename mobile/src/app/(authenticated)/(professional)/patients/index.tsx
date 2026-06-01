@@ -56,8 +56,8 @@ const Patients = (): React.JSX.Element => {
         setError(null);
 
         const [active, history, userRentals] = await Promise.all([
-          PatientService.fetchActivePatients(authHandlers, 3),
-          PatientService.fetchPatientHistory(authHandlers, 2),
+          PatientService.fetchActivePatients(authHandlers, 4),
+          PatientService.fetchPatientHistory(authHandlers, 3),
           RoomService.fetchUserRentals(authHandlers),
         ]);
 
@@ -103,23 +103,25 @@ const Patients = (): React.JSX.Element => {
         <ScrollView contentContainerClassName='py-6 gap-5'>
           <Section 
           title='Ativos'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.push('/(authenticated)/(professional)/patients/actives')}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
+          {...(activePatients.length > 3 && {
+            SideComponent: () => (
+              <Button.Default
+                label='Ver mais'
+                onTouch={() => router.push('/(authenticated)/(professional)/patients/actives')}
+                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+              />
+            )
+          })}      
           >
             <View className="gap-4 py-1">
               {activePatients.length > 0 ? (
-                activePatients.map((item, index) => (
+                activePatients.slice(0, 3).map((item, index) => (
                   <Card.Patient
                     key={item.id}
                     {...item}
                     from='ACTIVES'
                     gap={'gap-3'}
-                    separationRow={(activePatients.length - 1) !== index}
+                    separationRow={(activePatients.slice(0, 3).length - 1) !== index}
                   />
                 ))
               ) : (
@@ -130,23 +132,25 @@ const Patients = (): React.JSX.Element => {
 
           <Section 
           title='Histórico'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.push('/(authenticated)/(professional)/patients/history')}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
+          {...(historyPatients.length > 2 && {
+            SideComponent: () => (
+              <Button.Default
+                label='Ver mais'
+                onTouch={() => router.push('/(authenticated)/(professional)/patients/history')}
+                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+              />
+            )
+          })}
           >
             <View className="gap-4 py-1">
               {historyPatients.length > 0 ? (
-                historyPatients.map((item, index) => (
+                historyPatients.slice(0, 2).map((item, index) => (
                   <Card.Patient
                     key={item.id}
                     {...item}
                     from='HISTORY'
                     gap={'gap-3'}
-                    separationRow={(historyPatients.length - 1) !== index}
+                    separationRow={(historyPatients.slice(0, 2).length - 1) !== index}
                   />
                 ))
               ) : (

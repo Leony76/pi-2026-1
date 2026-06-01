@@ -9,10 +9,21 @@ export class UserRepository {
   public static async getUserSessionsRentalsAndPatients(userId: string) {
     const [sessions, patients, rentals] = await Promise.all([
 			prisma.session.count({
-				where: { professionalId: userId },
-			}),
+				where: {
+				professionalId: userId,
+				endsAt: {
+					gt: new Date(),
+				},
+			}}),
 			prisma.patient.count({
-				where: { professionalId: userId },
+				where: { 
+					professionalId: userId,
+					sessions: {
+						some: {
+							startsAt: { gt: new Date() }
+						}
+					}
+				},
 			}),
 			prisma.roomRental.aggregate({
 				where: { professionalId: userId },

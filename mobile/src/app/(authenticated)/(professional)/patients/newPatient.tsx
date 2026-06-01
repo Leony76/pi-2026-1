@@ -23,13 +23,14 @@ import { AuthHandlers } from '@/types/auth/authHandlers.type'
 import { CreatePatient } from '@/types/patient/createPatientWithAuth.type'
 import { combineDateAndTime } from '@/utils/combineDateAndTime'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
+import { formatHour } from '@/utils/formatHour'
 
 const NewPatient = (): React.JSX.Element => {
 
   const { profile } = useLoggedUserData();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
 
   const router = useRouter();
-  const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [invalidDateError, setInvalidDateError] = useState<string | null>(null);
@@ -55,6 +56,8 @@ const NewPatient = (): React.JSX.Element => {
       startHour    : ''
     }
   }); 
+
+  const [occupiedHours, setOccupiedHours] = useState<HourShift[]>([]);
 
   React.useEffect(() => {
     register('startHour');
@@ -93,38 +96,6 @@ const NewPatient = (): React.JSX.Element => {
     while (current <= last) {
       dates.push(formatLocalDate(current));
       current.setDate(current.getDate() + 1);
-    }
-
-    return dates;
-  };
-
-  const generateMarkedDates = () => {
-    const dates: Record<string, any> = {};
-
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const dateStr = formatLocalDate(date);
-
-      if (!dateStr) continue;
-
-      if (allowedDates.has(dateStr)) {
-        dates[dateStr] = {
-          marked: true,
-          selected: true,
-          disableTouchEvent: false,
-        };
-      } else {
-        dates[dateStr] = {
-          disabled: true,
-          disableTouchEvent: true,
-        };
-      }
     }
 
     return dates;
@@ -170,7 +141,7 @@ const NewPatient = (): React.JSX.Element => {
       return [] as Array<HourShift & { unavailable: boolean }>;
     }
 
-    const occupiedHours = rentals
+    const rentalHours  = rentals
       .filter((r) => {
         const rentalStart = getDateKey(new Date(r.startDate));
         const rentalEnd = getDateKey(new Date(r.endDate));
@@ -182,25 +153,113 @@ const NewPatient = (): React.JSX.Element => {
     const todayKey = getDateKey(new Date());
 
     return (Object.values(HOURS_MAP).flat() as HourShift[]).map((hour) => {
-      const isOccupied = isHourOccupied(occupiedHours, hour.startHour, hour.endHour);
+
+      const isRentalUnavailable = isHourOccupied(
+        rentalHours,
+        hour.startHour,
+        hour.endHour
+      );
+
+      const isPatientOccupied = isHourOccupied(
+        occupiedHours,
+        hour.startHour,
+        hour.endHour
+      );
+
       const isPassed = selectedDateKey === todayKey && (() => {
         const now = new Date();
-        const [hh, mm] = hour.startHour.split(':').map((s) => parseInt(s, 10));
-        const slotStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), hh, mm, 0, 0);
+
+        const [hh, mm] = hour.startHour
+          .split(':')
+          .map(Number);
+
+        const slotStart = new Date(
+          selectedDateObj.getFullYear(),
+          selectedDateObj.getMonth(),
+          selectedDateObj.getDate(),
+          hh,
+          mm
+        );
+
         return now > slotStart;
       })();
 
       return {
         ...hour,
-        unavailable: isOccupied || isPassed,
+        unavailable:
+          isRentalUnavailable ||
+          isPatientOccupied ||
+          isPassed,
       };
     });
-  }, [rentals, selectedDateKey, selectedDateObj]);
+  }, [ rentals, occupiedHours, selectedDateKey, selectedDateObj]);
 
   const getMinDate = (): string => {
     const today = new Date();
     return formatLocalDate(today);
   };
+
+  const markedDates = useMemo(() => {
+    const result: Record<string, any> = {};
+
+    const start = new Date();
+    const end = new Date();
+    end.setMonth(end.getMonth() + 6);
+
+    const current = new Date(start);
+
+    while (current <= end) {
+      const key = formatLocalDate(current);
+
+      result[key] = allowedDates.has(key)
+        ? {
+            marked: true,
+            disableTouchEvent: false,
+          }
+        : {
+            disabled: true,
+            disableTouchEvent: true,
+          };
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
+  }, [allowedDates]);
+
+  const loadOccupiedHours = async () => {
+    try { 
+      if (!refreshToken || !token) return;
+
+      const authHandles: AuthHandlers = {
+        refreshToken,
+        token,
+        signOut,
+        updateTokens,
+      }
+
+      const data = await PatientService.fetchOccupiedHours(
+        authHandles,
+        selectedDateObj!
+      );
+
+      setOccupiedHours(
+        data.map((session) => ({
+          startHour : formatHour(session.startsAt),
+          endHour   : formatHour(session.endsAt),
+        }))
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error) console.error(error); 
+    } 
+  };
+
+  React.useEffect(() => {
+    if (!selectedDateObj) return;
+
+    loadOccupiedHours();
+  }, [selectedDateObj]);
+
 
   const handleSaveNewPatient = async( data: NewPatientFormData ): Promise<void> => {
     if (!token || !refreshToken || !profile?.id) {
@@ -354,17 +413,7 @@ const NewPatient = (): React.JSX.Element => {
                       placeholder={{ text: 'Selecione a data do atendimento' }}
                       icon={{ name: 'schedule' }}
                       minDate={getMinDate()}                     
-                      markedDates={{
-                        ...Object.fromEntries(
-                          [...allowedDates].map(date => [
-                            date,
-                            {
-                              marked: true,
-                              disableTouchEvent: false,
-                            }
-                          ])
-                        )
-                      }}
+                      markedDates={markedDates}
                       value={value}
                       onChange={(selectedDate) => {
                         if (!selectedDate) {

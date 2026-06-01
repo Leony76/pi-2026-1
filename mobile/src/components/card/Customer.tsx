@@ -2,10 +2,10 @@ import React from 'react'
 import { Text, View } from 'react-native'
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName';
 import { CustomerHistory, Customer as CustomerType } from '@/types/customer/customer.type';
-import { formatLimitDate } from '@/utils/formatLimitDate';
 import { formatMonthNameAndYear } from '@/utils/formatMonthNameAndYear';
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
-import { formatHour } from '@/utils/formatHour';
+import { formatDate } from '@/utils/formatDate';
+import { ALLOCATION_MAP } from '@/constants/maps/allocationType.map';
 
 type BaseProps = {
   gap? : `gap-${number}`;
@@ -21,7 +21,7 @@ type Props = BaseProps & CustomerType & {
 const Customer = (props:Props): React.JSX.Element => {
 
   const nameToDisplay = getDisplayNameOrInitials(props.name);
-  const colors = getColorByName(props.name);
+  const colors = getColorByName(props.name);    
 
   return (
     <View className={`${props.gap ?? ''}`}>
@@ -45,23 +45,28 @@ const Customer = (props:Props): React.JSX.Element => {
             </Text>
 
             <Text className='text-[13px] font-nunito text-gray-600'>
-              { props.specialty } - { props.occupiedRoom } { props.from === 'HISTORY' ? `- ${ formatMonthNameAndYear(props.unoccupiedRoomAt) }` : '' }
+              { props.specialty } - { props.occupiedRoom } - { ALLOCATION_MAP[props.allocationType] }
             </Text>
           </View>
         </View>
 
-        { props.from === 'ACTIVES' && 
-      
-          <View className='items-end'>
-            <Text className='text-medroom-primary text-sm font-nunito-bold'>
-              { props.occupation.startHour ? formatHour(props.occupation.startHour) : '--:--'} às { props.occupation.endHour ? formatHour(props.occupation.endHour) : '--:--'}
-            </Text>
+        <View className='items-end'>
+          <Text className='text-medroom-primary text-sm font-nunito-bold'>
+            {
+              props.from === 'ACTIVES'
+                ? props.allocationType === 'DAILY'
+                  ? formatDate(props.occupation.startHour ?? '')
+                  : `${formatDate(props.occupation.startHour ?? '')} até ${formatDate(props.occupation.endHour ?? '')}`
+                : props.allocationType === 'DAILY'
+                  ? formatDate(props.startDate)
+                  : `${formatDate(props.startDate)} até ${formatDate(props.endDate)}`
+            }
+          </Text>
 
-            <Text className='text-[13px] font-nunito text-gray-600'>
-              Até { formatLimitDate(props.occupation.limitDate) }
-            </Text>
-          </View>
-        }
+          <Text className='text-[13px] font-nunito text-gray-600'>
+            00:00 às 23:59
+          </Text>
+        </View>
       </View>
 
       { props.separationRow &&

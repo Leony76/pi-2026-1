@@ -24,22 +24,50 @@ export const enterpriseDashboardMapper = (
     exitsToday,
   } = data;
 
-  const activeRentalByRoomId = new Map(
-    activeRentals.map((rental) => [rental.roomId, rental])
-  );
+  const rentalsByRoom = new Map<string, typeof activeRentals>();
+
+  for (const rental of activeRentals) {
+    const current = rentalsByRoom.get(rental.roomId) ?? [];
+
+    current.push(rental);
+
+    rentalsByRoom.set(
+      rental.roomId,
+      current
+    );
+  }
 
   const roomOccupation = rooms.map((room) => {
-    const activeRental = activeRentalByRoomId.get(room.id);
+    const roomRentals = activeRentals.filter(
+      (rental) => rental.roomId === room.id
+    );
+
+    const professionalsMap = new Map();
+
+    for (const rental of roomRentals) {
+      const professionalId = rental.professional.id;
+
+      if (!professionalsMap.has(professionalId)) {
+        professionalsMap.set(professionalId, {
+          professionalId,
+          name: rental.professional.name,
+          specialty: rental.professional.specialty,
+          allocations: [],
+        });
+      }
+
+      professionalsMap.get(professionalId).allocations.push({
+        type: rental.allocationType,
+        startDate: rental.startDate.toISOString(),
+        endDate: rental.endDate.toISOString(),
+      });
+    }
 
     return {
       id: room.id,
-      isAvailable: activeRental ? false : room.isAvailable,
-      occupant: activeRental?.professional.name ?? null,
       title: room.title,
-      occupation: {
-        startTime: activeRental?.startDate.toISOString() ?? null,
-        endTime: activeRental?.endDate.toISOString() ?? null,
-      },
+      isAvailable: roomRentals.length === 0,
+      occupants: Array.from(professionalsMap.values()),
     };
   });
 
@@ -48,6 +76,7 @@ export const enterpriseDashboardMapper = (
     name: rental.professional.name,
     specialty: rental.professional.specialty,
     occupiedRoom: rental.room.title,
+    allocationType: rental.allocationType,
     occupation: {
       startHour: rental.startDate.toISOString(),
       endHour: rental.endDate.toISOString(),
@@ -59,7 +88,10 @@ export const enterpriseDashboardMapper = (
     id: rental.id,
     name: rental.professional.name,
     specialty: rental.professional.specialty,
+    allocationType: rental.allocationType,
     occupiedRoom: rental.room.title,
+    startDate: rental.startDate.toISOString(),
+    endDate: rental.endDate.toISOString(),
     unoccupiedRoomAt: rental.endDate.toISOString(),
   }));
 

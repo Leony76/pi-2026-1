@@ -9,14 +9,11 @@ import React, { useEffect, useState } from 'react'
 import { ScrollView, Text, View, ActivityIndicator } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { RoomService } from '@/services/rooms'
-import { formatSessionDate } from '@/utils/formatSessionDate'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { RoomRental } from '@/types/room/roomRental.type'
 import { AuthHandlers } from '@/types/auth/authHandlers.type'
-import { formatDayMonth } from '@/utils/formatDayMonth'
 import { formatFullDayRange } from '@/utils/formatFullDayRange'
 import { Allocation } from '@/types/room/allocation.type'
-import { formatDayMonthYear } from '@/utils/formatDayMonthYear'
 import { formatDate } from '@/utils/formatDate'
 
 const schedules = (): React.JSX.Element => {
@@ -220,7 +217,11 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(rental.startDate)}  até  {formatSessionDate(rental.endDate)}
+                          {occupationPeriodDisplayFormatByAllocationType(
+                            rental.allocationType,
+                            rental.startDate,
+                            rental.endDate,
+                          )}
                         </Text>
                       </View>
                     </View>

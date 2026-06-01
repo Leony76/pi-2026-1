@@ -21,6 +21,38 @@ export class PatientController {
 	}
 	
 	
+	public static async getOccupiedHours(
+		request: Request,
+		response: Response,
+		next: NextFunction
+	): Promise<void> {
+		try {
+			const payload = getAuthPayload(request);
+
+			const date = request.query.date as string;
+
+			const [year, month, day] = date.split('-').map(Number);
+
+			if (year === undefined || month === undefined) return;
+
+			const selectedDate = new Date(
+				year,
+				month - 1,
+				day
+			);
+
+			const hours = await PatientService.getOccupiedHours(
+				payload.sub,
+				selectedDate,
+			);
+
+			sendSuccessResponse(response, 200, hours);
+		} catch (error) {
+			next(error);
+		}
+	}
+
+
 	
 	public static async listPatientHistory(request: Request, response: Response, next: NextFunction): Promise<void> {
 		try {

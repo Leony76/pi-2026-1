@@ -173,12 +173,14 @@ const Home = (): React.JSX.Element => {
               <Text className='text-medroom-secondary text-lg font-nunito-bold'>
                 OCUPAÇÃO POR SALA
               </Text>
-
-              <Button.Default
-                label='Ver mais'
-                onTouch={() => router.push('/(authenticated)/(enterprise)/dashboard/occupationRooms')}
-                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-              />
+              
+              { occupationPreview.length > 3 &&
+                <Button.Default
+                  label='Ver mais'
+                  onTouch={() => router.push('/(authenticated)/(enterprise)/dashboard/occupationRooms')}
+                  customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+                />
+              }
             </View>
 
             { occupationPreview.length > 0 ? (
