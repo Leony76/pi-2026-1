@@ -1,12 +1,5 @@
-import { systemColors } from '@/constants/misc/systemColors.misc';
 import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from 'react-native';
+import {Animated, Switch, View} from 'react-native';
 
 type Props = {
   enabled: boolean;
@@ -27,7 +20,7 @@ const Toggle = (props: Props): React.JSX.Element => {
    return (
     <View
     className={`
-      border-2 rounded-2xl self-start p-px mb-1 ml-2
+      border-2 rounded-2xl p-px mb-1 ml-2
       ${ props.enabled ? 'border-green-600 bg-[#eefae6]' : 'border-red-600 bg-[#ffcfc7]' }
     `}
     style={{

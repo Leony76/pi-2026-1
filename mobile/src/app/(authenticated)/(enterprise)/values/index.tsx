@@ -7,7 +7,9 @@ import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
 import { useAuth } from '@/contexts/auth.context'
 import { ApiError } from '@/services/api'
-import { EnterpriseValuesResponse, fetchEnterpriseValuesWithAuth } from '@/services/rooms'
+import { EnterpriseService } from '@/services/enterprise'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { EnterpriseValuesResponse } from '@/types/metrics/enterpriseValuesResponse.type'
 import { priceFormat } from '@/utils/priceFormat'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
@@ -30,17 +32,19 @@ const Values = (): React.JSX.Element => {
         return;
       }
 
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchEnterpriseValuesWithAuth(authenticated);
+
+        const response = await EnterpriseService.fetchEnterpriseValues(authHandlers);
+
         setValues(response);
       } catch (requestError) {
         setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar os valores.');
@@ -91,12 +95,6 @@ const Values = (): React.JSX.Element => {
   const roomRevenueData = values?.roomRevenue.roomsRevenue ?? [];
   const roomPricesData = values?.roomPrices ?? [];
 
-  const expenseItemsMap = [
-    { label: 'Manutenção das salas' , key: 'maintenance'     },
-    { label: 'Energia elétrica'     , key: 'eletricalEnergy' },
-    { label: 'Limpeza'              , key: 'cleaning'        },
-  ] as const;
-
   return (
     <LayoutWrapper>
 
@@ -125,16 +123,6 @@ const Values = (): React.JSX.Element => {
                 Receita do mês
               </Text>
             </View>
-
-            <View className={`justify-center items-center rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3 flex-col flex-1`}>
-              <Text className='font-nunito-bold text-red-700 text-xl'>
-                { '-' + priceFormat(values?.summary.expensesThisMonth ?? 0) }
-              </Text>
-
-              <Text className='font-nunito-bold text-medroom-secondary text-sm'>
-                Despesas
-              </Text>
-            </View>           
           </View>
 
           <Section 
@@ -175,28 +163,6 @@ const Values = (): React.JSX.Element => {
               <ContentNotFound text='Nenhuma receita por sala'/>
             )}
 
-          </Section>
-
-          <Section title='Despesas'>
-            { expenseItemsMap.map((items) => (
-              <Label___Value
-                separationRow
-                value={{ 
-                  _: '-' + priceFormat(values?.expenses[items.key] ?? 0),
-                  color: 'text-red-600'
-                }}
-                label={items.label}
-              />  
-            ))}
-
-            <Label___Value
-              value={{ 
-                _: '-' + priceFormat(values?.expenses.totalValue ?? 0),
-                color: 'text-red-600 text-lg'
-              }}
-              label='Despesas totais'
-              boldLabel
-            />  
           </Section>
 
           <Section 

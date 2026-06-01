@@ -1,178 +1,75 @@
-import { apiGet, apiPost } from "./api";
-import { apiPatchWithAuth, apiPostWithAuth } from "./auth-api";
+import { AuthResponse } from "@/types/auth/authResponse.type";
+import { LoginPayload } from "@/types/auth/loginPayload.type";
+import { RegisterPayload } from "@/types/auth/registerPayload.type";
+import { RequestPasswordResetResponse } from "@/types/user/requestPasswordResetResponse.type";
+import { ResetPasswordResponse } from "@/types/user/resetPasswordResponse.type";
+import { VerifyResetCodeResponse } from "@/types/user/verifyResetCodeResponse.type";
+import { ApiService } from "./api";
+import { RefreshTokenResponse } from "@/types/auth/refreshTokenResponse.type";
 
-export type AuthUser = {
-  id: string;
-  name: string;
-  specialty: string;
-  accountType: 'PROFESSIONAL' | 'ENTERPRISE';
-  crmCrp: string;
-  email: string;
-  createdAt: string;
-};
+export class AuthService {
 
-export type AuthResponse = {
-  user: AuthUser;
-  token: string;
-  refreshToken?: string;
-};
+  public static async registerWithEmail(
+    data: RegisterPayload
+  ): Promise<AuthResponse> {
+    return ApiService.post<AuthResponse>("/auth/register", data);
+  }
+  
 
-export type CurrentUserResponse = {
-  id: string;
-  name: string;
-  specialty: string;
-  specialtyLabel: string;
-  accountType: 'PROFESSIONAL' | 'ENTERPRISE';
-  crmCrp: string;
-  email: string;
-  phone: string | null;
-  createdAt: string;
-  updatedAt: string;
-  displayImage: string | null;
-  stats: {
-    sessions: number;
-    patients: number;
-    totalSpent: number;
-  };
-};
+  
+  public static async loginWithEmail(
+    data: LoginPayload
+  ): Promise<AuthResponse> {
+    return ApiService.post<AuthResponse>("/auth/login", data);
+  }
+  
 
-export type UpdateCurrentUserPayload = {
-  name: string;
-  specialty: string;
-  crmCrp: string;
-  email: string;
-  phone: string;
-  profileImage?: string | null;
-};
 
-export type RegisterPayload = {
-  name: string;
-  specialty: string;
-  crmCrp: string;
-  email: string;
-  password: string;
-  repeatPassword: string;
-};
+  public static async requestPasswordReset(
+    email: string
+  ): Promise<RequestPasswordResetResponse> {
+    return ApiService.post<RequestPasswordResetResponse>("/auth/request-password-reset", { email });
+  }
+  
 
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
 
-export type RequestPasswordResetResponse = {
-  message: string;
-};
+  public static async verifyResetCode(
+    email : string, 
+    code  : string
+  ): Promise<VerifyResetCodeResponse> {
+    return ApiService.post<VerifyResetCodeResponse>("/auth/verify-reset-code", { email, code });
+  }
+  
 
-export type VerifyResetCodeResponse = {
-  message: string;
-  sessionToken: string;
-};
 
-export type ResetPasswordResponse = {
-  message: string;
-};
+  public static async logoutUser(
+    token : string
+  ): Promise<{ message: string }> {
+    return ApiService.post<{ message: string }>("/auth/logout", {}, token);
+  }
 
-export function registerWithEmail(data: RegisterPayload): Promise<AuthResponse> {
-  return apiPost<AuthResponse>("/auth/register", data);
+
+
+  public static async refreshAccessToken(
+    refreshToken : string
+  ): Promise<RefreshTokenResponse> {
+    return ApiService.post<RefreshTokenResponse>("/auth/refresh", { refreshToken });
+  }
+
+
+
+  public static async resetPassword(
+    token: string,
+    password: string,
+    repeatPassword: string,
+  ): Promise<ResetPasswordResponse> {
+    return ApiService.post<ResetPasswordResponse>("/auth/reset-password", {
+      sessionToken: token,
+      password,
+      repeatPassword,
+    });
+  }
 }
 
-export function loginWithEmail(data: LoginPayload): Promise<AuthResponse> {
-  return apiPost<AuthResponse>("/auth/login", data);
-}
 
-export function requestPasswordReset(email: string): Promise<RequestPasswordResetResponse> {
-  return apiPost<RequestPasswordResetResponse>("/auth/request-password-reset", { email });
-}
 
-export function verifyResetCode(email: string, code: string): Promise<VerifyResetCodeResponse> {
-  return apiPost<VerifyResetCodeResponse>("/auth/verify-reset-code", { email, code });
-}
-
-export function resetPassword(
-  token: string,
-  password: string,
-  repeatPassword: string,
-): Promise<ResetPasswordResponse> {
-  return apiPost<ResetPasswordResponse>("/auth/reset-password", {
-    sessionToken: token,
-    password,
-    repeatPassword,
-  });
-}
-
-export function logoutUser(token: string): Promise<{ message: string }> {
-  return apiPost<{ message: string }>("/auth/logout", {}, token);
-}
-
-export function fetchCurrentUser(token: string): Promise<CurrentUserResponse> {
-  return apiGet<CurrentUserResponse>("/users/me", token);
-}
-
-type AuthHandlers = {
-  token: string;
-  refreshToken: string;
-  updateTokens: (token: string, refreshToken: string) => Promise<void>;
-  signOut: () => Promise<void>;
-};
-
-export function updateCurrentUserWithAuth(
-  data: UpdateCurrentUserPayload,
-  auth: AuthHandlers
-): Promise<CurrentUserResponse> {
-  return apiPatchWithAuth<CurrentUserResponse>(
-    "/users/me",
-    data,
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-}
-
-export function updateCurrentUserImageWithAuth(
-  profileImage: string | null,
-  auth: AuthHandlers
-): Promise<CurrentUserResponse> {
-  return apiPatchWithAuth<CurrentUserResponse>(
-    "/users/me/image",
-    { profileImage },
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-}
-
-export function verifyCurrentPasswordToChangeWithAuth(
-  currentPassword: string,
-  professionalId: string,
-  auth: AuthHandlers
-): Promise<boolean> {
-  const response = apiPostWithAuth<boolean>(
-    `/users/${professionalId}/verifyCurrentPasswordMatch`,
-    { currentPassword },
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-
-  return response;
-}
-
-export function changeProfessionalPasswordWithAuth(
-  newPassword: string,
-  professionalId: string,
-  auth: AuthHandlers
-): Promise<{ message: string }> {
-  const response = apiPostWithAuth<{ message: string }>(
-    `/users/${professionalId}/changePassword`,
-    { newPassword },
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-
-  return response;
-}

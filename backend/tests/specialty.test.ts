@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeSpecialty } from "../src/modules/shared/specialty";
+import { normalizeSpecialty } from '../src/utils/normalizeSpecialty.util';
 
 describe("normalizeSpecialty", () => {
   it("keeps portuguese specialties as-is", () => {

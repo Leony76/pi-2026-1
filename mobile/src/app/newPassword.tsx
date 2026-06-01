@@ -10,7 +10,7 @@ import { NewPasswordFormData, newPasswordSchema } from "@/schemas/newPassword.sc
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ErrorModal } from "@/components/modal";
 import { ApiError } from "@/services/api";
-import { resetPassword } from "@/services/auth";
+import { AuthService } from "@/services/auth";
 
 const NewPassword = (): React.JSX.Element => {
   const params = useLocalSearchParams<{ token?: string }>();
@@ -52,7 +52,11 @@ const NewPassword = (): React.JSX.Element => {
       setSubmitError(null);
       setShowErrorModal(false);
 
-      await resetPassword(token, data.newPassword, data.repeatNewPassword);
+      await AuthService.resetPassword(
+        token, 
+        data.newPassword, 
+        data.repeatNewPassword
+      );
 
       router.replace({
         pathname: "/login",

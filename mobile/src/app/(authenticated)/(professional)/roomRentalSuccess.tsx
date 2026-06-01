@@ -4,13 +4,17 @@ import React, { useEffect, useState } from 'react'
 import { Text, View, ActivityIndicator, ScrollView } from 'react-native'
 import Icon from '@/components/ui/Icon'
 import { systemColors } from '@/constants/misc/systemColors.misc'
-import { Allocation } from '@/types/allocation.type';
+import { Allocation } from '@/types/room/allocation.type';
 import { priceFormat } from '@/utils/priceFormat';
 import { Button } from '@/components/button';
 import { useAuth } from '@/contexts/auth.context';
-import { createRoomRentalWithAuth, storePaymentAtPaymentsHistory } from '@/services/rooms';
+import { RoomService } from '@/services/rooms';
 import { parseLocalDate } from '@/utils/parseLocalDate'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
+import { PaymentService } from '@/services/payments'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { CreateRoomRental } from '@/types/room/createRoomRental.type'
+import { StorePaymentHistory } from '@/types/payment/storePaymentHistory.type'
 
 const roomRentalSuccess = (): React.JSX.Element => {
 
@@ -46,6 +50,13 @@ const roomRentalSuccess = (): React.JSX.Element => {
         return;
       }
 
+      const authHandlers: AuthHandlers = { 
+        refreshToken,
+        token,        
+        signOut,      
+        updateTokens,
+      };
+
       hasSavedRental.current = true;
 
       try {
@@ -53,36 +64,38 @@ const roomRentalSuccess = (): React.JSX.Element => {
         startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(startDate);
 
-              if (allocationType === 'DAILY') {
-                endDate.setDate(endDate.getDate() + 1);
-              } else if (allocationType === 'WEEK') {
-                endDate.setDate(endDate.getDate() + 7);
-              } else if (allocationType === 'MONTH') {
-          endDate.setMonth(endDate.getMonth() + 1);
+        switch (allocationType) {
+          case 'DAILY': endDate.setDate(endDate.getDate() + 1); break;
+          case 'WEEK' : endDate.setDate(endDate.getDate() + 7); break;
+          case 'MONTH': endDate.setMonth(endDate.getMonth() + 1); break;
+          default: throw new Error('Tipo de alocação inválida');
         }
 
-        await createRoomRentalWithAuth(
-          {
-            roomId,
-            allocationType,
-            paymentMethod,
-            startDate,
-            endDate,
-            totalPrice: pricePaid,
-          },
-          { token, refreshToken, updateTokens, signOut }
+        const createRoomRentalPayload: CreateRoomRental = {
+          roomId,
+          allocationType,
+          paymentMethod,
+          startDate,
+          endDate,
+          totalPrice: pricePaid,
+        };
+
+        const storePaymentPayload: StorePaymentHistory = {
+          from           : 'ROOM_RENTAL',
+          paid           : pricePaid,
+          paymentMethod  : paymentMethod,
+          professionalId : profile.id,
+        };
+
+        await RoomService.createRoomRental(
+          createRoomRentalPayload,
+          authHandlers,
+        ); 
+        
+        await PaymentService.storePaymentAtPaymentsHistory(
+          storePaymentPayload,
+          authHandlers,
         );
-
-
-        await storePaymentAtPaymentsHistory(
-          {
-            from           : 'ROOM_RENTAL',
-            paid           : pricePaid,
-            paymentMethod  : paymentMethod,
-            professionalId : profile.id,
-          },
-          { token, refreshToken, updateTokens, signOut }
-        )
 
         setIsSaving(false);
       } catch (error) {

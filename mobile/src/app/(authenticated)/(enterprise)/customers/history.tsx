@@ -4,12 +4,14 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { ApiError } from '@/services/api'
-import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
+import { EnterpriseService } from '@/services/enterprise'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { systemColors } from '@/constants/misc/systemColors.misc'
+import { EnterpriseDashboardResponse } from '@/types/metrics/enterpriseDashboardResponse.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const History = (): React.JSX.Element => {
 
@@ -27,18 +29,20 @@ const History = (): React.JSX.Element => {
         setIsLoading(false);
         return;
       }
-
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+    
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+        
+        const response = await EnterpriseService.fetchEnterpriseDashboard(authHandlers);
+
         setDashboard(response);
       } catch (requestError) {
         setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar o histórico de clientes.');

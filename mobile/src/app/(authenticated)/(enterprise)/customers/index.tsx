@@ -6,7 +6,7 @@ import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
 import Section from '@/components/ui/Section'
 import { ApiError } from '@/services/api'
-import { EnterpriseDashboardResponse, fetchEnterpriseDashboardWithAuth } from '@/services/rooms'
+import { EnterpriseService} from '@/services/enterprise'
 import { formatDayMonthYear } from '@/utils/formatDayMonthYear'
 import { formatHour } from '@/utils/formatHour'
 import { useRouter } from 'expo-router'
@@ -14,6 +14,8 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
 import { systemColors } from '@/constants/misc/systemColors.misc'
+import { EnterpriseDashboardResponse } from '@/types/metrics/enterpriseDashboardResponse.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Customers = (): React.JSX.Element => {
 
@@ -31,17 +33,19 @@ const Customers = (): React.JSX.Element => {
         return;
       }
 
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchEnterpriseDashboardWithAuth(authenticated);
+
+        const response = await EnterpriseService.fetchEnterpriseDashboard(authHandlers);
+        
         setDashboard(response);
       } catch (requestError) {
         setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar os clientes.');
@@ -85,7 +89,7 @@ const Customers = (): React.JSX.Element => {
       <LayoutWrapper>
         <SystemLayout 
         title='Clientes cadastrados' 
-        description={'Profissionais e horários'} 
+        description={'Profissionais da saúde cads'} 
         layoutType={'ENTERPRISE'}      
         tab='CUSTOMERS'
         > 
@@ -110,21 +114,23 @@ const Customers = (): React.JSX.Element => {
         <ScrollView contentContainerClassName='py-6 gap-5'>
           <Section 
           title='Ativos agora'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.push('/(authenticated)/(enterprise)/customers/actives')}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
+          {...(activeCustomers.length > 3) && {
+            SideComponent: () => (
+              <Button.Default
+                label='Ver mais'
+                onTouch={() => router.push('/(authenticated)/(enterprise)/customers/actives')}
+                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+              />
+            )
+          }}
           >
             { activeCustomers.length > 0 ? (
-              activeCustomers.map((item, index) => (
+              activeCustomers.slice(0, 3).map((item, index) => (
                 <Card.Customer
                   key={item.id}
                   { ...item }
                   gap='gap-3'
-                  separationRow={activeCustomers.length - 1 !== index}
+                  separationRow={activeCustomers.slice(0, 3).length - 1 !== index}
                   from='ACTIVES'
                 />
               ))
@@ -135,21 +141,23 @@ const Customers = (): React.JSX.Element => {
 
           <Section 
           title='Histórico'
-          SideComponent={() => (
-            <Button.Default
-              label='Ver mais'
-              onTouch={() => router.push('/(authenticated)/(enterprise)/customers/history')}
-              customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
-            />
-          )}
+          {...(historyCustomers.length > 3 && {
+            SideComponent: () => (
+              <Button.Default
+                label='Ver mais'
+                onTouch={() => router.push('/(authenticated)/(enterprise)/customers/history')}
+                customStyle={{ container: 'py-[6px] px-4', text: 'text-sm' }}
+              />
+            )
+          })}
           >
             { historyCustomers.length > 0 ? (
-              historyCustomers.map((item, index) => (
+              historyCustomers.slice(0, 3).map((item, index) => (
                 <Card.Customer
                   key={item.id}
                   { ...item }
                   gap='gap-3'
-                  separationRow={historyCustomers.length - 1 !== index}
+                  separationRow={historyCustomers.slice(0, 3).length - 1 !== index}
                   from='HISTORY'
                 />
               ))

@@ -11,7 +11,7 @@ import { RegisterFormData, registerSchema } from '@/schemas/register.schema';
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { ErrorModal } from "@/components/modal";
 import { ApiError } from "@/services/api";
-import { registerWithEmail } from "@/services/auth";
+import { AuthService } from "@/services/auth";
 import { useAuth } from "@/contexts/auth.context";
 import { formatCrmCrp } from "@/utils/formatCrmCrp";
 
@@ -55,7 +55,7 @@ const Register = (): React.JSX.Element => {
       setSubmitError(null);
       setShowErrorModal(false);
       
-      const result = await registerWithEmail(data);
+      const result = await AuthService.registerWithEmail(data);
 
       await signIn(result.token, result.refreshToken || '');
 

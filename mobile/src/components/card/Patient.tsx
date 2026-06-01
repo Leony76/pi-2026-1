@@ -2,13 +2,12 @@ import React from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import AvailbilityTag from '../ui/AvailbilityTag';
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName';
-import { Patient as PatientType } from '@/types/patient.type';
-import { formatSessionDate } from '@/utils/formatSessionDate';
-import { History } from '@/types/history.type';
+import { Patient as PatientType } from '@/types/patient/patient.type';
+import { History } from '@/types/room/history.type';
 import { useRouter } from 'expo-router';
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials';
-import { parseLocalDate } from '@/utils/parseLocalDate';
-import { addHoursToStringDate } from '@/utils/addHoursToStringDate';
+import { formatHour } from '@/utils/formatHour';
+import { formatDate } from '@/utils/formatDate';
 
 type BaseProps = {
   separationRow? : boolean;
@@ -36,12 +35,8 @@ const Patient = (props:Props): React.JSX.Element => {
   ;
 
   const session = props.from === 'ACTIVES'
-  ? formatSessionDate(addHoursToStringDate(props.nextSession, 3))
-  : parseLocalDate(props.lastSession).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    })
+    ? `${formatDate(props.nextSession.startHour)} - ${formatHour(props.nextSession.startHour)} às ${formatHour(props.nextSession.endHour)}`
+    : `${formatDate(props.lastSession.startHour)} - ${formatHour(props.lastSession.startHour)} às ${formatHour(props.lastSession.endHour)}`
   ;
 
   const nameToDisplay = getDisplayNameOrInitials(name); 

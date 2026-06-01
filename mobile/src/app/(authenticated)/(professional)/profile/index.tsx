@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { updateCurrentUserImageWithAuth } from '@/services/auth'
+import { UserService } from '@/services/user'
 import * as ImagePicker from 'expo-image-picker'
 import { priceFormat } from '@/utils/priceFormat'
 import Section from '@/components/ui/Section'
@@ -20,7 +20,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import Toast from '@/components/ui/Toast'
 import { getDisplayNameOrInitials } from '@/utils/getDisplayNameOrInitials'
 import { getColorByName } from '@/utils/getAvatarPlaceholderColorByName'
-import { fetchLoggedProfessionalPaymentsHistory } from '@/services/rooms'
+import { PaymentService } from '@/services/payments'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Profile = (): React.JSX.Element => {
 
@@ -48,7 +49,10 @@ const Profile = (): React.JSX.Element => {
       try {
         if (!profile || !token || !refreshToken) return;
 
-        const data = await fetchLoggedProfessionalPaymentsHistory(profile.id, { token, refreshToken, updateTokens, signOut });
+        const data = await PaymentService.fetchLoggedProfessionalPaymentsHistory(
+          profile.id, 
+          { token, refreshToken, updateTokens, signOut }
+        );
 
         if (!data || data.length === 0) return;
         setHistoryCount(data.length);
@@ -223,7 +227,17 @@ const Profile = (): React.JSX.Element => {
 
                   setIsUploadingImage(true);
 
-                  await updateCurrentUserImageWithAuth(dataUrl, { token, refreshToken, updateTokens, signOut });
+                  const authHandlers: AuthHandlers = {
+                    token,
+                    refreshToken,
+                    updateTokens,
+                    signOut,
+                  };
+
+                  await UserService.updateCurrentUserImage(
+                    dataUrl, 
+                    authHandlers,
+                  );
 
                   await refreshProfile();
                 } catch (err: any) {

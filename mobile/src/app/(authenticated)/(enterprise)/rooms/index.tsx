@@ -3,14 +3,18 @@ import { Card } from '@/components/card'
 import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import Toast from '@/components/ui/Toast'
-import { RoomDisplayCard } from '@/types/room.type'
-import { fetchRooms } from '@/services/rooms'
+import { RoomDisplayCard } from '@/types/room/room.type'
+import { RoomService } from '@/services/rooms'
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { FlatList, Text, View } from 'react-native'
 import ContentNotFound from '@/components/ui/ContentNotFound'
+import { useAuth } from '@/contexts/auth.context'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const Rooms = (): React.JSX.Element => {
+
+  const auth = useAuth();
 
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
@@ -22,10 +26,18 @@ const Rooms = (): React.JSX.Element => {
   useEffect(() => {
     (async() => {
       try {
+        if (!auth.refreshToken || !auth.token) return;
         setIsLoadingRooms(true);
         setRoomsError(null);
 
-        const roomsData = await fetchRooms();
+        const authHandlers: AuthHandlers = { 
+          refreshToken : auth.refreshToken,
+          token        : auth.token,
+          signOut      : auth.signOut,
+          updateTokens : auth.updateTokens,
+        };
+
+        const roomsData = await RoomService.fetchRooms(authHandlers);
 
         setRooms(roomsData);
       } catch {

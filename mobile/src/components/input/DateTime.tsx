@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { View, Text, Pressable, Modal, TouchableWithoutFeedback } from 'react-native'
 import { Calendar, LocaleConfig } from 'react-native-calendars'
 import Icon from '../ui/Icon'
-import { formatDate } from '@/utils/formatDate'
+import { datePickerFormatDate, formatDate } from '@/utils/formatDate'
 import { DefaultInputProps } from '@/types/defaultInputProps.type'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import Entypo from '@expo/vector-icons/Entypo';
@@ -60,7 +60,7 @@ const DateTime = (props: DateProps): React.JSX.Element => {
 
         <View className="flex-1">
           <Text className={`font-nunito ${props.value ? 'color-medroom-secondary' : 'color-gray-400'}`}>
-            {props.value ? formatDate(props.value) : props.placeholder.text}
+            {props.value ? datePickerFormatDate(props.value) : props.placeholder.text}
           </Text>
         </View>
 
@@ -102,9 +102,10 @@ const DateTime = (props: DateProps): React.JSX.Element => {
                     arrowColor: systemColors.primary,
                     monthTextColor: systemColors.primary,
                     indicatorColor: systemColors.primary,
-                    textDayFontFamily: 'nunito',
-                    textMonthFontFamily: 'nunito-bold',
-                    textDayHeaderFontFamily: 'nunito-bold',
+                    textDayFontWeight: '400',
+                    textMonthFontWeight: '400',
+                    todayButtonFontWeight: '400',
+                    textDayHeaderFontWeight: '400',
                   }}
                 />
               </View>

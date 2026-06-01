@@ -7,9 +7,11 @@ import { useAuth } from '@/contexts/auth.context'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
-import { fetchLoggedProfessionalPaymentsHistory, FetchProfessionalPaymentsHistory } from '@/services/rooms'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 import { decrementHoursFromStringDate } from '@/utils/decrementHoursFromStringDate'
+import { FetchProfessionalPaymentsHistory } from '@/types/payment/fetchProfessionalPaymentsHistory.type'
+import { PaymentService } from '@/services/payments'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const PaymentHistory = (): React.JSX.Element => {
 
@@ -33,7 +35,18 @@ const PaymentHistory = (): React.JSX.Element => {
         setIsLoading(true);
         setError(null);
 
-        const data = await fetchLoggedProfessionalPaymentsHistory(profile.id, { token, refreshToken, updateTokens, signOut });
+        const authHandlers: AuthHandlers = { 
+          refreshToken,
+          token,
+          signOut,
+          updateTokens,
+        };
+
+        const data = await PaymentService.fetchLoggedProfessionalPaymentsHistory(
+          profile.id, 
+          authHandlers,
+        );
+
         setPaymentsHistory(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar histórico de pacientes');

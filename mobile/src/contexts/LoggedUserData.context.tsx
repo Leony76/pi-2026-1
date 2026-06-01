@@ -1,14 +1,10 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useAuth } from "./auth.context";
-import { apiGetWithAuth } from "@/services/auth-api";
-import { CurrentUserResponse } from "@/services/auth";
-import { ApiError } from "@/services/api";
+import { ApiService, ApiError } from "@/services/api";
+import { AuthService } from "@/services/auth";
+import { CurrentUserResponse } from "@/types/user/currentUserResponse.type";
+import { AuthHandlers } from "@/types/auth/authHandlers.type";
+import { UserService } from "@/services/user";
 
 type UserProfile = CurrentUserResponse;
 
@@ -40,14 +36,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError(null);
       }
 
+      const authHandlers: AuthHandlers = {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut
+      };
+
       try {
-        const data = await apiGetWithAuth<CurrentUserResponse>(
-          "/users/me",
-          token,
-          refreshToken,
-          updateTokens,
-          signOut
-        );
+        const data = await UserService.fetchCurrentUser(authHandlers);
 
         if (!guard.cancelled) setProfile(data);
       } catch (err) {

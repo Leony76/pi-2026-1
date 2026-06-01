@@ -10,7 +10,7 @@ import { LoginFormData, loginSchema } from "@/schemas/login.schema";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import { ErrorModal } from "@/components/modal";
 import { ApiError } from "@/services/api";
-import { loginWithEmail } from "@/services/auth";
+import { AuthService } from "@/services/auth";
 import { useAuth } from "@/contexts/auth.context";
 import Toast from "@/components/ui/Toast"; 
 
@@ -57,8 +57,10 @@ const Login = (): React.JSX.Element => {
       setSubmitError(null);
       setShowErrorModal(false);
       
-      const result = await loginWithEmail(data);
+      const result = await AuthService.loginWithEmail(data);
+
       await signIn(result.token, result.refreshToken || '');
+      
       router.replace('/(authenticated)');
     } catch (error) {
       const message = error instanceof ApiError

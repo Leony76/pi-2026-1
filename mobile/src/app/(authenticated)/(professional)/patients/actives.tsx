@@ -4,8 +4,9 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchActivePatientsWithAuth } from '@/services/patients'
-import { Patient } from '@/types/patient.type'
+import { PatientService } from '@/services/patients'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { Patient } from '@/types/patient/patient.type'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
@@ -31,7 +32,14 @@ const ActivePatients = (): React.JSX.Element => {
         setIsLoading(true);
         setError(null);
 
-        const data = await fetchActivePatientsWithAuth({ token, refreshToken, updateTokens, signOut });
+        const authHandlers: AuthHandlers = {
+          token,
+          refreshToken,
+          updateTokens,
+          signOut,
+        };
+
+        const data = await PatientService.fetchActivePatients(authHandlers);
         setActivePatients(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar pacientes ativos');

@@ -1,65 +1,99 @@
-import { apiGetWithAuth, apiPostWithAuth } from "./auth-api";
-import { History } from "@/types/history.type";
-import { Patient, PatientInfos } from "@/types/patient.type";
+import { AuthHandlers } from "@/types/auth/authHandlers.type";
+import { ApiService } from "./api";
+import { History } from "@/types/room/history.type";
+import { Patient, PatientInfos } from "@/types/patient/patient.type";
+import { CreatePatient } from "@/types/patient/createPatientWithAuth.type";
+import { OccupiedHour } from "@/types/occupedHours.type";
+import { formatLocalDate } from "@/utils/formatLocalDate";
 
-type AuthHandlers = {
-  token: string;
-  refreshToken: string;
-  updateTokens: (token: string, refreshToken: string) => Promise<void>;
-  signOut: () => Promise<void>;
-};
+export class PatientService {
 
-export async function fetchActivePatientsWithAuth(auth: AuthHandlers, limit?: number): Promise<Patient[]> {
-  const query = typeof limit === "number" && limit > 0 ? `?limit=${limit}` : "";
+  public static async fetchActivePatients(
+    auth   : AuthHandlers, 
+    limit? : number
+  ): Promise<Patient[]> {
+    const query = 
+      typeof limit === "number" 
+      && limit > 0 
+        ? `?limit=${limit}` 
+        : ""
+    ;
+  
+    return ApiService.getWithAuth<Patient[]>(
+      `/patients/active${query}`,
+      auth.token,
+      auth.refreshToken,
+      auth.updateTokens,
+      auth.signOut
+    );
+  }
+  
 
-  return apiGetWithAuth<Patient[]>(
-    `/patients/active${query}`,
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
+
+  public static async fetchPatientHistory(
+    auth   : AuthHandlers, 
+    limit? : number
+  ): Promise<History[]> {
+    const query = 
+      typeof limit === "number" 
+      && limit > 0 
+        ? `?limit=${limit}` 
+        : ""
+    ;
+  
+    return ApiService.getWithAuth<History[]>(
+      `/patients/history${query}`,
+      auth.token,
+      auth.refreshToken,
+      auth.updateTokens,
+      auth.signOut
+    );
+  }
+
+
+
+  public static async fetchOccupiedHours(
+    auth: AuthHandlers,
+    date: Date
+  ): Promise<OccupiedHour[]> {
+    return ApiService.getWithAuth<OccupiedHour[]>(
+      `/patients/occupied-hours?date=${formatLocalDate(date)}`,
+      auth.token,
+      auth.refreshToken,
+      auth.updateTokens,
+      auth.signOut
+    );
+  }
+  
+
+
+  public static async fetchPatientById(
+    id   : string, 
+    auth : AuthHandlers
+  ): Promise<PatientInfos> {
+    return ApiService.getWithAuth<PatientInfos>(
+      `/patients/${id}`,
+      auth.token,
+      auth.refreshToken,
+      auth.updateTokens,
+      auth.signOut
+    );
+  }
+  
+
+
+  public static async createPatient(
+    data : CreatePatient,
+    auth : AuthHandlers
+  ): Promise<{ id: string }> {
+    return ApiService.postWithAuth<{ id: string }>(
+      "/patients",
+      data,
+      auth.token,
+      auth.refreshToken,
+      auth.updateTokens,
+      auth.signOut
+    );
+  }
 }
 
-export async function fetchPatientHistoryWithAuth(auth: AuthHandlers, limit?: number): Promise<History[]> {
-  const query = typeof limit === "number" && limit > 0 ? `?limit=${limit}` : "";
-
-  return apiGetWithAuth<History[]>(
-    `/patients/history${query}`,
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-}
-
-export async function fetchPatientByIdWithAuth(id: string, auth: AuthHandlers): Promise<PatientInfos> {
-  return apiGetWithAuth<PatientInfos>(
-    `/patients/${id}`,
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-}
-
-export async function createPatientWithAuth(
-  data: {
-    name: string;
-    phone: string;
-    email?: string;
-    initialDate: string;
-    initialHour: string;
-    observations?: string;
-  },
-  auth: AuthHandlers
-): Promise<{ id: string }> {
-  return apiPostWithAuth<{ id: string }>(
-    "/patients",
-    data,
-    auth.token,
-    auth.refreshToken,
-    auth.updateTokens,
-    auth.signOut
-  );
-}

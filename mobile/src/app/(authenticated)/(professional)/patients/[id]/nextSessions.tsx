@@ -4,8 +4,9 @@ import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import Label___Value from '@/components/ui/Label___Value'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchPatientByIdWithAuth } from '@/services/patients'
-import { PatientInfos } from '@/types/patient.type'
+import { PatientService } from '@/services/patients'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { PatientInfos } from '@/types/patient/patient.type'
 import { formatDate } from '@/utils/formatDate'
 import { formatHour } from '@/utils/formatHour'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -30,12 +31,17 @@ const NextSessions = (): React.JSX.Element => {
         return;
       }
 
-      const response = await fetchPatientByIdWithAuth(patientId, {
+      const authHandlers: AuthHandlers = {
         token,
         refreshToken,
         updateTokens,
         signOut,
-      });
+      };
+
+      const response = await PatientService.fetchPatientById(
+        patientId, 
+        authHandlers
+      );
 
       if (response) setSession(response.sessions);
     } catch (error:unknown) {
@@ -65,7 +71,7 @@ const NextSessions = (): React.JSX.Element => {
   }, [id, token, refreshToken, updateTokens, signOut]);
 
   const filteredPatientNextSessions = sessions?.filter((session) => 
-    session.room.toLocaleLowerCase().includes(searchValue?.toLocaleLowerCase() ?? '')
+    session.room?.toLocaleLowerCase().includes(searchValue?.toLocaleLowerCase() ?? '')
   );
 
   return (

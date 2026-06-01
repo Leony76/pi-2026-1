@@ -4,11 +4,12 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchPatientHistoryWithAuth } from '@/services/patients'
+import { PatientService } from '@/services/patients'
 import { useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, FlatList, Text, View } from 'react-native'
-import { History as HistoryType } from '@/types/history.type'
+import { History as HistoryType } from '@/types/room/history.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const History = (): React.JSX.Element => {
 
@@ -31,7 +32,14 @@ const History = (): React.JSX.Element => {
         setIsLoading(true);
         setError(null);
 
-        const data = await fetchPatientHistoryWithAuth({ token, refreshToken, updateTokens, signOut });
+        const authHandlers: AuthHandlers = {
+          token,
+          refreshToken,
+          updateTokens,
+          signOut,
+        };
+
+        const data = await PatientService.fetchPatientHistory(authHandlers);
         setHistoryPatients(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar histórico de pacientes');

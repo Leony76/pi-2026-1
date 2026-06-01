@@ -7,24 +7,33 @@ import Section from '@/components/ui/Section'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { useAuth } from '@/contexts/auth.context'
 import { ApiError } from '@/services/api'
-import { fetchRoomOccupancy, RoomOccupancyResponse } from '@/services/rooms'
-import { Allocation } from '@/types/allocation.type'
-import { RoomDisplayCard } from '@/types/room.type'
+import { RoomService } from '@/services/rooms'
+import { Allocation } from '@/types/room/allocation.type'
+import { RoomDisplayCard } from '@/types/room/room.type'
 import { formatSessionDate } from '@/utils/formatSessionDate'
 import { priceFormat } from '@/utils/priceFormat'
 import { MaterialIcons } from '@expo/vector-icons'
 import Icon from '@/components/ui/Icon'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useMemo, useState } from 'react'
-import { ScrollView, Text, View, TouchableOpacity } from 'react-native'
+import { ScrollView, Text, View, TouchableOpacity, Image } from 'react-native'
 import { Calendar } from 'react-native-calendars'
 import { formatLocalDate } from '@/utils/formatLocalDate'
 import { parseLocalDate } from '@/utils/parseLocalDate'
+import { RoomOccupancyResponse } from '@/types/room/roomOccupancyResponse.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import ImageExpanded from '@/components/modal/ImageExpanded'
+import { formatDate } from '@/utils/formatDate'
+import { formatDayMonth } from '@/utils/formatDayMonth'
+import { formatFullDayRange } from '@/utils/formatFullDayRange'
+import { getLastDayOfMonth } from '@/utils/getLastDayOfMonth'
 
 const roomRentalWizard = (): React.JSX.Element => {
   const params = useLocalSearchParams()
   const router = useRouter()
   const auth = useAuth()
+
+  const [modal, setModal] = useState<'IMAGE_EXPAND' | null>(null);
 
   const [allocationType, setAllocationType] = useState<Allocation | null>(null)
   const [wizardStep, setWizardStep] = useState<number>(1)
@@ -36,6 +45,7 @@ const roomRentalWizard = (): React.JSX.Element => {
   })
 
   const title = (params.title as string) ?? '[Não fornecido]'
+  const roomDisplayImage = (params.roomDisplayImage as string) ?? null;
   const roomId = (params.roomId as string) ?? '[Não suposto a existir]'
   const isAvailable = params.isAvailable === 'true'
 
@@ -49,13 +59,24 @@ const roomRentalWizard = (): React.JSX.Element => {
 
   useEffect(() => {
     async function loadRoomOccupancy() {
-      if (!auth.token || !roomId || roomId.startsWith('[')) {
+      if (!auth.token || !auth.refreshToken || !roomId || roomId.startsWith('[')) {
         return
       }
 
+      const authHandlers: AuthHandlers = {
+        refreshToken : auth.refreshToken,
+        token        : auth.token,
+        signOut      : auth.signOut,
+        updateTokens : auth.updateTokens,
+      };
+
       try {
-        const data = await fetchRoomOccupancy(roomId, auth.token)
-        setRoomOccupancy(data)
+        const data = await RoomService.fetchRoomOccupancy(
+          roomId, 
+          authHandlers,
+        );
+
+        setRoomOccupancy(data);
       } catch (error) {
         if (error instanceof ApiError) {
           setRoomOccupancy({ occupiedHours: [], occupiedDays: [] })
@@ -63,8 +84,9 @@ const roomRentalWizard = (): React.JSX.Element => {
       }
     }
 
-    loadRoomOccupancy()
-  }, [auth.token, roomId])
+    loadRoomOccupancy();
+  }, [auth.token, roomId]);
+
 
   const todayKey = formatLocalDate(new Date());
 
@@ -93,16 +115,12 @@ const roomRentalWizard = (): React.JSX.Element => {
     const marked: Record<string, any> = {}
 
     for (const date of futureOccupiedDays) {
-      const correctedDate = formatLocalDate(
-        addDays(parseLocalDate(date), 1)
-      );
-
-      marked[correctedDate] = {
+      marked[date] = {
         marked: true,
         dotColor: '#FF6B6B',
         selectedColor: '#FF6B6B',
         disableTouchEvent: true,
-      }
+      };
     }
 
     return marked
@@ -112,11 +130,7 @@ const roomRentalWizard = (): React.JSX.Element => {
     const marked: Record<string, any> = {}
 
     for (const date of futureOccupiedDays) {
-      const correctedDate = formatLocalDate(
-        addDays(parseLocalDate(date), 1)
-      );
-
-      marked[correctedDate] = {
+      marked[date] = {
         marked: true,
         dotColor: '#FF6B6B',
         disabled: true,
@@ -142,10 +156,10 @@ const roomRentalWizard = (): React.JSX.Element => {
     }
 
     return marked
-  }, [futureOccupiedDays, selectedWeekRange])
+  }, [futureOccupiedDays, selectedWeekRange]);
 
   const selectedWeekLabel = selectedWeekRange
-    ? `${formatSessionDate(selectedWeekRange.startDate)} - ${formatSessionDate(selectedWeekRange.endDate)}`
+    ? `${formatDayMonth(selectedWeekRange.startDate)} - ${formatDayMonth(selectedWeekRange.endDate)}`
     : null
 
   const selectedWeekDays = selectedWeekRange
@@ -172,7 +186,20 @@ const roomRentalWizard = (): React.JSX.Element => {
     return { status, conflicts, count: conflicts.length, daysInMonth }
   }, [selectedDate, futureOccupiedDays])
 
-  const canProceedWithMonth = selectedMonthInfo ? selectedMonthInfo.status === 'Disponível' : false
+  const selectedWeekConflicts = useMemo(() => {
+    if (!selectedWeekRange) return [];
+
+    return selectedWeekDays.filter((date) =>
+      futureOccupiedDays.includes(formatLocalDate(date))
+    );
+  }, [selectedWeekDays, futureOccupiedDays]);
+
+  const canProceedWithWeek =
+    selectedWeekRange !== null &&
+    selectedWeekConflicts.length === 0
+  ;
+
+  const canProceedWithMonth = selectedMonthInfo?.conflicts.length === 0;
 
   const handleSwitchAllocationDataClean = (): void => {
     setPaymentMethod(null)
@@ -256,6 +283,22 @@ const roomRentalWizard = (): React.JSX.Element => {
         <ScrollView contentContainerClassName='gap-5 py-6'>
           {wizardStep === 1 ? (
             <>
+              <ImageExpanded
+                image={roomDisplayImage}
+                onRequestClose={() => setModal(null)}
+                visible={modal === 'IMAGE_EXPAND'}
+              />
+              
+              <TouchableOpacity
+              activeOpacity={0.67}
+              onPress={() => setModal('IMAGE_EXPAND')}
+              >
+                <Image
+                  source={{ uri: roomDisplayImage }} 
+                  className='w-full h-48 rounded-lg border border-medroom-secondary'
+                />
+              </TouchableOpacity>
+
               <Section title='Informações'>
                 <Label___Value separationRow label='Andar' value={{ _: complementaryData.floor }} />
                 <Label___Value separationRow label='Área' value={{ _: `${complementaryData.area}m²` }} />
@@ -331,13 +374,14 @@ const roomRentalWizard = (): React.JSX.Element => {
                           selectedDayBackgroundColor: systemColors.primary,
                           selectedDayTextColor: '#ffffff',
                           todayTextColor: systemColors.primary,
-                          dayTextColor: 'gray',
+                          dayTextColor: systemColors.secondary,
                           arrowColor: systemColors.primary,
                           monthTextColor: systemColors.primary,
                           indicatorColor: systemColors.primary,
-                          textDayFontFamily: 'nunito',
-                          textMonthFontFamily: 'nunito-bold',
-                          textDayHeaderFontFamily: 'nunito-bold',
+                          textDayFontWeight: '400',
+                          textMonthFontWeight: '400',
+                          todayButtonFontWeight: '400',
+                          textDayHeaderFontWeight: '400',
                         }}
                       />
                     </View>
@@ -363,12 +407,12 @@ const roomRentalWizard = (): React.JSX.Element => {
 
                           <View className='flex-row flex-wrap gap-2'>
                             {futureOccupiedDays.slice(0, 10).map((date) => {
-                              const parsedDate = addDays(parseLocalDate(date), 1);
+                              const parsedDate = parseLocalDate(date);
 
                               return (
                                 <View
-                                  key={date}
-                                  className='rounded-full border border-red-300 bg-red-100 px-3 py-1'
+                                key={date}
+                                className='rounded-full border border-red-300 bg-red-100 px-3 py-1'
                                 >
                                   <Text className='text-xs font-nunito-bold text-red-900'>
                                     {parsedDate.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
@@ -394,7 +438,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                         <Label___Value
                           label='Dia selecionado'
                           boldLabel
-                          value={{ _: formatSessionDate(selectedDate), color: 'text-medroom-primary' }}
+                          value={{ _: formatFullDayRange(selectedDate), color: 'text-medroom-primary' }}
                         />
                         <Label___Value
                           label='Valor diário'
@@ -443,13 +487,14 @@ const roomRentalWizard = (): React.JSX.Element => {
                           selectedDayBackgroundColor: systemColors.primary,
                           selectedDayTextColor: '#ffffff',
                           todayTextColor: systemColors.primary,
-                          dayTextColor: 'gray',
+                          dayTextColor: systemColors.secondary,
                           arrowColor: systemColors.primary,
                           monthTextColor: systemColors.primary,
                           indicatorColor: systemColors.primary,
-                          textDayFontFamily: 'nunito',
-                          textMonthFontFamily: 'nunito-bold',
-                          textDayHeaderFontFamily: 'nunito-bold',
+                          textDayFontWeight: '400',
+                          textMonthFontWeight: '400',
+                          todayButtonFontWeight: '400',
+                          textDayHeaderFontWeight: '400',
                         }}
                       />
                     </View>
@@ -508,21 +553,29 @@ const roomRentalWizard = (): React.JSX.Element => {
                           boldLabel
                           value={{ _: (selectedWeekLabel), color: 'text-medroom-primary' }}
                         />
+
                         <View className='flex-row flex-wrap gap-2'>
                           {selectedWeekDays.map((date) => {
-                            const dateKey = getDateKey(date)
+                            const dateKey = getDateKey(date);
                             const weekdayLabel = date.toLocaleDateString('pt-BR', { weekday: 'short' })
                             const dayNumber = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                            const isDayOccuped = selectedWeekConflicts.includes(date);
+
+                            const cardColor: Record<string, string> = {
+                              container : isDayOccuped ? 'border-red-500 bg-red-50' : 'border-medroom-primaryLight bg-cyan-50',
+                              weekLabel : isDayOccuped ? 'text-red-600 font-semibold' : 'text-medroom-secondary',
+                              dayLabel  : isDayOccuped ? 'text-red-600' : 'text-medroom-primary',
+                            };
 
                             return (
                               <View
-                                key={dateKey}
-                                className='min-w-[82px] flex-1 rounded-xl border border-medroom-primaryLight bg-cyan-50 px-2 py-2'
+                              key={dateKey}
+                              className={`min-w-[82px] flex-1 rounded-xl border px-2 py-2 ${cardColor.container}`}
                               >
-                                <Text className='text-[11px] uppercase tracking-wide text-medroom-secondary'>
+                                <Text className={`text-[11px] uppercase tracking-wide ${cardColor.weekLabel}`}>
                                   {weekdayLabel}
                                 </Text>
-                                <Text className='font-nunito-bold text-sm text-medroom-primary'>
+                                <Text className={`font-nunito-bold text-sm ${cardColor.dayLabel}`}>
                                   {dayNumber}
                                 </Text>
                               </View>
@@ -536,12 +589,29 @@ const roomRentalWizard = (): React.JSX.Element => {
                         />
                       </View>
                     )}
+
+                    {selectedWeekConflicts.length > 0 && (
+                      <View className='gap-3 rounded-xl border-2 border-red-300 bg-red-50 p-3'>
+                        <View className='flex-row items-center gap-2'>
+                          <MaterialIcons
+                            name='error-outline'
+                            size={20}
+                            color='#DC2626'
+                          />
+
+                          <Text className='font-nunito-bold text-red-700 flex-1'>
+                            Esta semana possui dias já reservados
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                   </Section>
 
                   {selectedDate && (
                     <Button.Default
                       label='Reservar sala'
                       onTouch={() => setWizardStep(2)}
+                      disable={!canProceedWithWeek}
                       filled
                       icon={{ name: 'key_card' }}
                     />
@@ -619,14 +689,14 @@ const roomRentalWizard = (): React.JSX.Element => {
                         })()}
                       </View>
 
-                      {/* Inline details for selected month (status + conflicts) */}
                       {selectedDate && selectedMonthInfo && (() => {
                         const monthLabelSel = selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
                         if (selectedMonthInfo.status === 'Disponível') {
                           return (
                             <View className='gap-3 rounded-xl border-2 border-green-300 bg-green-50 p-3 mt-3'>
                               <View className='flex-row items-center gap-2'>
-                                <View style={{ width: 18, height: 18, borderRadius: 18, backgroundColor: '#10B981' }} />
+                                <MaterialIcons name='check-circle' size={20} color='#15803d'/>
+
                                 <Text className='font-nunito-bold text-green-700 flex-1'>{`${monthLabelSel.charAt(0).toUpperCase() + monthLabelSel.slice(1)} está totalmente disponível`}</Text>
                               </View>
                             </View>
@@ -638,12 +708,19 @@ const roomRentalWizard = (): React.JSX.Element => {
                             <View className='gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-3 mt-3'>
                               <View className='flex-row items-center gap-2'>
                                 <MaterialIcons name='warning' size={20} color='#b45309' />
-                                <Text className='font-nunito-bold text-amber-800 flex-1'>Conflito parcial em {monthLabelSel.charAt(0).toUpperCase() + monthLabelSel.slice(1)}</Text>
+
+                                <Text className='font-nunito-bold text-amber-800 flex-1'>
+                                  Conflito parcial em {monthLabelSel.charAt(0).toUpperCase() + monthLabelSel.slice(1)}
+                                </Text>
                               </View>
-                              <Text className='font-nunito text-amber-800 text-sm'>Alguns dias já estão ocupados neste mês:</Text>
+
+                              <Text className='font-nunito text-amber-800 text-sm'>
+                                Alguns dias já estão ocupados neste mês:
+                              </Text>
+
                               <View className='flex-row flex-wrap gap-2 mt-2'>
                                 {selectedMonthInfo.conflicts.slice(0, 10).map((date) => {
-                                  const parsedDate = addDays(parseLocalDate(date), 1);
+                                  const parsedDate = parseLocalDate(date);
 
                                   return (
                                     <View key={date} className='rounded-full border border-amber-300 bg-amber-100 px-3 py-1'>
@@ -731,7 +808,7 @@ const roomRentalWizard = (): React.JSX.Element => {
                         label='Início → Término'
                         separationRow
                         value={{ _: selectedDate 
-                          ? `${formatSessionDate(selectedDate)} → ${formatSessionDate(addDays(selectedDate, 29))}` 
+                          ? `${formatDayMonth(selectedDate)} → ${formatDayMonth(getLastDayOfMonth(selectedDate))}` 
                           : '-'
                         }}
                       />
@@ -740,10 +817,11 @@ const roomRentalWizard = (): React.JSX.Element => {
                     <Label___Value
                       label='Período'
                       separationRow
-                      value={{ _: (allocationType === 'WEEK' && selectedWeekLabel) 
+                      value={{ _: (
+                        allocationType === 'WEEK' && selectedWeekLabel) 
                         ? selectedWeekLabel 
                         : (allocationType === 'DAILY' && selectedDate) 
-                        ? formatSessionDate(selectedDate) 
+                        ? formatFullDayRange(selectedDate) 
                         : '-'
                       }}
                     />

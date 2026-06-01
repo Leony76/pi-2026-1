@@ -7,11 +7,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import Icon from '@/components/ui/Icon'
-import { changeProfessionalPasswordWithAuth } from '@/services/auth'
+import { UserService } from '@/services/user'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
 import { NewPasswordFormData, newPasswordSchema } from '@/schemas/newPassword.schema'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const NewPassword = (): React.JSX.Element => {
 
@@ -41,15 +42,18 @@ const NewPassword = (): React.JSX.Element => {
 
       if (!token || !refreshToken || !profile) throw new Error("Não autenticado");
 
-      await changeProfessionalPasswordWithAuth(
-        data.newPassword, 
-        profile?.id,
-        {
+      const authHandlers: AuthHandlers = {
         token,
         refreshToken,
         updateTokens,
         signOut,
-      });
+      };
+
+      await UserService.changeProfessionalPassword(
+        data.newPassword, 
+        profile?.id,
+        authHandlers
+      );
 
       router.replace({
         pathname: '/(authenticated)/(professional)/profile',

@@ -4,8 +4,8 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper'
 import SystemLayout from '@/components/layout/SystemLayout'
 import { useAuth } from '@/contexts/auth.context'
 import { NewPatientFormData, newPatientSchema } from '@/schemas/newPatient.schema'
-import { createPatientWithAuth } from '@/services/patients'
-import { fetchUserRentalsWithAuth, RoomRental } from '@/services/rooms'
+import { PatientService } from '@/services/patients'
+import { RoomService } from '@/services/rooms'
 import { HOURS_MAP } from '@/constants/maps/roomsHours.map'
 import { isHourOccupied } from '@/utils/isHourOccuped'
 import { formatPhone } from '@/utils/formatPhone'
@@ -16,13 +16,21 @@ import { Controller, useForm } from 'react-hook-form'
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
 import Feather from '@expo/vector-icons/Feather';
 import { systemColors } from '@/constants/misc/systemColors.misc'
-import { HourShift } from '@/types/hourShift.type'
+import { HourShift } from '@/types/room/hourShift.type'
 import { formatLocalDate } from '@/utils/formatLocalDate'
+import { RoomRental } from '@/types/room/roomRental.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { CreatePatient } from '@/types/patient/createPatientWithAuth.type'
+import { combineDateAndTime } from '@/utils/combineDateAndTime'
+import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
+import { formatHour } from '@/utils/formatHour'
 
 const NewPatient = (): React.JSX.Element => {
 
-  const router = useRouter();
+  const { profile } = useLoggedUserData();
   const { token, refreshToken, updateTokens, signOut } = useAuth();
+
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [invalidDateError, setInvalidDateError] = useState<string | null>(null);
@@ -33,6 +41,7 @@ const NewPatient = (): React.JSX.Element => {
   const {
     control, 
     handleSubmit, 
+    register,
     setValue,
     formState: { errors }
   } = useForm<NewPatientFormData>({
@@ -42,26 +51,35 @@ const NewPatient = (): React.JSX.Element => {
       name         : '',
       observations : '',
       phone        : '',
-      initialDate  : '',
-      initialHour  : '',
+      date         : '',
+      endHour      : '',
+      startHour    : ''
     }
   }); 
 
-  
+  const [occupiedHours, setOccupiedHours] = useState<HourShift[]>([]);
+
+  React.useEffect(() => {
+    register('startHour');
+    register('endHour');
+  }, [register]);
+
   React.useEffect(() => {
     const loadRentals = async () => {
       if (!token || !refreshToken) return;
 
+      const authHandlers: AuthHandlers = { 
+        refreshToken,
+        token,
+        signOut,
+        updateTokens,
+      };
+
       try {
-        const data = await fetchUserRentalsWithAuth({
-          token,
-          refreshToken,
-          updateTokens,
-          signOut,
-        });
+        const data = await RoomService.fetchUserRentals(authHandlers);
 
         setRentals(data);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Erro ao carregar reservas:', err);
         setRentals([]);
       }
@@ -78,38 +96,6 @@ const NewPatient = (): React.JSX.Element => {
     while (current <= last) {
       dates.push(formatLocalDate(current));
       current.setDate(current.getDate() + 1);
-    }
-
-    return dates;
-  };
-
-  const generateMarkedDates = () => {
-    const dates: Record<string, any> = {};
-
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const dateStr = date.toISOString().split('T')[0];
-
-      if (!dateStr) continue;
-
-      if (allowedDates.has(dateStr)) {
-        dates[dateStr] = {
-          marked: true,
-          selected: true,
-          disableTouchEvent: false,
-        };
-      } else {
-        dates[dateStr] = {
-          disabled: true,
-          disableTouchEvent: true,
-        };
-      }
     }
 
     return dates;
@@ -155,7 +141,7 @@ const NewPatient = (): React.JSX.Element => {
       return [] as Array<HourShift & { unavailable: boolean }>;
     }
 
-    const occupiedHours = rentals
+    const rentalHours  = rentals
       .filter((r) => {
         const rentalStart = getDateKey(new Date(r.startDate));
         const rentalEnd = getDateKey(new Date(r.endDate));
@@ -167,28 +153,116 @@ const NewPatient = (): React.JSX.Element => {
     const todayKey = getDateKey(new Date());
 
     return (Object.values(HOURS_MAP).flat() as HourShift[]).map((hour) => {
-      const isOccupied = isHourOccupied(occupiedHours, hour.startHour, hour.endHour);
+
+      const isRentalUnavailable = isHourOccupied(
+        rentalHours,
+        hour.startHour,
+        hour.endHour
+      );
+
+      const isPatientOccupied = isHourOccupied(
+        occupiedHours,
+        hour.startHour,
+        hour.endHour
+      );
+
       const isPassed = selectedDateKey === todayKey && (() => {
         const now = new Date();
-        const [hh, mm] = hour.startHour.split(':').map((s) => parseInt(s, 10));
-        const slotStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), hh, mm, 0, 0);
+
+        const [hh, mm] = hour.startHour
+          .split(':')
+          .map(Number);
+
+        const slotStart = new Date(
+          selectedDateObj.getFullYear(),
+          selectedDateObj.getMonth(),
+          selectedDateObj.getDate(),
+          hh,
+          mm
+        );
+
         return now > slotStart;
       })();
 
       return {
         ...hour,
-        unavailable: isOccupied || isPassed,
+        unavailable:
+          isRentalUnavailable ||
+          isPatientOccupied ||
+          isPassed,
       };
     });
-  }, [rentals, selectedDateKey, selectedDateObj]);
+  }, [ rentals, occupiedHours, selectedDateKey, selectedDateObj]);
 
   const getMinDate = (): string => {
     const today = new Date();
     return formatLocalDate(today);
   };
 
+  const markedDates = useMemo(() => {
+    const result: Record<string, any> = {};
+
+    const start = new Date();
+    const end = new Date();
+    end.setMonth(end.getMonth() + 6);
+
+    const current = new Date(start);
+
+    while (current <= end) {
+      const key = formatLocalDate(current);
+
+      result[key] = allowedDates.has(key)
+        ? {
+            marked: true,
+            disableTouchEvent: false,
+          }
+        : {
+            disabled: true,
+            disableTouchEvent: true,
+          };
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
+  }, [allowedDates]);
+
+  const loadOccupiedHours = async () => {
+    try { 
+      if (!refreshToken || !token) return;
+
+      const authHandles: AuthHandlers = {
+        refreshToken,
+        token,
+        signOut,
+        updateTokens,
+      }
+
+      const data = await PatientService.fetchOccupiedHours(
+        authHandles,
+        selectedDateObj!
+      );
+
+      setOccupiedHours(
+        data.map((session) => ({
+          startHour : formatHour(session.startsAt),
+          endHour   : formatHour(session.endsAt),
+        }))
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error) console.error(error); 
+    } 
+  };
+
+  React.useEffect(() => {
+    if (!selectedDateObj) return;
+
+    loadOccupiedHours();
+  }, [selectedDateObj]);
+
+
   const handleSaveNewPatient = async( data: NewPatientFormData ): Promise<void> => {
-    if (!token || !refreshToken) {
+    if (!token || !refreshToken || !profile?.id) {
       setSubmitError('Não autenticado');
       return;
     }
@@ -197,21 +271,38 @@ const NewPatient = (): React.JSX.Element => {
       setIsSaving(true);
       setSubmitError(null);
 
-      await createPatientWithAuth(
-        {
-          name: data.name,
-          phone: data.phone,
-          email: data.email?.trim() ? data.email : undefined,
-          initialDate: data.initialDate,
-          initialHour: data.initialHour,
-          observations: data.observations?.trim() ? data.observations : undefined,
-        },
-        {
-          token,
-          refreshToken,
-          updateTokens,
-          signOut,
-        }
+      const authHandlers: AuthHandlers = {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      };
+
+      const startsAt = combineDateAndTime(
+        data.date,
+        data.startHour
+      );
+
+      const endsAt = combineDateAndTime(
+        data.date,
+        data.endHour
+      );
+
+      const createPatientPayload: CreatePatient = {
+        professionalId: profile?.id,
+        name: data.name,
+        phone: data.phone,
+        email: data.email?.trim() ? data.email : undefined,
+        startHour: startsAt,
+        endHour: endsAt,
+        observations: data.observations?.trim()
+          ? data.observations
+          : undefined,
+      };
+
+      await PatientService.createPatient(
+        createPatientPayload,
+        authHandlers
       );
 
       router.push({
@@ -314,16 +405,16 @@ const NewPatient = (): React.JSX.Element => {
             <View>
               <Controller
                 control={control}
-                name="initialDate"
+                name="date"
                 render={({ field: { onChange, value } }) => (
                   <>
                     <Input.DateTime
                       label="Data do atendimento"
                       placeholder={{ text: 'Selecione a data do atendimento' }}
                       icon={{ name: 'schedule' }}
-                      value={value} 
                       minDate={getMinDate()}                     
-                      markedDates={generateMarkedDates()}
+                      markedDates={markedDates}
+                      value={value}
                       onChange={(selectedDate) => {
                         if (!selectedDate) {
                           onChange('');
@@ -331,18 +422,26 @@ const NewPatient = (): React.JSX.Element => {
                           return;
                         }
 
-                        const dateStr = formatLocalDate(selectedDate)
+                        const dateStr = formatLocalDate(selectedDate);
+
                         if (!allowedDates.has(dateStr)) {
-                          setInvalidDateError('Selecione um dia que você tenha aluguel de sala');
+                          setInvalidDateError(
+                            'Selecione um dia que você tenha aluguel de sala'
+                          );
                           return;
                         }
 
                         onChange(dateStr);
-                        setInvalidDateError(null);
                         setSelectedDateObj(selectedDate);
-                        setSubmitError(null);
+
                         setSelectedHour(null);
-                        setValue('initialHour', '');
+                        setValue('startHour', '', {
+                          shouldValidate: true,
+                        });
+
+                        setValue('endHour', '', {
+                          shouldValidate: true,
+                        });
                       }}
                     />
 
@@ -377,14 +476,29 @@ const NewPatient = (): React.JSX.Element => {
 
                                         if (selectedHour?.startHour === hour.startHour) {
                                           setSelectedHour(null);
-                                          setValue('initialHour', '');
-                                          setValue('initialDate', formatLocalDate(selectedDateObj));
+
+                                          setValue('startHour', '', {
+                                            shouldValidate: true,
+                                          });
+
+                                          setValue('endHour', '', {
+                                            shouldValidate: true,
+                                          });
                                           return;
                                         }
+                                        
+                                        setSelectedHour({
+                                          startHour: hour.startHour,
+                                          endHour: hour.endHour,
+                                        });
 
-                                        setSelectedHour({ startHour: hour.startHour, endHour: hour.endHour });
-                                        setValue('initialHour', hour.startHour);
-                                        setValue('initialDate', formatLocalDate(selectedDateObj));
+                                        setValue('startHour', hour.startHour, {
+                                          shouldValidate: true,
+                                        });
+
+                                        setValue('endHour', hour.endHour, {
+                                          shouldValidate: true,
+                                        });
                                       }}
                                     />
                                   );
@@ -405,8 +519,8 @@ const NewPatient = (): React.JSX.Element => {
                 )}
               />
 
-              {errors.initialDate?.message && <Input.Error error={errors.initialDate.message as string}/> }
-              {errors.initialHour?.message && <Input.Error error={errors.initialHour.message as string}/> }
+              {errors.startHour?.message && <Input.Error error={errors.startHour.message as string}/> }
+              {errors.date?.message && <Input.Error error={errors.date.message as string}/> }
             </View>
 
             <View>

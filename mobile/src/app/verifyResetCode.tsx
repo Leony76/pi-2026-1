@@ -3,7 +3,7 @@ import LayoutWrapper from '@/components/layout/LayoutWrapper';
 import { ErrorModal } from '@/components/modal';
 import Icon from '@/components/ui/Icon';
 import { ApiError } from '@/services/api';
-import { requestPasswordReset, verifyResetCode } from '@/services/auth';
+import { AuthService } from '@/services/auth';
 import { formatTime } from '@/utils/formatTime';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -57,7 +57,10 @@ const VerifyResetCode = (): React.JSX.Element => {
       setShowErrorModal(false);
 
       const enteredCode = code.join('');
-      const result = await verifyResetCode(email, enteredCode);
+      const result = await AuthService.verifyResetCode(
+        email, 
+        enteredCode
+      );
 
       router.push({
         pathname: '/newPassword',
@@ -86,7 +89,8 @@ const VerifyResetCode = (): React.JSX.Element => {
       setSubmitError(null);
       setShowErrorModal(false);
 
-      await requestPasswordReset(email);
+      await AuthService.requestPasswordReset(email);
+      
       setCode(['', '', '', '', '', '']);
       setSecondsLeft(600);
     } catch (error) {

@@ -7,12 +7,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
 import React, { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { ScrollView, Text, View } from 'react-native'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Icon from '@/components/ui/Icon'
 import { ChangePasswordFormData, changePasswordSchema } from '@/schemas/changeCurrentPassword.schema'
-import { verifyCurrentPasswordToChangeWithAuth } from '@/services/auth'
+import { UserService } from '@/services/user'
 import { useLoggedUserData } from '@/contexts/LoggedUserData.context'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
 
 const ChangePassword = (): React.JSX.Element => {
 
@@ -41,15 +42,18 @@ const ChangePassword = (): React.JSX.Element => {
 
       if (!token || !refreshToken || !profile) throw new Error("Não autenticado");
 
-      const passwordMatch: boolean = await verifyCurrentPasswordToChangeWithAuth(
-        data.currentPassword, 
-        profile?.id,
-        {
+      const authHandlers: AuthHandlers = {
         token,
         refreshToken,
         updateTokens,
         signOut,
-      });
+      };
+
+      const passwordMatch: boolean = await UserService.verifyCurrentPasswordToChange(
+        data.currentPassword, 
+        profile?.id,
+        authHandlers
+      );
       
       if (!passwordMatch) {
         setPasswordMismatchMessage('A senha fornecida não confere com a atual');

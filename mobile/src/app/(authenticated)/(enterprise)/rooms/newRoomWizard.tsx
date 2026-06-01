@@ -12,8 +12,8 @@ import { ROOM_CHARACTERISTCS_MAP } from '@/constants/maps/roomCharacteristics.ma
 import { ROOM_ITEMS } from '@/constants/maps/roomItems.map'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { NewRoomFormData, NewRoomFormInput, newRoomSchema } from '@/schemas/newRoom.schema'
-import { ROOM_ITEMS_LIMIT_MAP } from '@/types/roomItems.type'
-import { createRoomWithAuth } from '@/services/rooms'
+import { ROOM_ITEMS_LIMIT_MAP } from '@/types/room/roomItems.type'
+import { RoomService } from '@/services/rooms'
 import { useAuth } from '@/contexts/auth.context'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from 'expo-router'
@@ -26,6 +26,8 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Entypo from '@expo/vector-icons/Entypo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import ImageExpanded from '@/components/modal/ImageExpanded'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { CreateRoomInput } from '@/types/room/createRoom.type'
 
 const NewRoomWizard = (): React.JSX.Element => {
 
@@ -96,14 +98,14 @@ const NewRoomWizard = (): React.JSX.Element => {
         throw new Error('Sessão inválida. Faça login novamente.');
       }
 
-      const authenticated = {
-        token: auth.token,
-        refreshToken: auth.refreshToken,
-        updateTokens: auth.updateTokens,
-        signOut: auth.signOut,
+      const authHandlers: AuthHandlers = {
+        token        : auth.token,
+        refreshToken : auth.refreshToken,
+        updateTokens : auth.updateTokens,
+        signOut      : auth.signOut,
       };
 
-      await createRoomWithAuth({
+      const createRoomPayload: CreateRoomInput = {
         roomName: data.roomName,
         roomImage,
         floor: data.floor,
@@ -114,7 +116,12 @@ const NewRoomWizard = (): React.JSX.Element => {
         pricePerMonth: data.pricePerMonth,
         items: data.items,
         customItems: customItems,
-      }, authenticated);
+      };
+
+      await RoomService.createRoom(
+        createRoomPayload, 
+        authHandlers
+      );
 
       router.replace({
         pathname: '/(authenticated)/(enterprise)/rooms',

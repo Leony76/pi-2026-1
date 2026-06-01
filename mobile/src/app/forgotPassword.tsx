@@ -4,7 +4,7 @@ import { ErrorModal } from '@/components/modal';
 import Icon from '@/components/ui/Icon';
 import { ForgotPassowordEmailFormData, forgotPassowordEmailSchema } from '@/schemas/forgotPassowordEmail.schema';
 import { ApiError } from '@/services/api';
-import { requestPasswordReset } from '@/services/auth';
+import { AuthService } from '@/services/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react'
@@ -42,7 +42,7 @@ const ForgotPassword = (): React.JSX.Element => {
       setSubmitError(null);
       setShowErrorModal(false);
 
-      await requestPasswordReset(data.email);
+      await AuthService.requestPasswordReset(data.email);
 
       router.push({
         pathname: '/verifyResetCode',

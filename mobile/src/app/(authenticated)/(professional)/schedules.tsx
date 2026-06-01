@@ -3,15 +3,18 @@ import SystemLayout from '@/components/layout/SystemLayout'
 import AvailbilityTag from '@/components/ui/AvailbilityTag'
 import Icon from '@/components/ui/Icon'
 import Label___Value from '@/components/ui/Label___Value'
-import Section from '@/components/ui/Section'
 import { systemColors } from '@/constants/misc/systemColors.misc'
 import { priceFormat } from '@/utils/priceFormat'
 import React, { useEffect, useState } from 'react'
 import { ScrollView, Text, View, ActivityIndicator } from 'react-native'
 import { useAuth } from '@/contexts/auth.context'
-import { fetchUserRentalsWithAuth, RoomRental } from '@/services/rooms'
-import { formatSessionDate } from '@/utils/formatSessionDate'
+import { RoomService } from '@/services/rooms'
 import ContentNotFound from '@/components/ui/ContentNotFound'
+import { RoomRental } from '@/types/room/roomRental.type'
+import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { formatFullDayRange } from '@/utils/formatFullDayRange'
+import { Allocation } from '@/types/room/allocation.type'
+import { formatDate } from '@/utils/formatDate'
 
 const schedules = (): React.JSX.Element => {
   const { token, refreshToken, updateTokens, signOut } = useAuth();
@@ -30,12 +33,16 @@ const schedules = (): React.JSX.Element => {
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchUserRentalsWithAuth({
+
+        const authHandlers: AuthHandlers = {
           token,
           refreshToken,
           updateTokens,
           signOut,
-        });
+        };
+
+        const data = await RoomService.fetchUserRentals(authHandlers);
+
         setRentals(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar horários');
@@ -87,13 +94,24 @@ const schedules = (): React.JSX.Element => {
   const now = new Date();
   const getRentalEnd = (rental: RoomRental) => new Date(rental.endDate);
 
-  const getAllocationLabel = (allocationType: RoomRental['allocationType']) => {
+  const getAllocationLabel = (allocationType: Allocation) => {
     switch (allocationType) {
       case 'DAILY' : return 'Por dia';
       case 'MONTH' : return 'Mensal';
       default      : return 'Por semana';
     }
   };
+
+  const occupationPeriodDisplayFormatByAllocationType = (
+    allocationType : Allocation,
+    startDate      : string | Date,
+    endDate        : string | Date,
+  ) => {
+    switch (allocationType) {
+      case 'DAILY' : return formatFullDayRange(startDate, true);
+      default      : return formatDate(startDate) + ' à ' + formatDate(endDate);   
+    }
+  } 
 
   const activeRentals = rentals.filter(r => {
     const end = getRentalEnd(r);
@@ -139,7 +157,13 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(rental.startDate)}
+                          { 
+                            occupationPeriodDisplayFormatByAllocationType(
+                              rental.allocationType,
+                              rental.startDate,
+                              rental.endDate,
+                            ) 
+                          }
                         </Text>
                       </View>
                     </View>
@@ -193,7 +217,11 @@ const schedules = (): React.JSX.Element => {
                         />
 
                         <Text className='text font-nunito-bold text-medroom-secondary'>
-                          {formatSessionDate(rental.startDate)}  até  {formatSessionDate(rental.endDate)}
+                          {occupationPeriodDisplayFormatByAllocationType(
+                            rental.allocationType,
+                            rental.startDate,
+                            rental.endDate,
+                          )}
                         </Text>
                       </View>
                     </View>

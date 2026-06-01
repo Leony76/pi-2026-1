@@ -1,4 +1,4 @@
-import { RoomDisplayCard } from '@/types/room.type'
+import { RoomDisplayCard } from '@/types/room/room.type'
 import React, { useState } from 'react'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
@@ -7,9 +7,12 @@ import { priceFormat } from '@/utils/priceFormat';
 import { Link, useRouter } from 'expo-router';
 import AvailbilityTag from '../ui/AvailbilityTag';
 import { Button } from '../button';
-import { toggleRoomAvailabilityWithAuth } from '@/services/rooms';
+import { RoomService } from '@/services/rooms';
 import { useAuth } from '@/contexts/auth.context';
 import Toast from '../ui/Toast';
+import { AuthHandlers } from '@/types/auth/authHandlers.type';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Modal } from '../modal';
 
 type Props = RoomDisplayCard & {
   pressable?       : boolean;
@@ -20,9 +23,19 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
   const isPressable = props.pressable ?? true;
 
   const router = useRouter();
+
+  const [modal, setModal] = useState<'REMOVE_ROOM' | null>(null);
   const { token, refreshToken, updateTokens, signOut } = useAuth();
   const [ isAvailable, setIsAvailable ] = useState<boolean>(props.isAvailable);
   const [ toggleErrorMessage, setToggleErrorMessage ] = useState<string | null>(null);
+
+  const handleRemoveRoom = (id: string) => {
+    try {
+
+    } catch (error:unknown) {
+      if (error instanceof Error) setToggleErrorMessage(error.message);
+    }
+  };
 
   const toggleRoomAvailability = async(): Promise<void> => {
     try {
@@ -30,15 +43,17 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
 
       const toggleStatus: boolean = !isAvailable;
 
-      const response: { success: boolean } = await toggleRoomAvailabilityWithAuth(
+      const authHandlers: AuthHandlers = {
+        token,
+        refreshToken,
+        updateTokens,
+        signOut,
+      };
+
+      const response: { success: boolean } = await RoomService.toggleRoomAvailability(
         String(props.id),
         toggleStatus,
-        {
-          token,
-          refreshToken,
-          updateTokens,
-          signOut,
-        }
+        authHandlers
       );
 
       if (response.success) setIsAvailable(prev => !prev);
@@ -48,106 +63,130 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
   };
 
   const content = (
-    <TouchableOpacity 
-    activeOpacity={isPressable && props.isAvailable ? 0.67 : 1}
-    className='gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3'
-    disabled={!isPressable || !props.isAvailable}
-    >
-      { toggleErrorMessage &&
-        <Toast
-          message={toggleErrorMessage}
-          onClose={() => setToggleErrorMessage(null)}
-          visible={!!toggleErrorMessage}
-        />
-      }
+    <>
+      <Modal.ConfirmAction
+        confirmMessage='Tem certeza em remover está sala ?'
+        onConfirm={() => handleRemoveRoom(String(props.id))}
+        onRequestClose={() => setModal(null)}
+        visible={modal === 'REMOVE_ROOM'}
+      />
 
-      { props.displayImage ? (
-        <View className='relative'>
-          <Image
-            source={{ uri: props.displayImage }} 
-            className='w-full h-48 rounded-lg'
+      <TouchableOpacity 
+      activeOpacity={isPressable && props.isAvailable ? 0.67 : 1}
+      className='gap-3 rounded-xl border-2 bg-cyan-50/10 border-medroom-primaryLight p-3'
+      disabled={!isPressable || !props.isAvailable}
+      >
+        { toggleErrorMessage &&
+          <Toast
+            message={toggleErrorMessage}
+            onClose={() => setToggleErrorMessage(null)}
+            visible={!!toggleErrorMessage}
           />
+        }
 
-          <AvailbilityTag
-            isAvailable={isAvailable}
-            tagType='AVAILIBITY'
-            aboslute='absolute top-2 right-2'
-          />
-        </View>
-      ) : (
-        <View className='bg-medroom-primaryLight justify-center items-center w-full rounded-lg h-48'>
-          <FontAwesome6 
-            name="image" 
-            size={32} 
-            color={systemColors.primary} 
-          />
-        </View>
-      )}
-
-      <View>
-        <Text className='text-xl font-nunito-bold text-medroom-primary'>
-          { props.title }
-        </Text>
-
-        <Text className='text-medroom-secondary'>
-          { props.complementaryData.floor } - { props.complementaryData.area }m² - { props.complementaryData.additional }
-        </Text>
-      </View>
-
-      { props.fromManagerView ? (
-        <View className='gap-4'>
-          <View className='gap-1'>
-            <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices.perHour) } <Text className='text-base text-medroom-secondary font-nunito'> / Por dia </Text>
-            </Text>
-            <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices._week) } <Text className='text-base text-medroom-secondary font-nunito'> / Por semana </Text>
-            </Text>
-            <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices.month) } <Text className='text-base text-medroom-secondary font-nunito'> / Por mês </Text>
-            </Text>
-          </View>
-
-          <Button.Default
-            label='Editar sala'
-            /// @ts-ignore
-            onTouch={() => router.push(`/(authenticated)/(enterprise)/rooms/edit/${props.id}`)}
-            icon={{ name: 'edit', size: { height: 20, width: 20 } }}
-          />
-
-          <View className='flex-row items-center gap-4'>
-            <Button.Toggle
-              enabled={isAvailable}
-              onToggle={toggleRoomAvailability}
+        { props.displayImage ? (
+          <View className='relative'>
+            <Image
+              source={{ uri: props.displayImage }} 
+              className='w-full h-48 rounded-lg'
             />
 
-            <Text className={`font-nunito-bold text-[15px] ${ isAvailable ? 'text-green-600' : 'text-red-600' }`}>
-              { isAvailable ? 'Sala disponível' : 'Sala indisponível' }
-            </Text>
-          </View>
-        </View>
-      ) : (
-        props.isAvailable ? (
-          <View className='gap-1'>
-            <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices.perHour) } <Text className='text-base text-medroom-secondary font-nunito'> / Por dia </Text>
-            </Text>
-
-            <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices._week) } <Text className='text-base text-medroom-secondary font-nunito'> / Por semana </Text>
-            </Text>
-
-            <Text className='text-green-700 font-nunito-bold text-xl'>
-              { priceFormat(props.prices.month) } <Text className='text-base text-medroom-secondary font-nunito'> / Por mês </Text>
-            </Text>
+            <AvailbilityTag
+              isAvailable={isAvailable}
+              tagType='AVAILIBITY'
+              aboslute='absolute top-2 right-2'
+            />
           </View>
         ) : (
-          <Text className='font-nunito-bold text-xl' style={{ color: '#FF3939' }}>
-            Indisponível
+          <View className='bg-medroom-primaryLight justify-center items-center w-full rounded-lg h-48'>
+            <FontAwesome6 
+              name="image" 
+              size={32} 
+              color={systemColors.primary} 
+            />
+          </View>
+        )}
+
+        <View>
+          <Text className='text-xl font-nunito-bold text-medroom-primary'>
+            { props.title }
           </Text>
-        )
-      ) }
-    </TouchableOpacity>
+
+          <Text className='text-medroom-secondary'>
+            { props.complementaryData.floor } - { props.complementaryData.area }m² - { props.complementaryData.additional }
+          </Text>
+        </View>
+
+        { props.fromManagerView ? (
+          <View className='gap-4'>
+            <View className='gap-1'>
+              <Text className='text-green-700 font-nunito-bold text-xl'>
+                { priceFormat(props.prices.perHour) } <Text className='text-base text-medroom-secondary font-nunito'> / Por dia </Text>
+              </Text>
+              <Text className='text-green-700 font-nunito-bold text-xl'>
+                { priceFormat(props.prices._week) } <Text className='text-base text-medroom-secondary font-nunito'> / Por semana </Text>
+              </Text>
+              <Text className='text-green-700 font-nunito-bold text-xl'>
+                { priceFormat(props.prices.month) } <Text className='text-base text-medroom-secondary font-nunito'> / Por mês </Text>
+              </Text>
+            </View>
+
+            <Button.Default
+              label='Editar sala'
+              onTouch={() => router.push(`/(authenticated)/(enterprise)/rooms/edit/${props.id}`)}
+              icon={{ name: 'edit', size: { height: 20, width: 20 } }}
+            />
+
+            <Button.Default
+              label='Remover sala'
+              onTouch={() => setModal('REMOVE_ROOM')}
+              customStyle={{
+                container: 'bg-red-50 border-red-500',
+                text: 'text-red-500'
+              }}
+              CustomIcon={() => <FontAwesome name="trash" size={24} color="red" />}
+            />
+
+            <View className='flex-row items-center gap-4'>
+              <Button.Toggle
+                enabled={isAvailable}
+                onToggle={toggleRoomAvailability}
+              />
+
+              <View className='mb-1 break-all'>
+                <Text className={`font-nunito-bold text-[14px] ${ isAvailable ? 'text-green-600' : 'text-red-600' }`}>
+                  { isAvailable ? 'Disponível para alocação' : 'Indisponível para alocação' }
+                </Text>
+
+                <Text className={`font-nunito-bold text-[10px] text-medroom-secondary text-center`}>
+                  Defina se os profissionais da saúde <br/> serão capazes de poder alugar a sala.
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          props.isAvailable ? (
+            <View className='gap-1'>
+              <Text className='text-green-700 font-nunito-bold text-xl'>
+                { priceFormat(props.prices.perHour) } <Text className='text-base text-medroom-secondary font-nunito'> / Por dia </Text>
+              </Text>
+
+              <Text className='text-green-700 font-nunito-bold text-xl'>
+                { priceFormat(props.prices._week) } <Text className='text-base text-medroom-secondary font-nunito'> / Por semana </Text>
+              </Text>
+
+              <Text className='text-green-700 font-nunito-bold text-xl'>
+                { priceFormat(props.prices.month) } <Text className='text-base text-medroom-secondary font-nunito'> / Por mês </Text>
+              </Text>
+            </View>
+          ) : (
+            <Text className='font-nunito-bold text-xl' style={{ color: '#FF3939' }}>
+              Indisponível
+            </Text>
+          )
+        ) }
+      </TouchableOpacity>
+    </>
   );
 
   if (!isPressable) {
@@ -162,6 +201,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
       pathname: '/(authenticated)/(professional)/roomRentalWizard',
       params: {
         roomId            : props.id, 
+        roomDisplayImage  : props.displayImage,
         isAvailable       : String(props.isAvailable),
         title             : props.title,
         complementaryData : JSON.stringify(props.complementaryData),
@@ -169,7 +209,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
       }
     }} 
     >
-      {content}
+      { content }
     </Link>
   )
 }

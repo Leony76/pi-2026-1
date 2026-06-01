@@ -4,29 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createHttpError } from "../src/lib/http-error";
 
 vi.mock("../src/modules/auth/service", () => ({
-  register: vi.fn(),
-  login: vi.fn(),
-  refreshSession: vi.fn(),
-  logout: vi.fn(),
-  requestEmailVerification: vi.fn(),
-  verifyEmail: vi.fn(),
-  requestPasswordReset: vi.fn(),
-  verifyResetCode: vi.fn(),
-  resetPassword: vi.fn(),
+  AuthService: {
+    register: vi.fn(),
+    login: vi.fn(),
+    refreshSession: vi.fn(),
+    logout: vi.fn(),
+    requestEmailVerification: vi.fn(),
+    verifyEmail: vi.fn(),
+    requestPasswordReset: vi.fn(),
+    verifyResetCode: vi.fn(),
+    resetPassword: vi.fn(),
+  }
 }));
 
 import { app } from "../src/app";
-import {
-  login,
-  logout,
-  refreshSession,
-  register,
-  requestEmailVerification,
-  requestPasswordReset,
-  resetPassword,
-  verifyEmail,
-  verifyResetCode,
-} from "../src/modules/auth/service";
+import { AuthService } from "../src/modules/auth/service";
 
 describe("auth controllers", () => {
   beforeEach(() => {
@@ -36,7 +28,7 @@ describe("auth controllers", () => {
   // ── Success responses ────────────────────────────────────────────────────
 
   it("POST /auth/register returns 201", async () => {
-    vi.mocked(register).mockResolvedValueOnce({ token: "a", refreshToken: "b" } as never);
+    vi.mocked(AuthService.register).mockResolvedValueOnce({ token: "a", refreshToken: "b" } as never);
 
     const response = await request(app).post("/auth/register").send({ email: "ana@test.com" });
 
@@ -45,7 +37,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/login returns 200", async () => {
-    vi.mocked(login).mockResolvedValueOnce({ token: "a", refreshToken: "b" } as never);
+    vi.mocked(AuthService.login).mockResolvedValueOnce({ token: "a", refreshToken: "b" } as never);
 
     const response = await request(app).post("/auth/login").send({ email: "ana@test.com" });
 
@@ -54,7 +46,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/refresh returns 200", async () => {
-    vi.mocked(refreshSession).mockResolvedValueOnce({ token: "new", refreshToken: "new-r" } as never);
+    vi.mocked(AuthService.refreshSession).mockResolvedValueOnce({ token: "new", refreshToken: "new-r" } as never);
 
     const response = await request(app).post("/auth/refresh").send({ refreshToken: "r" });
 
@@ -63,7 +55,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/logout returns 200", async () => {
-    vi.mocked(logout).mockResolvedValueOnce({ message: "ok" } as never);
+    vi.mocked(AuthService.logout).mockResolvedValueOnce({ message: "ok" } as never);
 
     const response = await request(app).post("/auth/logout").send({ refreshToken: "r" });
 
@@ -72,7 +64,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/request-email-verification returns 200", async () => {
-    vi.mocked(requestEmailVerification).mockResolvedValueOnce(
+    vi.mocked(AuthService.requestEmailVerification).mockResolvedValueOnce(
       { message: "sent", verificationToken: "v" } as never
     );
 
@@ -85,7 +77,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/verify-email returns 200", async () => {
-    vi.mocked(verifyEmail).mockResolvedValueOnce({ message: "verified" } as never);
+    vi.mocked(AuthService.verifyEmail).mockResolvedValueOnce({ message: "verified" } as never);
 
     const response = await request(app).post("/auth/verify-email").send({ token: "v" });
 
@@ -94,7 +86,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/request-password-reset returns 200", async () => {
-    vi.mocked(requestPasswordReset).mockResolvedValueOnce({ message: "sent" } as never);
+    vi.mocked(AuthService.requestPasswordReset).mockResolvedValueOnce({ message: "sent" } as never);
 
     const response = await request(app)
       .post("/auth/request-password-reset")
@@ -105,7 +97,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/verify-reset-code returns 200", async () => {
-    vi.mocked(verifyResetCode).mockResolvedValueOnce(
+    vi.mocked(AuthService.verifyResetCode).mockResolvedValueOnce(
       { message: "ok", sessionToken: "session" } as never
     );
 
@@ -118,7 +110,7 @@ describe("auth controllers", () => {
   });
 
   it("POST /auth/reset-password returns 200", async () => {
-    vi.mocked(resetPassword).mockResolvedValueOnce({ message: "done" } as never);
+    vi.mocked(AuthService.resetPassword).mockResolvedValueOnce({ message: "done" } as never);
 
     const response = await request(app)
       .post("/auth/reset-password")
@@ -131,7 +123,7 @@ describe("auth controllers", () => {
   // ── Error handling ───────────────────────────────────────────────────────
 
   it("returns standardized error when service throws HttpError", async () => {
-    vi.mocked(login).mockRejectedValueOnce(
+    vi.mocked(AuthService.login).mockRejectedValueOnce(
       createHttpError(401, "unauthorized", "invalid credentials")
     );
 

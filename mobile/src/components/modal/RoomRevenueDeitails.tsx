@@ -1,5 +1,5 @@
 import { systemColors } from '@/constants/misc/systemColors.misc';
-import { RoomRevenue } from '@/types/roomRevenue.type';
+import { RoomRevenue } from '@/types/room/roomRevenue.type';
 import { priceFormat } from '@/utils/priceFormat';
 import { Feather } from '@expo/vector-icons';
 import React from 'react'

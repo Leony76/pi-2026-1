@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
@@ -112,7 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ token, refreshToken, isLoadingSession, signIn, updateTokens, signOut }),
+    () => ({ 
+      token, 
+      refreshToken, 
+      isLoadingSession, 
+      signIn, 
+      updateTokens, 
+      signOut 
+    }),
     [token, refreshToken, isLoadingSession, signIn, updateTokens, signOut]
   );
 

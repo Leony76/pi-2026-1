@@ -15,12 +15,7 @@ vi.mock("../src/lib/prisma", () => ({
 // ─── Imports ────────────────────────────────────────────────────────────────
 
 import prisma from "../src/lib/prisma";
-import {
-  createPatient,
-  getActivePatients,
-  getPatientById,
-  getPatientHistory,
-} from "../src/modules/patient/service";
+import { PatientService } from "../src/modules/patient/service";
 
 const FIXED_NOW = new Date("2026-04-25T12:00:00.000Z");
 
@@ -93,7 +88,7 @@ describe("patient service", () => {
         }),
       ] as never);
 
-      const patients = await getActivePatients("prof-1");
+      const patients = await PatientService.getActivePatients("prof-1");
 
       expect(patients).toEqual([
         {
@@ -122,7 +117,7 @@ describe("patient service", () => {
         }),
       ] as never);
 
-      const patients = await getActivePatients("prof-1");
+      const patients = await PatientService.getActivePatients("prof-1");
 
       expect(patients[0]).toEqual(
         expect.objectContaining({
@@ -135,7 +130,7 @@ describe("patient service", () => {
     it("returns an empty array when there are no active patients", async () => {
       vi.mocked(prisma.patient.findMany).mockResolvedValueOnce([] as never);
 
-      const patients = await getActivePatients("prof-1");
+      const patients = await PatientService.getActivePatients("prof-1");
 
       expect(patients).toEqual([]);
     });
@@ -143,7 +138,7 @@ describe("patient service", () => {
     it("propagates Prisma failures", async () => {
       vi.mocked(prisma.patient.findMany).mockRejectedValueOnce(new Error("DB error"));
 
-      await expect(getActivePatients("prof-1")).rejects.toThrow("DB error");
+      await expect(PatientService.getActivePatients("prof-1")).rejects.toThrow("DB error");
     });
   });
 
@@ -168,7 +163,7 @@ describe("patient service", () => {
         }),
       ] as never);
 
-      const history = await getPatientHistory("prof-1");
+      const history = await PatientService.getPatientHistory("prof-1");
 
       expect(history).toEqual([
         {
@@ -191,7 +186,7 @@ describe("patient service", () => {
         }),
       ] as never);
 
-      const history = await getPatientHistory("prof-1");
+      const history = await PatientService.getPatientHistory("prof-1");
 
       expect(history[0]).toEqual(
         expect.objectContaining({
@@ -204,7 +199,7 @@ describe("patient service", () => {
     it("returns an empty array when there are no closed patients", async () => {
       vi.mocked(prisma.patient.findMany).mockResolvedValueOnce([] as never);
 
-      const history = await getPatientHistory("prof-1");
+      const history = await PatientService.getPatientHistory("prof-1");
 
       expect(history).toEqual([]);
     });
@@ -212,7 +207,7 @@ describe("patient service", () => {
     it("propagates Prisma failures", async () => {
       vi.mocked(prisma.patient.findMany).mockRejectedValueOnce(new Error("DB error"));
 
-      await expect(getPatientHistory("prof-1")).rejects.toThrow("DB error");
+      await expect(PatientService.getPatientHistory("prof-1")).rejects.toThrow("DB error");
     });
   });
 
@@ -222,7 +217,7 @@ describe("patient service", () => {
     it("returns null when the patient does not exist", async () => {
       vi.mocked(prisma.patient.findFirst).mockResolvedValueOnce(null as never);
 
-      const patient = await getPatientById("prof-1", "patient-404");
+      const patient = await PatientService.getPatientById("prof-1", "patient-404");
 
       expect(patient).toBeNull();
     });
@@ -260,7 +255,7 @@ describe("patient service", () => {
         }) as never
       );
 
-      const patient = await getPatientById("prof-1", "patient-6");
+      const patient = await PatientService.getPatientById("prof-1", "patient-6");
 
       expect(patient).toEqual({
         id: "patient-6",
@@ -300,7 +295,7 @@ describe("patient service", () => {
         }) as never
       );
 
-      const patient = await getPatientById("prof-1", "patient-7");
+      const patient = await PatientService.getPatientById("prof-1", "patient-7");
 
       expect(patient).toEqual(
         expect.objectContaining({
@@ -317,7 +312,7 @@ describe("patient service", () => {
     it("propagates Prisma failures", async () => {
       vi.mocked(prisma.patient.findFirst).mockRejectedValueOnce(new Error("DB error"));
 
-      await expect(getPatientById("prof-1", "patient-1")).rejects.toThrow("DB error");
+      await expect(PatientService.getPatientById("prof-1", "patient-1")).rejects.toThrow("DB error");
     });
   });
 
@@ -340,7 +335,7 @@ describe("patient service", () => {
         }) as never
       );
 
-      const patient = await createPatient("prof-1", {
+      const patient = await PatientService.createPatient("prof-1", {
         name: "  Ana Souza  ",
         phone: "  (11) 99999-8888  ",
         email: "  ana@teste.com  ",
@@ -378,7 +373,7 @@ describe("patient service", () => {
 
     it("rejects invalid initial dates", async () => {
       await expect(
-        createPatient("prof-1", {
+        PatientService.createPatient("prof-1", {
           name: "Ana Souza",
           phone: "(11) 99999-8888",
           initialDate: "invalid-date",
@@ -394,7 +389,7 @@ describe("patient service", () => {
       vi.mocked(prisma.patient.create).mockRejectedValueOnce(new Error("DB error"));
 
       await expect(
-        createPatient("prof-1", {
+        PatientService.createPatient("prof-1", {
           name: "Ana Souza",
           phone: "(11) 99999-8888",
           initialDate: "2026-04-30T09:00:00.000Z",

@@ -1,4 +1,4 @@
-import { HourShift } from "@/types/hourShift.type";
+import { HourShift } from "@/types/room/hourShift.type";
 
 export const isHourOccupied = (
   occupedHoursList : HourShift[],
