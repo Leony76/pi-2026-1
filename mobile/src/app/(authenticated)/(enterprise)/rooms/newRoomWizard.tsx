@@ -367,7 +367,7 @@ const NewRoomWizard = (): React.JSX.Element => {
                 <Button.Default
                   customStyle={{ container: 'mt-3' }}
                   filled
-                  disable={!!step1ActiveErros && !roomImage}
+                  disable={!!step1ActiveErros || !roomImage}
                   icon={{ name: 'right_arrow', size: { width: 20, height: 20 } }}
                   label='Próximo'
                   onTouch={() => {

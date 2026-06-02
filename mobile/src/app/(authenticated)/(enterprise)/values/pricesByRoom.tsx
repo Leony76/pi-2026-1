@@ -61,11 +61,11 @@ const PricesByRoom = (): React.JSX.Element => {
     return roomPrices.filter((item) => item.room.toLowerCase().includes(search));
   }, [searchValue, values]);
 
-  const allocationLabelMap: Record<Allocation, string> = {
-    DAILY: 'Por dia',
-    WEEK: 'Por semana',
-    MONTH: 'Por mês',
-  };
+  // const allocationLabelMap: Record<Allocation, string> = {
+  //   DAILY: 'Por dia',
+  //   WEEK: 'Por semana',
+  //   MONTH: 'Por mês',
+  // };
 
   if (isLoading) {
     return (
@@ -164,7 +164,7 @@ const PricesByRoom = (): React.JSX.Element => {
                     separationRow={filteredList.length - 1 !== index}
                     key={item.id}
                     label={item.room}
-                    value={{ _: `${allocationLabelMap[pricesRender]}: ${priceFormat(allocationTypePrice)}`, color: 'text-green-600' }}
+                    value={{ _: priceFormat(allocationTypePrice), color: 'text-green-600' }}
                   />
                 );
               }}

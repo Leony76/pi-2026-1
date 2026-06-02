@@ -53,7 +53,7 @@ const Home = (): React.JSX.Element => {
     loadDashboard();
   }, [auth]);
 
-  const occupationPreview = dashboard?.roomOccupation.slice(0, 3) ?? [];
+  const occupationPreview = dashboard?.roomOccupation ?? [];
 
   if (isLoading) {
     return (
@@ -184,7 +184,7 @@ const Home = (): React.JSX.Element => {
             </View>
 
             { occupationPreview.length > 0 ? (
-              occupationPreview.map(( item ) => (
+              occupationPreview.slice(0, 3).map(( item ) => (
                 <Card.RoomOccupation
                   key={item.id}
                 { ...item }

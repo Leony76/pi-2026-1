@@ -21,6 +21,14 @@ export class RoomService {
 			auth.signOut
 		);
 	}
+
+
+
+	public static async remove(
+		id   : string
+	) {
+		
+	}
 	
 
 

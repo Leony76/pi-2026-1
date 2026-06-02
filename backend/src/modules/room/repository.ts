@@ -251,6 +251,11 @@ export class RoomRepository {
 				id: true,
 				title: true,
 				displayImage: true,
+				rentals: {
+					select: {
+						id: true
+					}
+				},
 				floor: true,
 				area: true,
 				isAvailable: true,
