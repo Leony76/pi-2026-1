@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --medroom-primary-color: #1AAFB4;
+    --medroom-primary-color-light: #1aafb459;
+    --medroom-secondary-color: #848a94;
+  }
+
+  text {
+    font-family: Nunito-Regular;
+  }
+}
