@@ -12,11 +12,11 @@ import { useAuth } from '@/contexts/auth.context';
 import Toast from '../ui/Toast';
 import { AuthHandlers } from '@/types/auth/authHandlers.type';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Modal } from '../modal';
 
 type Props = RoomDisplayCard & {
   pressable?       : boolean;
   fromManagerView? : boolean;
+  remove?          : (roomId: string) => void;
 };
 
 const DisplayRoom = (props:Props): React.JSX.Element => {
@@ -26,18 +26,8 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
 
   const { token, refreshToken, updateTokens, signOut } = useAuth();
 
-  const [modal, setModal] = useState<'REMOVE_ROOM' | null>(null);
   const [ isAvailable, setIsAvailable ] = useState<boolean>(props.isAvailable);
   const [ toggleErrorMessage, setToggleErrorMessage ] = useState<string | null>(null);
-
-  const handleRemoveRoom = async(id: string): Promise<void> => {
-    try {
-  
-      const response = await RoomService.remove(id);
-    } catch (error:unknown) { 
-      if (error instanceof Error) setToggleErrorMessage(error.message);
-    }
-  };
 
   const toggleRoomAvailability = async(): Promise<void> => {
     try {
@@ -125,13 +115,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
             </Text>
           </View>
 
-          <Modal.ConfirmAction
-            confirmMessage='Tem certeza em remover está sala ?'
-            onConfirm={() => handleRemoveRoom(String(props.id))}
-            onRequestClose={() => setModal(null)}
-            visible={modal === 'REMOVE_ROOM'}
-          />
-
+          
           <Button.Default
             label='Editar sala'
             onTouch={() => router.push(`/(authenticated)/(enterprise)/rooms/edit/${props.id}`)}
@@ -140,7 +124,7 @@ const DisplayRoom = (props:Props): React.JSX.Element => {
 
           <Button.Default
             label='Remover sala'
-            onTouch={() => setModal('REMOVE_ROOM')}
+            onTouch={() => props.remove?.(String(props.id))}
             customStyle={{
               container: 'bg-red-50 border-red-500',
               text: 'text-red-500'

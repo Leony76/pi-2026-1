@@ -13,7 +13,7 @@ import { AuthHandlers } from '@/types/auth/authHandlers.type';
 
 const Home = (): React.JSX.Element => {
 
-  const auth = useAuth();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
 
   const { profile } = useLoggedUserData(); 
   const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
@@ -23,16 +23,16 @@ const Home = (): React.JSX.Element => {
   useEffect(() => {
     (async () => {
       try {
-        if (!auth.refreshToken || !auth.token) return;
+        if (!refreshToken || !token) return;
 
         setLoading(true);
         setError(null);
 
         const authHandlers: AuthHandlers = { 
-          refreshToken : auth.refreshToken,
-          token        : auth.token,
-          signOut      : auth.signOut,
-          updateTokens : auth.updateTokens,
+          refreshToken : refreshToken,
+          token        : token,
+          signOut      : signOut,
+          updateTokens : updateTokens,
         };
 
         const data = await RoomService.fetchRooms(authHandlers);
@@ -40,9 +40,7 @@ const Home = (): React.JSX.Element => {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar salas');
         console.error('Erro ao carregar salas:', err);
-      } finally {
-        setLoading(false);
-      }
+      } 
     })();
   }, []);
 
@@ -95,7 +93,7 @@ const Home = (): React.JSX.Element => {
           contentContainerClassName='py-6'
           renderItem={({ item }) => (
             <Card.DisplayRoom
-            key={item.id}
+            key={item.id}         
             { ...item }
             />
           )}

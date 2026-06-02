@@ -182,5 +182,22 @@ export class RoomController {
 			next(error);
 		}
 	}
+
+
+
+	public static async remove(request: Request, response: Response, next: NextFunction) {
+		try {
+			const token = getTokenFromHeader(request.headers.authorization);
+			const payload = jwt.verify(token, getJwtSecret()) as AuthPayload;
+
+			const { roomId } = request.params;
+
+			const data = await RoomService.remove(payload.sub, String(roomId));
+	
+			sendSuccessResponse(response, 200, data);
+		} catch (error) {
+			next(error);
+		}
+	}
 }
 

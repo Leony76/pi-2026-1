@@ -11,11 +11,15 @@ import { FlatList, Text, View } from 'react-native'
 import ContentNotFound from '@/components/ui/ContentNotFound'
 import { useAuth } from '@/contexts/auth.context'
 import { AuthHandlers } from '@/types/auth/authHandlers.type'
+import { Modal } from '@/components/modal'
 
 const Rooms = (): React.JSX.Element => {
 
-  const auth = useAuth();
+  const { token, refreshToken, updateTokens, signOut } = useAuth();
 
+  const [modal, setModal] = useState<'REMOVE_ROOM' | null>(null);
+  const [toastMessage, setToastMessage] = useState<{message: string, type: 'ERROR' | 'SUCCESS'} | null>(null);
+  const [roomIdToRemove, setRoomIdToRemove] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState<boolean>(false);
   const [rooms, setRooms] = useState<RoomDisplayCard[]>([]);
   const [urlParamsMessage, setUrlParamsMessage] = useState<string | null>(null);
@@ -23,18 +27,43 @@ const Rooms = (): React.JSX.Element => {
   const [roomsError, setRoomsError] = useState<string | null>(null);
   const params = useLocalSearchParams<{ message?: string }>();
   
+  const handleRemoveRoom = async(id: string): Promise<void> => {
+    if (!refreshToken || !token) return;
+    
+    try {
+      const authHandlers: AuthHandlers = {
+        refreshToken,
+        token,
+        signOut,      
+        updateTokens,
+      };
+
+      const response = await RoomService.remove(authHandlers ,id);
+
+      if (response.success) {
+        setToastMessage({message: response.message, type: 'SUCCESS' });
+        setRooms(prev => prev.filter(room => room.id !== id));
+      }
+    } catch (error:unknown) { 
+      if (error instanceof Error) setToastMessage({message: error.message, type: 'ERROR'});;
+    } finally {
+      setRoomIdToRemove(null);
+      setModal(null);
+    }
+  };
+
   useEffect(() => {
     (async() => {
       try {
-        if (!auth.refreshToken || !auth.token) return;
+        if (!refreshToken || !token) return;
         setIsLoadingRooms(true);
         setRoomsError(null);
 
         const authHandlers: AuthHandlers = { 
-          refreshToken : auth.refreshToken,
-          token        : auth.token,
-          signOut      : auth.signOut,
-          updateTokens : auth.updateTokens,
+          refreshToken : refreshToken,
+          token        : token,
+          signOut      : signOut,
+          updateTokens : updateTokens,
         };
 
         const roomsData = await RoomService.fetchRooms(authHandlers);
@@ -46,7 +75,7 @@ const Rooms = (): React.JSX.Element => {
         setIsLoadingRooms(false);
       }
     })();
-  }, []);
+  }, [token, refreshToken, updateTokens, signOut]);
 
   useEffect(() => {
     if (typeof params.message === 'string' && params.message.trim()) {
@@ -69,6 +98,24 @@ const Rooms = (): React.JSX.Element => {
           message={urlParamsMessage}
           onClose={handleCloseToast}
           visible={toastVisible}
+        />
+      }
+
+      <Modal.ConfirmAction
+        confirmMessage='Tem certeza em remover está sala ?'
+        onConfirm={() => { 
+          if (!roomIdToRemove) return;
+          handleRemoveRoom(String(roomIdToRemove));
+        }}
+        onRequestClose={() => setModal(null)}
+        visible={modal === 'REMOVE_ROOM'}
+      />
+
+      { toastMessage &&
+        <Toast
+          message={toastMessage.message}
+          onClose={() => setToastMessage(null)}
+          visible={!!toastMessage}
         />
       }
 
@@ -107,6 +154,10 @@ const Rooms = (): React.JSX.Element => {
             renderItem={({ item }) => (
               <Card.DisplayRoom
                 fromManagerView
+                remove={(roomId) => {
+                  setModal('REMOVE_ROOM');
+                  setRoomIdToRemove(roomId);
+                }}
                 pressable={false}
                 key={item.id}
                 { ...item }

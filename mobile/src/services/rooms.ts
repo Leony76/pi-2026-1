@@ -7,6 +7,7 @@ import { UpdateRoom } from "@/types/room/updateRoom.type";
 import { RoomOccupancyResponse } from "@/types/room/roomOccupancyResponse.type";
 import { RoomRental } from "@/types/room/roomRental.type";
 import { CreateRoomRental } from "@/types/room/createRoomRental.type";
+import { RoomRemovalResponse } from "@/types/room/roomRemovalResponse.type";
 
 export class RoomService {
 
@@ -25,9 +26,17 @@ export class RoomService {
 
 
 	public static async remove(
+		auth : AuthHandlers,
 		id   : string
-	) {
-		
+	): Promise<RoomRemovalResponse> {
+		return ApiService.patchWithAuth<RoomRemovalResponse>(
+			`/rooms/${id}/remove`,
+			{ id },
+			auth.token,
+			auth.refreshToken,
+			auth.updateTokens,
+			auth.signOut
+		)
 	}
 	
 

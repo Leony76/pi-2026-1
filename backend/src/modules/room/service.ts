@@ -19,6 +19,7 @@ import { enterpriseDashboardMapper } from "./mappers/enterpriseDashboard.mapper"
 import { enterpriseValuesMapper } from "./mappers/enterpriseValues.mapper";
 import { CreateRoomResponse } from "../../types/room/createRoomInput.type";
 import { createRoomPayloadMapper } from "./mappers/createRoomPayload.mapper";
+import { RoomRemovalResponse } from "../../types/room/roomRemovalResponse.type";
 
 export class RoomService {
 
@@ -220,6 +221,34 @@ export class RoomService {
 			monthlyRentals,
 			rooms,
 		)
+	}
+
+
+
+	public static async remove(userId: string, id: string): Promise<RoomRemovalResponse> {
+		const [user, room, roomhasSomeRental] = await Promise.all([
+			RoomRepository.getUserAccountTypeById(userId),
+			RoomRepository.findRoomById(id),
+			RoomRepository.roomHasSomeRental(id),
+		]);
+	
+		if (!user) {
+			throw createHttpError(404, "not_found", "Usuário não encontrado!");
+		} if (user.accountType !== "ENTERPRISE") {
+			throw createHttpError(403, "forbidden", "Acesso restrito ao painel da empresa.");
+		} if (!room) {
+			throw createHttpError(404, "not_found", "Sala não encontrada!");
+		} if (roomhasSomeRental) {
+			throw createHttpError(403, "forbidden", "A sala possui ao menos um aluguel e não pode ser removida!");
+		}
+
+		const roomRemoval = await RoomRepository.remove(id);
+
+		return {
+			message  : `${roomRemoval.title} removida com sucesso!`,
+			roomName : roomRemoval.title,
+			success  : true,
+		}
 	}
 }
 

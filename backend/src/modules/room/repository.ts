@@ -28,6 +28,7 @@ export class RoomRepository {
 
 		const [rooms, activeRentals, _historyRentals, entriesToday, exitsToday, _latestEntryExit] = await Promise.all([
 			prisma.room.findMany({
+				where: { deletedAt: null },
 				select: {
 					id: true,
 					title: true,
@@ -39,6 +40,7 @@ export class RoomRepository {
 			prisma.roomRental.findMany({
 				where: {
 					startDate: { lte: now },
+					room: { deletedAt: null},
 					endDate: { gte: now },
 				},
 				select: {
@@ -65,6 +67,7 @@ export class RoomRepository {
 			prisma.roomRental.findMany({
 				where: {
 					endDate: { lt: now },
+					room: { deletedAt: null},
 				},
 				select: {
 					id: true,
@@ -82,6 +85,7 @@ export class RoomRepository {
 				},
 				orderBy: { endDate: "desc" },
 			}),
+
 			prisma.entryExit.count({
 				where: {
 					enteredAt: {
@@ -90,6 +94,7 @@ export class RoomRepository {
 					},
 				},
 			}),
+
 			prisma.entryExit.count({
 				where: {
 					exitedAt: {
@@ -98,6 +103,7 @@ export class RoomRepository {
 					},
 				},
 			}),
+
 			prisma.entryExit.findMany({
 				where: {
 					enteredAt: {
@@ -166,6 +172,7 @@ export class RoomRepository {
     return await prisma.roomRental.findMany({
 			where: {
 				endDate: { lt: new Date() },
+				room: { deletedAt: null },
 			},
 			select: {
 				id: true,
@@ -188,7 +195,10 @@ export class RoomRepository {
 	
 	public static async getRoomOccupancy(roomId: string): Promise<RoomOccupancyResponse> {
 		const room = await prisma.room.findUnique({
-			where: { id: roomId },
+			where: { 
+				id: roomId,
+				deletedAt: null,
+			},
 			select: { id: true },
 		});
 	
@@ -201,6 +211,7 @@ export class RoomRepository {
 			where: {
 				roomId,
 				endDate: { gte: now },
+				room: { deletedAt: null},
 			},
 			select: {
 				selectedWeekDay: true,
@@ -225,7 +236,10 @@ export class RoomRepository {
 
   public static async getRoomAvailabilityById(id: string) {
     return await prisma.room.findUnique({
-			where: { id },
+			where: { 
+				id,
+				deletedAt: null,
+			},
 			select: { isAvailable: true },
 		})
   }
@@ -236,6 +250,7 @@ export class RoomRepository {
     return await prisma.roomRental.findFirst({
       where: {
         roomId,
+				room: { deletedAt: null},
         startDate: { lt: endDate },
         endDate: { gt: startDate },
       },
@@ -247,6 +262,7 @@ export class RoomRepository {
 	
 	public static async getRoomsList() {
 		return await prisma.room.findMany({
+			where: { deletedAt: null },
 			select: {
 				id: true,
 				title: true,
@@ -303,6 +319,7 @@ export class RoomRepository {
 			where: {
 				roomId,
 				endDate: { gte: new Date() },
+				room: { deletedAt: null},
 			},
 			select: {
 				selectedWeekDay: true,
@@ -316,7 +333,10 @@ export class RoomRepository {
 
   public static async findRoomById(id: string) {
     return await prisma.room.findUnique({
-			where: { id },
+			where: { 
+				id,
+				deletedAt: null,
+			},
 			select: { id: true },
 		})
   }
@@ -329,6 +349,7 @@ export class RoomRepository {
   ) {
     return prisma.room.findFirst({
       where: {
+				deletedAt: null,
         enterpriseOwnerId,
         title: roomName,
       },
@@ -368,7 +389,10 @@ export class RoomRepository {
 	
 	public static async getRoomDetailsById(roomId : string) {
 		return await prisma.room.findUnique({
-			where: { id: roomId },
+			where: { 
+				id: roomId,
+				deletedAt: null,
+			},
 			select: { 
 				title: true,
 				area: true,
@@ -400,7 +424,10 @@ export class RoomRepository {
 		data: UpdateRoom,
 	) {
 		return await prisma.room.update({
-			where: { id: roomId },
+			where: { 
+				id: roomId,
+				deletedAt: null,
+			},
 			data: {
 				area: data.area,
 				characteristic: data.characteristics as RoomCharacteristic,
@@ -447,7 +474,10 @@ export class RoomRepository {
 		status: boolean,
 	) {
 		return await prisma.room.update({
-			where : { id: roomId },
+			where : { 
+				id: roomId,
+				deletedAt: null, 
+			},
 			data  : { isAvailable: status }
 		});
 	}
@@ -456,7 +486,10 @@ export class RoomRepository {
 	
 	public static async getUserRentals(professionalId: string) {
 		return await prisma.roomRental.findMany({
-			where: { professionalId },
+			where: { 
+				professionalId,
+				room: { deletedAt: null},
+			},
 			include: {
 				room: {
 					select: {
@@ -489,6 +522,7 @@ export class RoomRepository {
 	
 		const [rooms, monthlyRentals, expensesSummary] = await Promise.all([
 			prisma.room.findMany({
+				where: { deletedAt: null },
 				select: {
 					id: true,
 					title: true,
@@ -504,8 +538,10 @@ export class RoomRepository {
 					createdAt: "asc",
 				},
 			}),
+
 			prisma.roomRental.findMany({
 				where: {
+					room: { deletedAt: null},
 					startDate: {
 						gte: monthStart,
 						lt: nextMonthStart,
@@ -522,6 +558,7 @@ export class RoomRepository {
 					},
 				},
 			}),
+
 			prisma.expense.aggregate({
 				where: {
 					date: {
@@ -543,6 +580,35 @@ export class RoomRepository {
 			monthlyRentals,
 			expensesSummary,
 		}
+	}
+
+
+
+	public static async roomHasSomeRental(id: string) {
+		return Boolean(await prisma.room.count({
+			where: {
+				id,
+				deletedAt: null,
+				rentals: {
+  				some: {
+						endDate: { gte: new Date() },
+					},
+				}
+			}
+		}));
+	}
+
+
+
+	public static async remove(id: string) {
+		return await prisma.room.update({
+			where  : { 
+				id,
+				deletedAt: null,
+			},
+			data   : { deletedAt: new Date() },
+			select : { title: true }
+		});
 	}
 }
 
