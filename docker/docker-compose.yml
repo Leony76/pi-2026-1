@@ -8,6 +8,17 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: app
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256\nhost replication replicator all scram-sha-256"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: |
+      postgres
+        -c wal_level=replica
+        -c max_wal_senders=10
+        -c max_replication_slots=10
+        -c hot_standby=on
+    volumes:
+      - master_data:/var/lib/postgresql/data
+      - ./master/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
 
@@ -15,11 +26,26 @@ services:
     image: postgres:15
     container_name: postgres-slave
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      PGPASSWORD: replicator_password
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+          until pg_isready -h postgres-master -U user -d app; do sleep 1; done
+          rm -rf /var/lib/postgresql/data/*
+          PGPASSWORD="$$PGPASSWORD" pg_basebackup -h postgres-master -U replicator -D /var/lib/postgresql/data -Fp -Xs -R -P
+        fi
+        chown -R postgres:postgres /var/lib/postgresql/data
+        chmod 700 /var/lib/postgresql/data
+        exec gosu postgres /usr/lib/postgresql/15/bin/postgres
+    volumes:
+      - slave_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-  
+    depends_on:
+      - postgres-master
+
   traefik:
     image: traefik:v2.10
     command:
@@ -41,3 +67,7 @@ services:
       - "traefik.http.routers.api.rule=Host(`localhost`)"
     environment:
       DATABASE_URL: "postgresql://user:password@postgres-master:5432/app"
+
+volumes:
+  master_data:
+  slave_data:
