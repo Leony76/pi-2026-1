@@ -12,23 +12,29 @@ Marketplace para conectar médicos especialistas a clínicas com horários ocios
 
 ## Como rodar
 
-### 1. Banco de dados
+### 1. Docker
 
-```bash
-docker compose -f docker/docker-compose.yml up -d postgres-master
+```powershell
+Copy-Item .env.example .env  # Windows
+docker compose -f docker/docker-compose.yml up -d postgres-master postgres-slave traefik api
 ```
+
+Esse `.env` único alimenta o backend e o Docker. O compose sobe o master na porta `5432`, o slave na `5433` e a API atrás do Traefik em `http://localhost`.
+A API continua apontando para o master, então a leitura/escrita fica consistente e a réplica consegue acompanhar os dados.
+Se você já estiver com o Node local usando a `3333`, a API do container fica exposta em `http://localhost:3334`.
 
 ### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env   # Windows: Copy-Item .env.example .env
 npm install
 npm run prisma:migrate
 npm run dev
 ```
 
-API disponível em `http://localhost:3333`
+O backend passa a ler as variáveis do `.env` da raiz do projeto.
+
+API disponível em `http://localhost:3333` quando rodar localmente sem Docker.
 
 ### 3. Mobile
 
