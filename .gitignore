@@ -16,6 +16,10 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Docker runtime data
+docker/master_data/
+docker/slave_data/
+
 # Dependency folders
 node_modules/
 
