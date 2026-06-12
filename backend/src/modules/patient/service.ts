@@ -4,8 +4,14 @@ import { CreatePatientInput } from "../../types/patient/createPatientInput.type"
 import { PatientRepository } from "./repository";
 import { getPatientMapper } from "./mappers/getPatient.mapper";
 
-function isValidDate(value: unknown): value is Date {
-	return value instanceof Date && !Number.isNaN(value.getTime());
+function normalizeDate(value: unknown, fieldName: string): Date {
+	const date = new Date(value as string | number | Date);
+
+	if (Number.isNaN(date.getTime())) {
+		throw createHttpError(400, "bad_request", `Campo ${fieldName} invalido.`);
+	}
+
+	return date;
 }
 
 export class PatientService {
@@ -94,10 +100,9 @@ export class PatientService {
 		const phone = data.phone?.trim();
 		const email = data.email?.trim() || null;
 		const observations = data.observations?.trim() || null;
+		const startHour = normalizeDate(data.startHour, "startHour");
+		const endHour = normalizeDate(data.endHour, "endHour");
 
-		if (!isValidDate(data.startHour) || !isValidDate(data.endHour)) {
-			throw createHttpError(400, "bad_request", "Campo startHour invalido.");
-		}
 	
 		if (!name || name.length < 3) {
 			throw createHttpError(400, "bad_request", "Nome invalido.");
@@ -107,8 +112,8 @@ export class PatientService {
 
 		const conflict = await PatientRepository.existsSessionConflict(
 			professionalId,
-			data.startHour,
-			data.endHour
+			startHour,
+			endHour
 		);
 
 		if (conflict) {
@@ -117,8 +122,8 @@ export class PatientService {
 	
 		const createdPatient = await PatientRepository.createPatient(professionalId, {
 			professionalId: data.professionalId,
-			startHour: data.startHour,
-			endHour: data.endHour,
+			startHour,
+			endHour,
 			name,
 			phone,
 			email,

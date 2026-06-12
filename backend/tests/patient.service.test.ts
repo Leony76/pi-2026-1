@@ -398,6 +398,45 @@ describe("patient service", () => {
       );
     });
 
+    it("accepts ISO date strings from JSON payloads", async () => {
+      vi.mocked(prisma.patient.create).mockResolvedValueOnce(
+        makePatient({
+          id: "patient-9",
+          name: "Marina Costa",
+          phone: "(11) 97777-6666",
+          email: null,
+          observations: null,
+          status: "ACTIVE",
+          initialDate: new Date("2026-04-30T09:00:00.000Z"),
+          createdAt: new Date("2026-04-25T09:00:00.000Z"),
+          updatedAt: new Date("2026-04-25T09:00:00.000Z"),
+          sessions: [],
+        }) as never
+      );
+
+      await PatientService.createPatient("prof-1", {
+        professionalId: "prof-1",
+        name: "Marina Costa",
+        phone: "(11) 97777-6666",
+        startHour: "2026-04-30T09:00:00.000Z" as never,
+        endHour: "2026-04-30T10:00:00.000Z" as never,
+      });
+
+      expect(prisma.patient.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sessions: {
+              create: {
+                startsAt: new Date("2026-04-30T09:00:00.000Z"),
+                endsAt: new Date("2026-04-30T10:00:00.000Z"),
+                professionalId: "prof-1",
+              },
+            },
+          }),
+        })
+      );
+    });
+
     it("rejects invalid initial dates", async () => {
       await expect(
         PatientService.createPatient("prof-1", {
