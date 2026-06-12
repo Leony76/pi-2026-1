@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../src/lib/prisma", () => ({
   default: {
+    session: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+    },
     patient: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -69,14 +73,18 @@ describe("patient service", () => {
           id: "patient-1",
           name: "Ana Souza",
           status: "ACTIVE",
-          nextSessionAt: new Date("2026-04-28T10:00:00.000Z"),
-          sessions: [],
+          sessions: [
+            makeSession({
+              startsAt: new Date("2026-04-28T09:00:00.000Z"),
+              endsAt: new Date("2026-04-28T10:00:00.000Z"),
+              price: "110.00",
+            }),
+          ],
         }),
         makePatient({
           id: "patient-2",
           name: "Bruno Lima",
           status: "ACTIVE",
-          nextSessionAt: null,
           sessions: [
             makeSession({
               startsAt: new Date("2026-04-27T09:00:00.000Z"),
@@ -95,13 +103,19 @@ describe("patient service", () => {
           id: "patient-1",
           name: "Ana Souza",
           status: "ACTIVE",
-          nextSession: "2026-04-28T10:00:00.000Z",
+          nextSession: {
+            startHour: "2026-04-28T09:00:00.000Z",
+            endHour: "2026-04-28T10:00:00.000Z",
+          },
         },
         {
           id: "patient-2",
           name: "Bruno Lima",
           status: "ACTIVE",
-          nextSession: "2026-04-27T09:00:00.000Z",
+          nextSession: {
+            startHour: "2026-04-27T09:00:00.000Z",
+            endHour: "2026-04-27T10:00:00.000Z",
+          },
         },
       ]);
     });
@@ -112,7 +126,6 @@ describe("patient service", () => {
           id: "patient-3",
           name: "Carla Mendes",
           status: "ACTIVE",
-          nextSessionAt: null,
           sessions: [],
         }),
       ] as never);
@@ -169,7 +182,10 @@ describe("patient service", () => {
         {
           id: "patient-4",
           patientName: "Daniel Rocha",
-          lastSession: "2026-04-24T09:00:00.000Z",
+          lastSession: {
+            startHour: "2026-04-24T09:00:00.000Z",
+            endHour: "2026-04-24T10:00:00.000Z",
+          },
           status: "CLOSED",
         },
       ]);
@@ -191,7 +207,10 @@ describe("patient service", () => {
       expect(history[0]).toEqual(
         expect.objectContaining({
           id: "patient-5",
-          lastSession: "2026-04-23T18:00:00.000Z",
+          lastSession: {
+            startHour: "2026-04-23T18:00:00.000Z",
+            endHour: "2026-04-23T18:00:00.000Z",
+          },
         })
       );
     });
@@ -336,11 +355,13 @@ describe("patient service", () => {
       );
 
       const patient = await PatientService.createPatient("prof-1", {
+        professionalId: "prof-1",
         name: "  Ana Souza  ",
         phone: "  (11) 99999-8888  ",
         email: "  ana@teste.com  ",
         observations: "  Primeira consulta  ",
-        initialDate: "2026-04-30T09:00:00.000Z",
+        startHour: new Date("2026-04-30T09:00:00.000Z"),
+        endHour: new Date("2026-04-30T10:00:00.000Z"),
       });
 
       expect(prisma.patient.create).toHaveBeenCalledWith(
@@ -351,8 +372,14 @@ describe("patient service", () => {
             phone: "(11) 99999-8888",
             email: "ana@teste.com",
             observations: "Primeira consulta",
-            initialDate: new Date("2026-04-30T09:00:00.000Z"),
             status: "ACTIVE",
+            sessions: {
+              create: {
+                startsAt: new Date("2026-04-30T09:00:00.000Z"),
+                endsAt: new Date("2026-04-30T10:00:00.000Z"),
+                professionalId: "prof-1",
+              },
+            },
           }),
         })
       );
@@ -374,14 +401,16 @@ describe("patient service", () => {
     it("rejects invalid initial dates", async () => {
       await expect(
         PatientService.createPatient("prof-1", {
+          professionalId: "prof-1",
           name: "Ana Souza",
           phone: "(11) 99999-8888",
-          initialDate: "invalid-date",
+          startHour: new Date("invalid-date"),
+          endHour: new Date("2026-04-30T10:00:00.000Z"),
         })
       ).rejects.toMatchObject({
         statusCode: 400,
         code: "bad_request",
-        message: "Campo initialDate invalido.",
+        message: "Campo startHour invalido.",
       });
     });
 
@@ -390,9 +419,11 @@ describe("patient service", () => {
 
       await expect(
         PatientService.createPatient("prof-1", {
+          professionalId: "prof-1",
           name: "Ana Souza",
           phone: "(11) 99999-8888",
-          initialDate: "2026-04-30T09:00:00.000Z",
+          startHour: new Date("2026-04-30T09:00:00.000Z"),
+          endHour: new Date("2026-04-30T10:00:00.000Z"),
         })
       ).rejects.toThrow("DB error");
     });

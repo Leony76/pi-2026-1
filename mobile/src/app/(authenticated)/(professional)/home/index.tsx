@@ -21,9 +21,14 @@ const Home = (): React.JSX.Element => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+
+    const loadRooms = async () => {
       try {
-        if (!refreshToken || !token) return;
+        if (!refreshToken || !token) {
+          setLoading(false);
+          return;
+        }
 
         setLoading(true);
         setError(null);
@@ -36,13 +41,23 @@ const Home = (): React.JSX.Element => {
         };
 
         const data = await RoomService.fetchRooms(authHandlers);
-        setRooms(data);
+        if (!cancelled) setRooms(data);
       } catch (err) {
+        if (cancelled) return;
+
         setError(err instanceof Error ? err.message : 'Erro ao carregar salas');
         console.error('Erro ao carregar salas:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       } 
-    })();
-  }, []);
+    };
+
+    void loadRooms();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshToken, token, signOut, updateTokens]);
 
   if (loading) {
     return (

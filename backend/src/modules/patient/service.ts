@@ -4,6 +4,10 @@ import { CreatePatientInput } from "../../types/patient/createPatientInput.type"
 import { PatientRepository } from "./repository";
 import { getPatientMapper } from "./mappers/getPatient.mapper";
 
+function isValidDate(value: unknown): value is Date {
+	return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
 export class PatientService {
 
 	public static async getActivePatients(professionalId: string, limit?: number) {
@@ -11,19 +15,18 @@ export class PatientService {
 		const patients = await PatientRepository.getActivePatients(professionalId, limit);
 	
 		return patients.map((patient) => {
-			const nextSession = {
-				startHour: patient.sessions[0]?.startsAt ?? null,
-				endHour: patient.sessions[0]?.endsAt ?? null,
-			} 
+			const nextSession = patient.sessions[0];
 	
 			return {
 				id: patient.id,
 				name: patient.name,
 				status: 'ACTIVE',
-				nextSession: {
-					startHour : nextSession.startHour?.toISOString(),
-					endHour   : nextSession.endHour?.toISOString(),
-				}
+				nextSession: nextSession
+					? {
+						startHour: nextSession.startsAt.toISOString(),
+						endHour: nextSession.endsAt.toISOString(),
+					}
+					: null,
 			};
 		});
 	}
@@ -50,8 +53,8 @@ export class PatientService {
 			patientName: patient.name,
 			status: 'CLOSED',
 			lastSession: {
-				startHour : patient.sessions[0]?.startsAt.toISOString(),
-				endHour   : patient.sessions[0]?.endsAt.toISOString(),
+				startHour: patient.sessions[0]?.startsAt?.toISOString() ?? patient.updatedAt.toISOString(),
+				endHour: patient.sessions[0]?.endsAt?.toISOString() ?? patient.updatedAt.toISOString(),
 			}
 		}));
 	}
@@ -91,6 +94,10 @@ export class PatientService {
 		const phone = data.phone?.trim();
 		const email = data.email?.trim() || null;
 		const observations = data.observations?.trim() || null;
+
+		if (!isValidDate(data.startHour) || !isValidDate(data.endHour)) {
+			throw createHttpError(400, "bad_request", "Campo startHour invalido.");
+		}
 	
 		if (!name || name.length < 3) {
 			throw createHttpError(400, "bad_request", "Nome invalido.");

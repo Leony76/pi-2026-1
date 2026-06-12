@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
-import { AuthService } from "./auth";
 import { ApiErrorPayload } from "@/types/auth/apiErrorPayload.type";
+import { RefreshTokenResponse } from "@/types/auth/refreshTokenResponse.type";
 import { RefreshTokenHandler } from "@/types/auth/refreshTokenHandler.type";
 import { SignOutHandler } from "@/types/auth/signOutHandler.type";
 
@@ -133,7 +133,7 @@ export class ApiService {
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 401) {
         try {
-          const refreshResponse = await AuthService.refreshAccessToken(refreshToken);
+          const refreshResponse = await this.refreshAccessToken(refreshToken);
           
           await onTokensRefreshed(refreshResponse.token, refreshResponse.refreshToken);
           
@@ -162,7 +162,7 @@ export class ApiService {
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 401) {
         try {
-          const refreshResponse = await AuthService.refreshAccessToken(refreshToken);
+          const refreshResponse = await this.refreshAccessToken(refreshToken);
 
           await onTokensRefreshed(refreshResponse.token, refreshResponse.refreshToken);
 
@@ -191,7 +191,7 @@ export class ApiService {
 
       if (error instanceof ApiError && error.statusCode === 401) {
         try {
-          const refreshResponse = await AuthService.refreshAccessToken(refreshToken);
+          const refreshResponse = await this.refreshAccessToken(refreshToken);
 
           await onTokensRefreshed(refreshResponse.token, refreshResponse.refreshToken);
           
@@ -204,6 +204,11 @@ export class ApiService {
 
       throw error;
     }
+  }
+
+
+  private static async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
+    return this.post<RefreshTokenResponse>("/auth/refresh", { refreshToken });
   }
 }
 

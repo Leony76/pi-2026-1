@@ -129,6 +129,7 @@ export class PatientRepository {
 			select: {
 				id: true,
 				name: true,
+				updatedAt: true,
 				sessions: {
 					where: {
 						endsAt: {

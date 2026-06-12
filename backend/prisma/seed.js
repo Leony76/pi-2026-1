@@ -1,5 +1,20 @@
 const path = require("path");
-require("dotenv").config({ path: path.resolve(process.cwd(), "../.env") });
+const fs = require("fs");
+
+const envPaths = [path.resolve(__dirname, "../.env"), path.resolve(__dirname, "../../.env")];
+let loadedEnvPath = null;
+
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    require("dotenv").config({ path: envPath });
+    loadedEnvPath = envPath;
+    break;
+  }
+}
+
+if (!loadedEnvPath) {
+  console.warn("Nenhum arquivo .env foi encontrado para o seed.");
+}
 
 const bcrypt = require("bcrypt");
 const { PrismaClient } = require("@prisma/client");
