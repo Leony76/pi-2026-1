@@ -20,10 +20,23 @@ const Home = (): React.JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const title = `Olá Dr. ${profile ? getFirstName(profile.name) : 'Desconhecido'}!`;
+
+  const description = loading
+    ? 'Carregando salas...'
+    : error
+      ? 'Erro ao carregar salas'
+      : 'Escolha seu espaço e horário';
+
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+
+    const loadRooms = async () => {
       try {
-        if (!refreshToken || !token) return;
+        if (!refreshToken || !token) {
+          setLoading(false);
+          return;
+        }
 
         setLoading(true);
         setError(null);
@@ -36,73 +49,71 @@ const Home = (): React.JSX.Element => {
         };
 
         const data = await RoomService.fetchRooms(authHandlers);
-        setRooms(data);
+        if (!cancelled) setRooms(data);
       } catch (err) {
+        if (cancelled) return;
+
         setError(err instanceof Error ? err.message : 'Erro ao carregar salas');
         console.error('Erro ao carregar salas:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
       } 
-    })();
-  }, []);
+    };
 
-  if (loading) {
-    return (
-      <LayoutWrapper>
-        <SystemLayout 
-        title={`Olá Dr. ${profile ? getFirstName(profile.name) : 'Desconhecido'} !`} 
-        description={'Carregando salas...'} 
-        layoutType={'PROFESSIONAL'}      
-        tab='HOME'
-        > 
-          <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color="#3b82f6" />
-          </View>
-        </SystemLayout>
-      </LayoutWrapper>
-    );
-  }
+    void loadRooms();
 
-  if (error) {
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshToken, token, signOut, updateTokens]);
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-red-500 text-center">{error}</Text>
+        </View>
+      );
+    }
+
     return (
-      <LayoutWrapper>
-        <SystemLayout 
-        title={`Olá Dr. ${profile ? getFirstName(profile.name) : 'Desconhecido'} !`} 
-        description={'Erro ao carregar salas'} 
-        layoutType={'PROFESSIONAL'}      
-        tab='HOME'
-        > 
+      <FlatList
+        data={rooms}
+        keyExtractor={(item) => String(item.id)}
+        ItemSeparatorComponent={() => <View className='h-5'/>
+        }
+        contentContainerStyle={{ flexGrow: 1, paddingVertical: 24 }}
+        renderItem={({ item }) => (
+          <Card.DisplayRoom
+            {...item}
+          />
+        )}
+        ListEmptyComponent={() => (
           <View className="flex-1 justify-center items-center">
-            <Text className="text-red-500 text-center">{error}</Text>
+            <ContentNotFound text='Nenhuma sala cadastrada no sistema no momento!'/>
           </View>
-        </SystemLayout>
-      </LayoutWrapper>
+        )}
+      />
     );
-  }
+  };
 
   return (
     <LayoutWrapper>
       <SystemLayout 
-      title={`Olá Dr. ${profile ? getFirstName(profile.name) : 'Desconhecido'} !`} 
-      description={'Escolha seu espaço e horário'} 
+      title={title} 
+      description={description} 
       layoutType={'PROFESSIONAL'}      
       tab='HOME'
-      > 
-        <FlatList
-          data={rooms}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
-          ItemSeparatorComponent={() => <View className='h-5'/>}
-          contentContainerClassName='py-6'
-          renderItem={({ item }) => (
-            <Card.DisplayRoom
-            key={item.id}         
-            { ...item }
-            />
-          )}
-          ListEmptyComponent={() => (
-            <View className='fixed top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]'>
-              <ContentNotFound text='Nenhuma sala cadastrada no sistema no momento!'/>
-            </View>
-          )}
-        />
+      >
+        {renderContent()}
       </SystemLayout>
     </LayoutWrapper>
   )

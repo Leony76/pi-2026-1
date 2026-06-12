@@ -14,14 +14,14 @@ const authLimiter = (0, express_rate_limit_1.default)({
     legacyHeaders: false,
 });
 authRoutes.use(authLimiter);
-authRoutes.post("/register", controller_1.registerController);
-authRoutes.post("/login", controller_1.loginController);
-authRoutes.post("/refresh", controller_1.refreshController);
-authRoutes.post("/logout", controller_1.logoutController);
-authRoutes.post("/request-email-verification", controller_1.requestEmailVerificationController);
-authRoutes.post("/verify-email", controller_1.verifyEmailController);
-authRoutes.post("/request-password-reset", controller_1.requestPasswordResetController);
-authRoutes.post("/verify-reset-code", controller_1.verifyResetCodeController);
-authRoutes.post("/reset-password", controller_1.resetPasswordController);
+authRoutes.post("/register", controller_1.AuthController.register);
+authRoutes.post("/login", controller_1.AuthController.login);
+authRoutes.post("/refresh", controller_1.AuthController.refresh);
+authRoutes.post("/logout", controller_1.AuthController.logout);
+authRoutes.post("/request-email-verification", controller_1.AuthController.requestEmailVerification);
+authRoutes.post("/verify-email", controller_1.AuthController.verifyEmail);
+authRoutes.post("/request-password-reset", controller_1.AuthController.requestPasswordReset);
+authRoutes.post("/verify-reset-code", controller_1.AuthController.verifyResetCode);
+authRoutes.post("/reset-password", controller_1.AuthController.resetPassword);
 exports.default = authRoutes;
 //# sourceMappingURL=routes.js.map
