@@ -1,6 +1,6 @@
 services:
   postgres-master:
-    image: bitnami/postgresql:latest
+    image: soldevelo/postgresql:latest
     container_name: postgres-master
     restart: unless-stopped
     environment:
@@ -23,7 +23,7 @@ services:
       start_period: 10s
 
   postgres-slave:
-    image: bitnami/postgresql:latest
+    image: soldevelo/postgresql:latest
     container_name: postgres-slave
     restart: unless-stopped
     environment:
